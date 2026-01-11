@@ -2,6 +2,7 @@
   "displayName": "e2e",
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
+  "roots": ["<rootDir>/e2e"],
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {

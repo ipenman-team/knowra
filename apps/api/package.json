@@ -17,7 +17,7 @@
     "test:all": "jest",
     "test:ci": "jest --runInBand",
     "test:unit": "jest --selectProjects unit",
-    "test:integration": "jest --selectProjects integration",
+    "test:integration": "jest --selectProjects integration --passWithNoTests",
     "test:e2e": "jest --selectProjects e2e",
     "test:watch": "jest --watch --selectProjects unit",
     "test:cov": "jest --selectProjects unit --coverage",
