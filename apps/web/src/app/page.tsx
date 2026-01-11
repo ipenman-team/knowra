@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Tree, type TreeNode } from "@/components/common/tree";
+import {
+  parseContentToSlateValue,
+  serializeSlateValue,
+  SlateEditor,
+  type SlateValue,
+} from "@/components/common/slate-editor";
 import {
   Card,
   CardDescription,
@@ -56,6 +62,26 @@ export default function Home() {
     id: "dashboard",
   });
 
+  const [activePage, setActivePage] = useState<PageDto | null>(null);
+  const [pageLoading, setPageLoading] = useState(false);
+  const [pageTitle, setPageTitle] = useState("");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [editorValue, setEditorValue] = useState<SlateValue>(() =>
+    parseContentToSlateValue(""),
+  );
+  const [pageSaving, setPageSaving] = useState(false);
+  const lastSavedRef = useRef<{ id: string; title: string; content: string } | null>(null);
+
+  function formatTime(value: string | Date) {
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  }
+
   const dashboardCards = [
     { title: "新页面", meta: "2 小时前" },
     { title: "Getting Started", meta: "2022 年 5 月 19 日" },
@@ -87,6 +113,86 @@ export default function Home() {
       setPagesLoaded(true);
     }
   }
+
+  useEffect(() => {
+    if (selected.kind !== "page") {
+      setActivePage(null);
+      setLastSavedAt(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPageLoading(true);
+
+    (async () => {
+      try {
+        const page = await pagesApi.get(selected.id);
+        if (cancelled) return;
+        setActivePage(page);
+        setPageTitle(page.title);
+        setLastSavedAt(formatTime(page.updatedAt));
+        setEditorValue(parseContentToSlateValue(page.content));
+        lastSavedRef.current = {
+          id: page.id,
+          title: page.title,
+          content: page.content,
+        };
+      } finally {
+        if (cancelled) return;
+        setPageLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected.kind, selected.kind === "page" ? selected.id : null]);
+
+  const editorContentString = useMemo(() => serializeSlateValue(editorValue), [editorValue]);
+
+  useEffect(() => {
+    if (!activePage) return;
+
+    const currentId = activePage.id;
+    const nextTitle = pageTitle.trim() || "无标题文档";
+    const nextContent = editorContentString;
+    const lastSaved = lastSavedRef.current;
+
+    if (lastSaved?.id === currentId && lastSaved.title === nextTitle && lastSaved.content === nextContent) {
+      return;
+    }
+
+    const handle = window.setTimeout(async () => {
+      try {
+        setPageSaving(true);
+        const saved = await pagesApi.save(currentId, {
+          title: nextTitle,
+          content: nextContent,
+        });
+
+        setLastSavedAt(formatTime(saved.updatedAt));
+
+        lastSavedRef.current = {
+          id: saved.id,
+          title: saved.title,
+          content: saved.content,
+        };
+
+        setActivePage(saved);
+
+        if (selected.kind === "page" && selected.id === saved.id && selected.title !== saved.title) {
+          setSelected({ kind: "page", id: saved.id, title: saved.title });
+          await refreshPages();
+        }
+      } finally {
+        setPageSaving(false);
+      }
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(handle);
+    };
+  }, [activePage, pageTitle, editorContentString, selected]);
 
   useEffect(() => {
     if (!openMenuNodeId) return;
@@ -242,9 +348,30 @@ export default function Home() {
 
     if (selected.kind === "page") {
       return (
-        <div className="mx-auto w-full max-w-5xl space-y-2 pt-6">
-          <div className="text-2xl font-bold tracking-tight">{selected.title}</div>
-          <div className="text-sm text-muted-foreground">这里是页面内容占位。</div>
+        <div className="mx-auto w-full max-w-5xl space-y-4 pt-6">
+          <div className="space-y-2">
+            <input
+              className={cn(
+                "w-full bg-transparent text-5xl font-bold tracking-tight",
+                "placeholder:text-muted-foreground/40",
+                "focus-visible:outline-none",
+              )}
+              placeholder="请输入标题"
+              value={pageTitle}
+              disabled={pageLoading}
+              onChange={(e) => setPageTitle(e.target.value)}
+            />
+          </div>
+
+          <div className="pt-2">
+            <SlateEditor
+              key={activePage?.id ?? selected.id}
+              value={editorValue}
+              onChange={setEditorValue}
+              disabled={pageLoading}
+              placeholder="直接输入正文…"
+            />
+          </div>
         </div>
       );
     }
@@ -470,7 +597,34 @@ export default function Home() {
       </aside>
 
       <main className="flex-1 overflow-auto" aria-live="polite">
-        <div className="px-6 py-10 lg:px-11">{renderMain()}</div>
+        {selected.kind === "page" ? (
+          <div className="sticky top-0 z-20 border-b bg-background">
+            <div className="flex h-12 items-center justify-between px-6 lg:px-11">
+              <div className="flex min-w-0 items-center">
+                <div className="truncate text-sm font-medium">
+                  {pageTitle.trim() || "无标题文档"}
+                </div>
+                <div className="ml-3 shrink-0 text-xs text-muted-foreground">
+                  {pageLoading
+                    ? "加载中…"
+                    : pageSaving
+                      ? "保存中…"
+                      : lastSavedAt
+                        ? `已保存 ${lastSavedAt}`
+                        : ""}
+                </div>
+              </div>
+
+              <Button type="button" variant="default" size="sm">
+                保存
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className={cn("px-6 lg:px-11", selected.kind === "page" ? "py-6" : "py-10")}>
+          {renderMain()}
+        </div>
       </main>
 
       {deleteTarget ? (
