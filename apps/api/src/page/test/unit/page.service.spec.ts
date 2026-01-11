@@ -44,7 +44,7 @@ describe('PageService', () => {
     it('creates with defaults', async () => {
       prisma.page.create.mockResolvedValue(samplePage());
 
-      await expect(service.create({ tenantId: 't1', title: 'Hello' })).resolves.toMatchObject({
+      await expect(service.create('t1', { title: 'Hello' })).resolves.toMatchObject({
         id: 'p1',
         tenantId: 't1',
         title: 'Hello',
@@ -62,15 +62,11 @@ describe('PageService', () => {
     });
 
     it('rejects missing tenantId', async () => {
-      await expect(service.create({ tenantId: '', title: 'Hello' })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(service.create('', { title: 'Hello' })).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects missing title', async () => {
-      await expect(service.create({ tenantId: 't1', title: '' })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(service.create('t1', { title: '' })).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
@@ -81,7 +77,7 @@ describe('PageService', () => {
       );
       prisma.page.update.mockResolvedValue(samplePage({ title: 'New', content: 'A', parentIds: ['x'] }));
 
-      await expect(service.save('p1', { tenantId: 't1', title: 'New' })).resolves.toMatchObject({
+      await expect(service.save('t1', 'p1', { title: 'New' })).resolves.toMatchObject({
         id: 'p1',
         title: 'New',
         content: 'A',
@@ -100,19 +96,17 @@ describe('PageService', () => {
     });
 
     it('rejects missing id', async () => {
-      await expect(service.save('', { tenantId: 't1' })).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.save('t1', '', {})).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects missing tenantId', async () => {
-      await expect(service.save('p1', { tenantId: '' })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(service.save('', 'p1', {})).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('throws when page not found', async () => {
       prisma.page.findFirst.mockResolvedValue(null);
 
-      await expect(service.save('p1', { tenantId: 't1', title: 'New' })).rejects.toBeInstanceOf(
+      await expect(service.save('t1', 'p1', { title: 'New' })).rejects.toBeInstanceOf(
         NotFoundException,
       );
     });

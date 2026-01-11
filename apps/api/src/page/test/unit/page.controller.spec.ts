@@ -24,25 +24,25 @@ describe('PageController', () => {
     controller = module.get(PageController);
   });
 
-  it('create forwards body', async () => {
+  it('create forwards tenantId + body', async () => {
     pageService.create.mockResolvedValue({ id: 'p1' });
 
-    await expect(controller.create({ tenantId: 't1', title: 'Hello' })).resolves.toEqual({
+    await expect(controller.create('t1', { title: 'Hello' })).resolves.toEqual({
       id: 'p1',
     });
 
-    expect(pageService.create).toHaveBeenCalledWith({ tenantId: 't1', title: 'Hello' });
+    expect(pageService.create).toHaveBeenCalledWith('t1', { title: 'Hello' });
   });
 
-  it('save forwards id + body', async () => {
+  it('save forwards tenantId + id + body', async () => {
     pageService.save.mockResolvedValue({ id: 'p1', title: 'X' });
 
-    await expect(controller.save('p1', { tenantId: 't1', title: 'X' })).resolves.toEqual({
+    await expect(controller.save('t1', 'p1', { title: 'X' })).resolves.toEqual({
       id: 'p1',
       title: 'X',
     });
 
-    expect(pageService.save).toHaveBeenCalledWith('p1', { tenantId: 't1', title: 'X' });
+    expect(pageService.save).toHaveBeenCalledWith('t1', 'p1', { title: 'X' });
   });
 
   it('remove forwards id + tenantId', async () => {

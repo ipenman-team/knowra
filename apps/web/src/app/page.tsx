@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Tree, type TreeNode } from "@/components/common/tree";
 import {
@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { pagesApi, type PageDto } from "@/lib/api";
+import { buildPageTreeFromFlatPages } from "@contexta/shared";
 
 type ViewId = "dashboard" | "notion-ai" | "settings";
 
@@ -67,46 +69,100 @@ export default function Home() {
     { title: "周报" },
   ];
 
-  const pageTreeNodes: TreeNode[] = [
-    { id: "p:getting-started", label: "Getting Started" },
-    {
-      id: "p:journal",
-      label: "Journal",
-      children: [
-        {
-          id: "p:journal:2026",
-          label: "2026",
-          children: [
-            {
-              id: "p:journal:2026:01",
-              label: "01 月",
-              children: [{ id: "p:journal:2026:01:10", label: "01-10" }],
-            },
-          ],
-        },
-      ],
-    },
-    { id: "p:team-home", label: "Team Home" },
-    {
-      id: "p:projects:contexta",
-      label: "ContextA",
-      children: [
-        { id: "p:projects:contexta:prd", label: "PRD" },
-        { id: "p:projects:contexta:plan", label: "计划" },
-      ],
-    },
-    {
-      id: "p:meetings",
-      label: "会议",
-      children: [
-        {
-          id: "p:meetings:weekly",
-          label: "周会",
-          children: [{ id: "p:meetings:weekly:notes", label: "纪要" }],
-        },
-      ],
+  const [pageTreeNodes, setPageTreeNodes] = useState<TreeNode<PageDto>[]>([]);
+  const [pagesLoaded, setPagesLoaded] = useState(false);
+  const [creatingPage, setCreatingPage] = useState(false);
+  const [openMenuNodeId, setOpenMenuNodeId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deletingPage, setDeletingPage] = useState(false);
+
+  async function refreshPages() {
+    try {
+      const pages = await pagesApi.list();
+      setPageTreeNodes(buildPageTreeFromFlatPages(pages));
+    } finally {
+      setPagesLoaded(true);
     }
-  ];
+  }
+
+  useEffect(() => {
+    if (!openMenuNodeId) return;
+
+    const onPointerDown = () => {
+      setOpenMenuNodeId(null);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [openMenuNodeId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const pages = await pagesApi.list();
+        if (cancelled) return;
+        setPageTreeNodes(buildPageTreeFromFlatPages(pages));
+      } catch {
+        if (cancelled) return;
+        // 最小改动：请求失败时不做额外 UI。
+        setPageTreeNodes([]);
+      } finally {
+        if (cancelled) return;
+        setPagesLoaded(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleCreatePage() {
+    if (creatingPage) return;
+    try {
+      setCreatingPage(true);
+      const page = await pagesApi.create({ title: "无标题文档" });
+      setSelected({ kind: "page", id: page.id, title: page.title });
+      await refreshPages();
+    } finally {
+      setCreatingPage(false);
+    }
+  }
+
+  async function handleCreateChildPage(parent: TreeNode<PageDto>) {
+    if (creatingPage) return;
+    const parentIds = [...(parent.data?.parentIds ?? []), parent.id];
+    try {
+      setCreatingPage(true);
+      const page = await pagesApi.create({ title: "无标题文档", parentIds });
+      setSelected({ kind: "page", id: page.id, title: page.title });
+      await refreshPages();
+    } finally {
+      setCreatingPage(false);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget || deletingPage) return;
+
+    try {
+      setDeletingPage(true);
+      await pagesApi.remove(deleteTarget.id);
+
+      if (selected.kind === "page" && selected.id === deleteTarget.id) {
+        setSelected({ kind: "view", id: "dashboard" });
+      }
+
+      await refreshPages();
+      setDeleteTarget(null);
+    } finally {
+      setDeletingPage(false);
+    }
+  }
 
   function renderMain() {
     if (selected.kind === "view" && selected.id === "dashboard") {
@@ -210,53 +266,127 @@ export default function Home() {
             页面
           </Button>
 
-          <Tree
-            nodes={pageTreeNodes}
-            selectedId={selected.kind === "page" ? selected.id : undefined}
-            renderNode={({
-              node,
-              depth,
-              selected: isSelected,
-              hasChildren,
-              expanded,
-              toggleExpanded,
-            }) => (
-              <div
-                className="flex items-center"
-                style={{ paddingLeft: 8 + depth * 14 }}
-              >
-                {hasChildren ? (
+          {pagesLoaded && pageTreeNodes.length === 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 w-full justify-start px-2"
+              disabled={creatingPage}
+              onClick={handleCreatePage}
+            >
+              新建
+            </Button>
+          ) : (
+            <Tree
+              nodes={pageTreeNodes}
+              selectedId={selected.kind === "page" ? selected.id : undefined}
+              renderNode={({
+                node,
+                depth,
+                selected: isSelected,
+                hasChildren,
+                expanded,
+                toggleExpanded,
+              }) => (
+                <div
+                  className="group flex items-center"
+                  style={{ paddingLeft: 8 + depth * 14 }}
+                >
+                  {hasChildren ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="mr-1 h-7 w-7 px-0 text-muted-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpanded();
+                      }}
+                      aria-label={expanded ? "收起" : "展开"}
+                      aria-expanded={expanded}
+                    >
+                      {expanded ? "▾" : "▸"}
+                    </Button>
+                  ) : (
+                    <span className="mr-1 h-7 w-7" aria-hidden="true" />
+                  )}
+
                   <Button
                     type="button"
                     variant="ghost"
-                    className="mr-1 h-7 w-7 px-0 text-muted-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleExpanded();
-                    }}
-                    aria-label={expanded ? "收起" : "展开"}
-                    aria-expanded={expanded}
+                    className={cn(
+                      "h-9 w-full flex-1 justify-start px-2",
+                      isSelected && "bg-accent text-accent-foreground",
+                    )}
+                    onClick={() =>
+                      setSelected({ kind: "page", id: node.id, title: node.label })
+                    }
                   >
-                    {expanded ? "▾" : "▸"}
+                    <span className="truncate">{node.label}</span>
                   </Button>
-                ) : (
-                  <span className="mr-1 h-7 w-7" aria-hidden="true" />
-                )}
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    "h-9 w-full flex-1 justify-start px-2",
-                    isSelected && "bg-accent text-accent-foreground",
-                  )}
-                  onClick={() => setSelected({ kind: "page", id: node.id, title: node.label })}
-                >
-                  <span className="truncate">{node.label}</span>
-                </Button>
-              </div>
-            )}
-          />
+                  <div
+                    className={cn(
+                      "ml-1 flex items-center gap-0.5",
+                      "opacity-0 transition-opacity group-hover:opacity-100",
+                    )}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-7 w-7 px-0 text-muted-foreground"
+                      aria-label="新建子页面"
+                      disabled={creatingPage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateChildPage(node);
+                      }}
+                    >
+                      +
+                    </Button>
+
+                    <div className="relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-7 w-7 px-0 text-muted-foreground"
+                        aria-label="更多"
+                        aria-expanded={openMenuNodeId === node.id}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuNodeId((prev) => (prev === node.id ? null : node.id));
+                        }}
+                      >
+                        …
+                      </Button>
+
+                      {openMenuNodeId === node.id ? (
+                        <div
+                          className={cn(
+                            "absolute right-0 top-8 z-50 w-28 overflow-hidden rounded-md border bg-popover text-popover-foreground",
+                          )}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-9 w-full justify-start rounded-none px-2 text-destructive"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenMenuNodeId(null);
+                              setDeleteTarget({ id: node.id, title: node.label });
+                            }}
+                          >
+                            删除
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              )}
+            />
+          )}
 
           <Separator />
 
@@ -271,6 +401,50 @@ export default function Home() {
       <main className="flex-1 overflow-auto" aria-live="polite">
         <div className="px-6 py-10 lg:px-11">{renderMain()}</div>
       </main>
+
+      {deleteTarget ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="删除确认"
+          onPointerDown={() => {
+            if (deletingPage) return;
+            setDeleteTarget(null);
+          }}
+        >
+          <div onPointerDown={(e) => e.stopPropagation()} className="w-full max-w-sm">
+            <Card>
+              <CardHeader>
+                <CardTitle>确认删除？</CardTitle>
+                <CardDescription>
+                  将删除“{deleteTarget.title}”，此操作无法撤销。
+                </CardDescription>
+              </CardHeader>
+
+              <div className="flex items-center justify-end gap-2 px-6 pb-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={deletingPage}
+                  onClick={() => setDeleteTarget(null)}
+                >
+                  取消
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  disabled={deletingPage}
+                  onClick={handleConfirmDelete}
+                >
+                  删除
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

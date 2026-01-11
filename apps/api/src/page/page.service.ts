@@ -8,13 +8,13 @@ import { SavePageDto } from './dto/save-page.dto';
 export class PageService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(input: CreatePageDto): Promise<PageDto> {
-    if (!input.tenantId) throw new BadRequestException('tenantId is required');
+  async create(tenantId: string, input: CreatePageDto): Promise<PageDto> {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
     if (!input.title) throw new BadRequestException('title is required');
 
     return this.prisma.page.create({
       data: {
-        tenantId: input.tenantId,
+        tenantId,
         title: input.title,
         content: input.content ?? '',
         parentIds: input.parentIds ?? [],
@@ -22,12 +22,12 @@ export class PageService {
     });
   }
 
-  async save(id: string, input: SavePageDto): Promise<PageDto> {
+  async save(tenantId: string, id: string, input: SavePageDto): Promise<PageDto> {
     if (!id) throw new BadRequestException('id is required');
-    if (!input.tenantId) throw new BadRequestException('tenantId is required');
+    if (!tenantId) throw new BadRequestException('tenantId is required');
 
     const existing = await this.prisma.page.findFirst({
-      where: { id, tenantId: input.tenantId },
+      where: { id, tenantId },
     });
     if (!existing) throw new NotFoundException('page not found');
 

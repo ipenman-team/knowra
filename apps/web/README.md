@@ -16,6 +16,19 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## API 接入
+
+Web 端通过环境变量配置后端 API 地址：
+
+- 复制 [apps/web/.env.example](apps/web/.env.example) 为 `apps/web/.env.local`
+- 根据需要修改：`NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`
+
+代码侧提供了最小封装（axios + Page CRUD）：
+
+- [apps/web/src/lib/api/client.ts](apps/web/src/lib/api/client.ts)
+- [apps/web/src/lib/api/pages](apps/web/src/lib/api/pages)
+- [apps/web/src/lib/api/index.ts](apps/web/src/lib/api/index.ts)
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
