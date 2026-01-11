@@ -11,9 +11,6 @@ import { tenantMiddleware } from './common/tenant/tenant.middleware';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      ignoreEnvFile:
-        (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
-          ?.CF_WORKER === 'true',
       envFilePath: [
         path.resolve(process.cwd(), '../../.env'),
         path.resolve(process.cwd(), '../../.env.local'),

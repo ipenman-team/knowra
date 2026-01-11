@@ -1,7 +1,0 @@
-name = "contexta-api"
-main = "dist/worker.js"
-compatibility_date = "2026-01-11"
-compatibility_flags = ["nodejs_compat"]
-
-[build]
-command = "pnpm -F @contexta/api build"
