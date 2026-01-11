@@ -75,6 +75,9 @@ export default function Home() {
   const [openMenuNodeId, setOpenMenuNodeId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [deletingPage, setDeletingPage] = useState(false);
+  const [renamingTarget, setRenamingTarget] = useState<{ id: string; title: string } | null>(null);
+  const [renamingValue, setRenamingValue] = useState<string>("");
+  const [savingRename, setSavingRename] = useState(false);
 
   async function refreshPages() {
     try {
@@ -161,6 +164,26 @@ export default function Home() {
       setDeleteTarget(null);
     } finally {
       setDeletingPage(false);
+    }
+  }
+
+  async function handleSaveRename() {
+    if (!renamingTarget || savingRename) return;
+
+    const nextTitle = renamingValue.trim() || "无标题文档";
+
+    try {
+      setSavingRename(true);
+      const page = await pagesApi.save(renamingTarget.id, { title: nextTitle });
+
+      if (selected.kind === "page" && selected.id === page.id) {
+        setSelected({ kind: "page", id: page.id, title: page.title });
+      }
+
+      await refreshPages();
+      setRenamingTarget(null);
+    } finally {
+      setSavingRename(false);
     }
   }
 
@@ -287,11 +310,14 @@ export default function Home() {
                 hasChildren,
                 expanded,
                 toggleExpanded,
-              }) => (
-                <div
-                  className="group flex items-center"
-                  style={{ paddingLeft: 8 + depth * 14 }}
-                >
+              }) => {
+                const isRenaming = renamingTarget?.id === node.id;
+
+                return (
+                  <div
+                    className="group flex items-center"
+                    style={{ paddingLeft: 8 + depth * 14 }}
+                  >
                   {hasChildren ? (
                     <Button
                       type="button"
@@ -310,26 +336,54 @@ export default function Home() {
                     <span className="mr-1 h-7 w-7" aria-hidden="true" />
                   )}
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className={cn(
-                      "h-9 w-full flex-1 justify-start px-2",
-                      isSelected && "bg-accent text-accent-foreground",
-                    )}
-                    onClick={() =>
-                      setSelected({ kind: "page", id: node.id, title: node.label })
-                    }
-                  >
-                    <span className="truncate">{node.label}</span>
-                  </Button>
+                  {isRenaming ? (
+                    <input
+                      className={cn(
+                        "h-9 w-full flex-1 rounded-md border bg-background px-2 text-sm",
+                        "border-input focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      )}
+                      value={renamingValue}
+                      autoFocus
+                      disabled={savingRename}
+                      onChange={(e) => setRenamingValue(e.target.value)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSaveRename();
+                        }
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setRenamingTarget(null);
+                        }
+                      }}
+                      onBlur={() => setRenamingTarget(null)}
+                    />
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className={cn(
+                        "h-9 w-full flex-1 justify-start px-2",
+                        isSelected && "bg-accent text-accent-foreground",
+                      )}
+                      onClick={() =>
+                        setSelected({ kind: "page", id: node.id, title: node.label })
+                      }
+                    >
+                      <span className="truncate">{node.label}</span>
+                    </Button>
+                  )}
 
-                  <div
-                    className={cn(
-                      "ml-1 flex items-center gap-0.5",
-                      "opacity-0 transition-opacity group-hover:opacity-100",
-                    )}
-                  >
+                  {!isRenaming ? (
+                    <div
+                      className={cn(
+                        "ml-1 flex items-center gap-0.5",
+                        "opacity-0 transition-opacity group-hover:opacity-100",
+                      )}
+                    >
                     <Button
                       type="button"
                       variant="ghost"
@@ -369,6 +423,21 @@ export default function Home() {
                           <Button
                             type="button"
                             variant="ghost"
+                            className="h-9 w-full justify-start rounded-none px-2"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenMenuNodeId(null);
+                              setSelected({ kind: "page", id: node.id, title: node.label });
+                              setRenamingTarget({ id: node.id, title: node.label });
+                              setRenamingValue(node.label);
+                            }}
+                          >
+                            重命名
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
                             className="h-9 w-full justify-start rounded-none px-2 text-destructive"
                             onPointerDown={(e) => {
                               e.preventDefault();
@@ -382,9 +451,11 @@ export default function Home() {
                         </div>
                       ) : null}
                     </div>
+                    </div>
+                  ) : null}
                   </div>
-                </div>
-              )}
+                );
+              }}
             />
           )}
 
