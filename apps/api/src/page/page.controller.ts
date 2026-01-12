@@ -46,6 +46,15 @@ export class PageController {
     return this.pageService.listVersions(id, tenantId);
   }
 
+  @Get(':id/versions/:versionId')
+  getVersion(
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @TenantId() tenantId: string,
+  ) {
+    return this.pageService.getVersion(id, versionId, tenantId);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string, @TenantId() tenantId: string) {
     return this.pageService.remove(id, tenantId);

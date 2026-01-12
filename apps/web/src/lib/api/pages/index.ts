@@ -3,6 +3,7 @@ import type {
   CreatePageInput,
   PageDto,
   PageVersionDto,
+  PageVersionDetailDto,
   PublishedPageDto,
   SavePageInput,
 } from './types';
@@ -38,6 +39,13 @@ export const pagesApi = {
   async listVersions(id: string) {
     const res = await apiClient.get<PageVersionDto[]>(
       `/pages/${encodeURIComponent(id)}/versions`,
+    );
+    return res.data;
+  },
+
+  async getVersion(pageId: string, versionId: string) {
+    const res = await apiClient.get<PageVersionDetailDto>(
+      `/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`,
     );
     return res.data;
   },

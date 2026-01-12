@@ -12,6 +12,17 @@ export type PageVersionDto = {
   updatedAt: string;
 };
 
+export type PageVersionDetailDto = {
+  id: string;
+  pageId: string;
+  status: PageVersionStatus;
+  title: string;
+  content: PageContent;
+  updatedBy: string;
+  updatedAt: string;
+  createdAt: string;
+};
+
 export type PublishedPageDto = {
   id: string;
   pageId: string;

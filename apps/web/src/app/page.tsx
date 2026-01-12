@@ -1,69 +1,60 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
-import { Tree, type TreeNode } from "@/components/common/tree";
+import type { TreeNode } from "@/components/common/tree";
 import {
   parseContentToSlateValue,
   serializeSlateValue,
-  SlateEditor,
   type SlateValue,
 } from "@/components/common/slate-editor";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { pagesApi, type PageDto } from "@/lib/api";
 import { buildPageTreeFromFlatPages } from "@contexta/shared";
 import type { PageVersionDto, PageVersionStatus } from "@/lib/api/pages/types";
 
-type ViewId = "dashboard" | "notion-ai" | "settings";
+import { DeleteConfirmDialog } from "@/features/home/components/delete-confirm-dialog";
+import { MainContent } from "@/features/home/components/main-content";
+import { Sidebar } from "@/features/home/components/sidebar";
+import { PageTopbar } from "@/features/home/components/topbar";
+import type { Selected, ViewId } from "@/features/home/types";
 
-type Selected =
-  | { kind: "view"; id: ViewId }
-  | { kind: "page"; id: string; title: string };
-
-function SidebarItem(props: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      className={cn(
-        "h-9 w-full justify-start gap-2 px-2",
-        props.active && "bg-accent text-accent-foreground",
-      )}
-      onClick={props.onClick}
-    >
-      <span className="truncate">{props.label}</span>
-    </Button>
-  );
+export default function HomePage() {
+  return <HomeScreen />;
 }
 
-function Section(props: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3">
-      <div className="text-sm font-semibold text-muted-foreground">{props.title}</div>
-      <div>{props.children}</div>
-    </section>
-  );
-}
+export function HomeScreen(props: {
+  initialSelectedPageId?: string;
+  initialSelectedViewId?: ViewId;
+} = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selected, setSelected] = useState<Selected>(() => {
+    if (props.initialSelectedPageId) {
+      return { kind: "page", id: props.initialSelectedPageId, title: "" };
+    }
 
-export default function Home() {
-  const [selected, setSelected] = useState<Selected>({
-    kind: "view",
-    id: "dashboard",
+    if (props.initialSelectedViewId) {
+      return { kind: "view", id: props.initialSelectedViewId };
+    }
+
+    return { kind: "view", id: "dashboard" };
   });
 
   const selectedPageId = selected.kind === "page" ? selected.id : null;
+
+  useEffect(() => {
+    if (selected.kind === "page") {
+      const target = `/pages/${encodeURIComponent(selected.id)}`;
+      if (pathname !== target) router.replace(target);
+      return;
+    }
+
+    const target =
+      selected.id === "dashboard" ? "/" : selected.id === "settings" ? "/settings" : "/notion-ai";
+    if (pathname !== target) router.replace(target);
+  }, [pathname, router, selected]);
 
   const [activePage, setActivePage] = useState<PageDto | null>(null);
   const [pageMode, setPageMode] = useState<"edit" | "preview">("preview");
@@ -121,6 +112,7 @@ export default function Home() {
   const [pagesLoaded, setPagesLoaded] = useState(false);
   const [creatingPage, setCreatingPage] = useState(false);
   const [openMenuNodeId, setOpenMenuNodeId] = useState<string | null>(null);
+  const [openPageMore, setOpenPageMore] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [deletingPage, setDeletingPage] = useState(false);
   const [renamingTarget, setRenamingTarget] = useState<{ id: string; title: string } | null>(null);
@@ -137,6 +129,7 @@ export default function Home() {
   }
 
   useEffect(() => {
+    setOpenPageMore(false);
     if (!selectedPageId) {
       setActivePage(null);
       setLastSavedAt(null);
@@ -374,497 +367,107 @@ export default function Home() {
     }
   }
 
-  function renderMain() {
-    if (selected.kind === "view" && selected.id === "dashboard") {
-      return (
-        <div className="mx-auto w-full max-w-5xl space-y-10">
-          <div className="pt-2 text-4xl font-bold tracking-tight">晚上好呀</div>
-
-          <Section title="指南">
-            <Card className="bg-muted/30">
-              <CardHeader>
-                <CardTitle>从这里开始</CardTitle>
-                <CardDescription>
-                  在左侧选择不同入口，右侧内容会随之变化。这里是仪表盘页的简介与指南区域。
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </Section>
-
-          <Section title="最近访问">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {dashboardCards.map((c) => (
-                <Card
-                  key={c.title}
-                  className={cn(
-                    "cursor-default select-none transition-colors",
-                    c.disabled && "opacity-60",
-                  )}
-                >
-                  <CardHeader className="p-4">
-                    <CardTitle className="truncate text-sm">{c.title}</CardTitle>
-                    {c.meta ? (
-                      <CardDescription className="text-xs">{c.meta}</CardDescription>
-                    ) : null}
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="模版">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {templateCards.map((c) => (
-                <Card key={c.title} className="cursor-default select-none">
-                  <CardHeader className="p-4">
-                    <CardTitle className="truncate text-sm">{c.title}</CardTitle>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          </Section>
-        </div>
-      );
+  async function handlePublish() {
+    if (!activePage || pagePublishing) return;
+    try {
+      setPagePublishing(true);
+      await pagesApi.publish(activePage.id);
+      const published = await pagesApi.getLatestPublished(activePage.id);
+      setPublishedSnapshot({
+        title: published.title,
+        content: published.content,
+        updatedBy: published.updatedBy,
+        updatedAt: published.updatedAt,
+      });
+      setPageMode("preview");
+    } finally {
+      setPagePublishing(false);
     }
-
-    if (selected.kind === "page") {
-      const isPreview = pageMode === "preview";
-      const previewTitle = publishedSnapshot?.title ?? pageTitle;
-      const previewValue = isPreview
-        ? (publishedSnapshot ? parseContentToSlateValue(publishedSnapshot.content) : editorValue)
-        : editorValue;
-
-      const previewEditorKey = `${activePage?.id ?? selected.id}-preview-${activePage ? "loaded" : "loading"}-${publishedSnapshot?.updatedAt ?? "none"}`;
-      const editEditorKey = `${activePage?.id ?? selected.id}-edit`;
-
-      return (
-        <div className="mx-auto w-full max-w-5xl space-y-4 pt-6">
-          <div className="space-y-2">
-            {isPreview ? (
-              <div className="text-5xl font-bold tracking-tight">
-                {previewTitle.trim() || "无标题文档"}
-              </div>
-            ) : (
-              <input
-                className={cn(
-                  "w-full bg-transparent text-5xl font-bold tracking-tight",
-                  "placeholder:text-muted-foreground/40",
-                  "focus-visible:outline-none",
-                )}
-                placeholder="请输入标题"
-                value={pageTitle}
-                disabled={pageLoading}
-                onChange={(e) => setPageTitle(e.target.value)}
-              />
-            )}
-          </div>
-
-          <div className="pt-2">
-            <SlateEditor
-              key={isPreview ? previewEditorKey : editEditorKey}
-              value={previewValue}
-              onChange={setEditorValue}
-              disabled={pageLoading}
-              readOnly={isPreview}
-              showToolbar={!isPreview}
-              placeholder={isPreview ? undefined : "直接输入正文…"}
-            />
-          </div>
-
-          {!isPreview ? (
-            <Card>
-              <CardHeader className="p-4">
-                <CardTitle className="text-sm">版本历史</CardTitle>
-                <CardDescription className="text-xs">
-                  {versionsLoading
-                    ? "加载中…"
-                    : pageVersions.length
-                      ? `共 ${pageVersions.length} 条`
-                      : "暂无版本"}
-                </CardDescription>
-              </CardHeader>
-
-              {pageVersions.length ? (
-                <div className="space-y-2 px-4 pb-4">
-                  {pageVersions.map((v) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate font-medium">
-                          {statusLabel(v.status)} · {v.title || "无标题文档"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatTime(v.createdAt)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </Card>
-          ) : null}
-
-          {isPreview && publishedSnapshot ? (
-            <div className="pt-2 text-sm text-muted-foreground">
-              最后更新人：{publishedSnapshot.updatedBy || "-"} · 更新时间：
-              {formatYmd(publishedSnapshot.updatedAt)}
-            </div>
-          ) : null}
-        </div>
-      );
-    }
-
-    const titleById: Record<ViewId, string> = {
-      dashboard: "仪表盘",
-      "notion-ai": "Notion AI",
-      settings: "设置",
-    };
-
-    return (
-      <div className="mx-auto w-full max-w-5xl space-y-2 pt-6">
-        <div className="text-2xl font-bold tracking-tight">{titleById[selected.id]}</div>
-        <div className="text-sm text-muted-foreground">该区域会随左侧选中项变化。</div>
-      </div>
-    );
   }
 
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
-      <aside className="w-72 border-r bg-muted/30">
-        <div className="flex h-dvh flex-col gap-4 overflow-auto p-3">
-          <SidebarItem
-            label="仪表盘"
-            active={selected.kind === "view" && selected.id === "dashboard"}
-            onClick={() => setSelected({ kind: "view", id: "dashboard" })}
-          />
-
-          <SidebarItem
-            label="Notion AI"
-            active={selected.kind === "view" && selected.id === "notion-ai"}
-            onClick={() => setSelected({ kind: "view", id: "notion-ai" })}
-          />
-
-          <Separator />
-
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-8 w-full justify-start px-2 text-xs font-medium tracking-wide text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-          >
-            页面
-          </Button>
-
-          {pagesLoaded && pageTreeNodes.length === 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 w-full justify-start px-2"
-              disabled={creatingPage}
-              onClick={handleCreatePage}
-            >
-              新建
-            </Button>
-          ) : (
-            <Tree
-              nodes={pageTreeNodes}
-              selectedId={selected.kind === "page" ? selected.id : undefined}
-              renderNode={({
-                node,
-                depth,
-                selected: isSelected,
-                hasChildren,
-                expanded,
-                toggleExpanded,
-              }) => {
-                const isRenaming = renamingTarget?.id === node.id;
-
-                return (
-                  <div
-                    className="group flex items-center"
-                    style={{ paddingLeft: 8 + depth * 14 }}
-                  >
-                  {hasChildren ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="mr-1 h-7 w-7 px-0 text-muted-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleExpanded();
-                      }}
-                      aria-label={expanded ? "收起" : "展开"}
-                      aria-expanded={expanded}
-                    >
-                      {expanded ? "▾" : "▸"}
-                    </Button>
-                  ) : (
-                    <span className="mr-1 h-7 w-7" aria-hidden="true" />
-                  )}
-
-                  {isRenaming ? (
-                    <input
-                      className={cn(
-                        "h-9 w-full flex-1 rounded-md border bg-background px-2 text-sm",
-                        "border-input focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      )}
-                      value={renamingValue}
-                      autoFocus
-                      disabled={savingRename}
-                      onChange={(e) => setRenamingValue(e.target.value)}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSaveRename();
-                        }
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setRenamingTarget(null);
-                        }
-                      }}
-                      onBlur={() => setRenamingTarget(null)}
-                    />
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={cn(
-                        "h-9 w-full flex-1 justify-start px-2",
-                        isSelected && "bg-accent text-accent-foreground",
-                      )}
-                      onClick={() =>
-                        setSelected({ kind: "page", id: node.id, title: node.label })
-                      }
-                    >
-                      <span className="truncate">{node.label}</span>
-                    </Button>
-                  )}
-
-                  {!isRenaming ? (
-                    <div
-                      className={cn(
-                        "ml-1 flex items-center gap-0.5",
-                        "opacity-0 transition-opacity group-hover:opacity-100",
-                      )}
-                    >
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-7 w-7 px-0 text-muted-foreground"
-                      aria-label="新建子页面"
-                      disabled={creatingPage}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCreateChildPage(node);
-                      }}
-                    >
-                      +
-                    </Button>
-
-                    <div className="relative">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-7 w-7 px-0 text-muted-foreground"
-                        aria-label="更多"
-                        aria-expanded={openMenuNodeId === node.id}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuNodeId((prev) => (prev === node.id ? null : node.id));
-                        }}
-                      >
-                        …
-                      </Button>
-
-                      {openMenuNodeId === node.id ? (
-                        <div
-                          className={cn(
-                            "absolute right-0 top-8 z-50 w-28 overflow-hidden rounded-md border bg-popover text-popover-foreground",
-                          )}
-                          onPointerDown={(e) => e.stopPropagation()}
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="h-9 w-full justify-start rounded-none px-2"
-                            onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setOpenMenuNodeId(null);
-                              setSelected({ kind: "page", id: node.id, title: node.label });
-                              setRenamingTarget({ id: node.id, title: node.label });
-                              setRenamingValue(node.label);
-                            }}
-                          >
-                            重命名
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="h-9 w-full justify-start rounded-none px-2 text-destructive"
-                            onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setOpenMenuNodeId(null);
-                              setDeleteTarget({ id: node.id, title: node.label });
-                            }}
-                          >
-                            删除
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                    </div>
-                  ) : null}
-                  </div>
-                );
-              }}
-            />
-          )}
-
-          <Separator />
-
-          <SidebarItem
-            label="设置"
-            active={selected.kind === "view" && selected.id === "settings"}
-            onClick={() => setSelected({ kind: "view", id: "settings" })}
-          />
-        </div>
-      </aside>
+      <Sidebar<PageDto>
+        selected={selected}
+        onSelectView={(id: ViewId) => setSelected({ kind: "view", id })}
+        onSelectPage={(id, title) => setSelected({ kind: "page", id, title })}
+        nodes={pageTreeNodes}
+        pagesLoaded={pagesLoaded}
+        creatingPage={creatingPage}
+        renamingTargetId={renamingTarget?.id ?? null}
+        renamingValue={renamingValue}
+        savingRename={savingRename}
+        openMenuNodeId={openMenuNodeId}
+        onCreatePage={handleCreatePage}
+        onCreateChildPage={handleCreateChildPage}
+        onToggleNodeMenu={setOpenMenuNodeId}
+        onRenameStart={(id, title) => {
+          setRenamingTarget({ id, title });
+          setRenamingValue(title);
+        }}
+        onRenameValueChange={setRenamingValue}
+        onRenameCommit={handleSaveRename}
+        onRenameCancel={() => setRenamingTarget(null)}
+        onDeleteRequest={(id, title) => setDeleteTarget({ id, title })}
+      />
 
       <main className="flex-1 overflow-auto" aria-live="polite">
-        {selected.kind === "page" ? (
-          <div className="sticky top-0 z-20 border-b bg-background">
-            <div className="flex h-12 items-center justify-between px-6 lg:px-11">
-              <div className="flex min-w-0 items-center">
-                <div className="truncate text-sm font-medium">
-                  {(pageMode === "preview" ? publishedSnapshot?.title : pageTitle)?.trim() ||
-                    "无标题文档"}
-                </div>
-                {pageMode === "edit" ? (
-                  <div className="ml-3 shrink-0 text-xs text-muted-foreground">
-                    {pageLoading
-                      ? "加载中…"
-                      : pageSaving
-                        ? "保存中…"
-                        : lastSavedAt
-                          ? `已保存 ${lastSavedAt}`
-                          : ""}
-                  </div>
-                ) : null}
-              </div>
-
-              {pageMode === "edit" ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={pagePublishing}
-                    aria-label="关闭"
-                    onClick={async () => {
-                      if (!activePage) return;
-                      setPageMode("preview");
-                    }}
-                  >
-                    ×
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    disabled={pageLoading || pageSaving || pagePublishing || !activePage}
-                    onClick={async () => {
-                      if (!activePage || pagePublishing) return;
-                      try {
-                        setPagePublishing(true);
-                        await pagesApi.publish(activePage.id);
-                        const published = await pagesApi.getLatestPublished(activePage.id);
-                        setPublishedSnapshot({
-                          title: published.title,
-                          content: published.content,
-                          updatedBy: published.updatedBy,
-                          updatedAt: published.updatedAt,
-                        });
-                        setPageMode("preview");
-                      } finally {
-                        setPagePublishing(false);
-                      }
-                    }}
-                  >
-                    发布
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!activePage}
-                  onClick={() => {
-                    setPageMode("edit");
-                  }}
-                >
-                  编辑
-                </Button>
-              )}
-            </div>
-          </div>
-        ) : null}
+        <PageTopbar
+          visible={selected.kind === "page"}
+          pageMode={pageMode}
+          activePageExists={!!activePage}
+          pageTitle={pageTitle}
+          publishedTitle={publishedSnapshot?.title ?? null}
+          pageLoading={pageLoading}
+          pageSaving={pageSaving}
+          pagePublishing={pagePublishing}
+          lastSavedAt={lastSavedAt}
+          openMore={openPageMore}
+          setOpenMore={setOpenPageMore}
+          onCloseEdit={() => {
+            if (!activePage) return;
+            setPageMode("preview");
+          }}
+          onEnterEdit={() => setPageMode("edit")}
+          onPublish={handlePublish}
+          onImported={(value) => {
+            setEditorValue(value);
+            setPageMode("edit");
+          }}
+          onOpenHistory={() => {
+            if (!selectedPageId) return;
+            router.push(`/page/${encodeURIComponent(selectedPageId)}/versions`);
+          }}
+        />
 
         <div className={cn("px-6 lg:px-11", selected.kind === "page" ? "py-6" : "py-10")}>
-          {renderMain()}
+          <MainContent
+            selected={selected}
+            pageMode={pageMode}
+            activePageId={activePage?.id ?? null}
+            publishedSnapshot={publishedSnapshot}
+            pageTitle={pageTitle}
+            pageLoading={pageLoading}
+            editorValue={editorValue}
+            onEditorChange={setEditorValue}
+            onTitleChange={setPageTitle}
+            dashboardCards={dashboardCards}
+            templateCards={templateCards}
+            versionsLoading={versionsLoading}
+            pageVersions={pageVersions}
+            statusLabel={statusLabel}
+            formatTime={formatTime}
+            formatYmd={formatYmd}
+          />
         </div>
       </main>
 
-      {deleteTarget ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label="删除确认"
-          onPointerDown={() => {
-            if (deletingPage) return;
-            setDeleteTarget(null);
-          }}
-        >
-          <div onPointerDown={(e) => e.stopPropagation()} className="w-full max-w-sm">
-            <Card>
-              <CardHeader>
-                <CardTitle>确认删除？</CardTitle>
-                <CardDescription>
-                  将删除“{deleteTarget.title}”，此操作无法撤销。
-                </CardDescription>
-              </CardHeader>
-
-              <div className="flex items-center justify-end gap-2 px-6 pb-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={deletingPage}
-                  onClick={() => setDeleteTarget(null)}
-                >
-                  取消
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  disabled={deletingPage}
-                  onClick={handleConfirmDelete}
-                >
-                  删除
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </div>
-      ) : null}
+      <DeleteConfirmDialog
+        target={deleteTarget}
+        deleting={deletingPage}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
