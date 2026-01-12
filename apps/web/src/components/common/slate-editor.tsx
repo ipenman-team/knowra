@@ -41,7 +41,13 @@ export function parseContentToSlateValue(content: unknown): SlateValue {
   }
 
   if (Array.isArray(content)) {
-    return content as SlateValue;
+    if (content.length > 0) return content as SlateValue;
+    return [
+      {
+        type: "paragraph",
+        children: [{ text: "" }],
+      } as unknown as Descendant,
+    ];
   }
 
   try {
@@ -56,7 +62,13 @@ export function parseContentToSlateValue(content: unknown): SlateValue {
 
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed)) {
-      return parsed as SlateValue;
+      if (parsed.length > 0) return parsed as SlateValue;
+      return [
+        {
+          type: "paragraph",
+          children: [{ text: "" }],
+        } as unknown as Descendant,
+      ];
     }
   } catch {
     // ignore

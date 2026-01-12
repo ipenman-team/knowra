@@ -11,15 +11,25 @@ export class PageService {
   constructor(private readonly prisma: PrismaService) {}
 
   private normalizePageContent(input: unknown): Prisma.InputJsonValue {
-    if (input == null) return [];
-    if (Array.isArray(input)) return input as Prisma.InputJsonValue;
+    const defaultDoc = () =>
+      [
+        {
+          type: 'paragraph',
+          children: [{ text: '' }],
+        },
+      ] as unknown as Prisma.InputJsonValue;
+
+    if (input == null) return defaultDoc();
+    if (Array.isArray(input)) return input.length > 0 ? (input as Prisma.InputJsonValue) : defaultDoc();
 
     if (typeof input === 'string') {
       const trimmed = input.trim();
-      if (!trimmed) return [];
+      if (!trimmed) return defaultDoc();
       try {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) return parsed as Prisma.InputJsonValue;
+        if (Array.isArray(parsed)) {
+          return parsed.length > 0 ? (parsed as Prisma.InputJsonValue) : defaultDoc();
+        }
       } catch {
         // ignore
       }

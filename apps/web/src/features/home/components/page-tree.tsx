@@ -2,6 +2,7 @@ import { Tree, type TreeNode } from "@/components/common/tree";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 export function PageTree<T>(props: {
   nodes: TreeNode<T>[];
@@ -13,6 +14,7 @@ export function PageTree<T>(props: {
   savingRename: boolean;
   openMenuNodeId: string | null;
   onCreatePage: () => void;
+  onOpenImport: () => void;
   onCreateChildPage: (node: TreeNode<T>) => void;
   onSelectPage: (id: string, title: string) => void;
   onToggleNodeMenu: (id: string | null) => void;
@@ -23,16 +25,71 @@ export function PageTree<T>(props: {
   onDeleteRequest: (id: string, title: string) => void;
 }) {
   const empty = props.pagesLoaded && props.nodes.length === 0;
+  const [openAddMenu, setOpenAddMenu] = useState(false);
+
+  useEffect(() => {
+    if (!openAddMenu) return;
+    const onPointerDown = () => setOpenAddMenu(false);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [openAddMenu]);
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        className="h-8 w-full justify-start px-2 text-xs font-medium tracking-wide text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-      >
-        页面
-      </Button>
+      <div className="relative flex h-8 items-center justify-between px-2">
+        <div className="text-xs font-medium tracking-wide text-muted-foreground">页面</div>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-7 w-7 px-0 text-muted-foreground"
+          aria-label="添加"
+          aria-expanded={openAddMenu}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpenAddMenu((prev) => !prev);
+          }}
+        >
+          +
+        </Button>
+
+        {openAddMenu ? (
+          <div
+            className={cn(
+              "absolute right-0 top-8 z-50 w-28 overflow-hidden rounded-md border bg-popover text-popover-foreground",
+            )}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 w-full justify-start rounded-none px-2"
+              disabled={props.creatingPage}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpenAddMenu(false);
+                props.onCreatePage();
+              }}
+            >
+              新建页面
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 w-full justify-start rounded-none px-2"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpenAddMenu(false);
+                props.onOpenImport();
+              }}
+            >
+              导入
+            </Button>
+          </div>
+        ) : null}
+      </div>
 
       {empty ? (
         <Button

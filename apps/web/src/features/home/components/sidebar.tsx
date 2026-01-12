@@ -17,6 +17,7 @@ export function Sidebar<T>(props: {
   savingRename: boolean;
   openMenuNodeId: string | null;
   onCreatePage: () => void;
+  onOpenImport: () => void;
   onCreateChildPage: (node: TreeNode<T>) => void;
   onToggleNodeMenu: (id: string | null) => void;
   onRenameStart: (id: string, title: string) => void;
@@ -52,6 +53,7 @@ export function Sidebar<T>(props: {
           savingRename={props.savingRename}
           openMenuNodeId={props.openMenuNodeId}
           onCreatePage={props.onCreatePage}
+          onOpenImport={props.onOpenImport}
           onCreateChildPage={props.onCreateChildPage}
           onSelectPage={props.onSelectPage}
           onToggleNodeMenu={props.onToggleNodeMenu}

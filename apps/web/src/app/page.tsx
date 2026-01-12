@@ -603,6 +603,7 @@ export function HomeScreen(props: {
         savingRename={savingRename}
         openMenuNodeId={openMenuNodeId}
         onCreatePage={handleCreatePage}
+        onOpenImport={() => setOpenImportModal(true)}
         onCreateChildPage={handleCreateChildPage}
         onToggleNodeMenu={setOpenMenuNodeId}
         onRenameStart={(id, title) => {
@@ -634,7 +635,6 @@ export function HomeScreen(props: {
           }}
           onEnterEdit={() => setPageMode("edit")}
           onPublish={handlePublish}
-          onOpenImport={() => setOpenImportModal(true)}
           onOpenHistory={() => {
             if (!selectedPageId) return;
             router.push(`/page/${encodeURIComponent(selectedPageId)}/versions`);

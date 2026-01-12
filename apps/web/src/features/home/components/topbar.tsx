@@ -16,7 +16,6 @@ export function PageTopbar(props: {
   onCloseEdit: () => void;
   onEnterEdit: () => void;
   onPublish: () => void;
-  onOpenImport: () => void;
   onOpenHistory: () => void;
 }) {
   if (!props.visible) return null;
@@ -99,20 +98,6 @@ export function PageTopbar(props: {
                   )}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-9 w-full justify-start rounded-none px-2"
-                    disabled={!props.activePageExists}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      props.setOpenMore(false);
-                      props.onOpenImport();
-                    }}
-                  >
-                    导入
-                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
