@@ -74,6 +74,26 @@ export function serializeSlateValue(value: SlateValue): string {
   return JSON.stringify(value);
 }
 
+export function markdownToSlateValue(markdown: string): SlateValue {
+  const raw = (markdown ?? "").replace(/\r\n/g, "\n");
+  const lines = raw.split("\n");
+  const nodes = lines.map((line) =>
+    ({
+      type: "paragraph",
+      children: [{ text: line }],
+    }) as unknown as Descendant,
+  );
+
+  return nodes.length
+    ? (nodes as SlateValue)
+    : ([
+        {
+          type: "paragraph",
+          children: [{ text: "" }],
+        } as unknown as Descendant,
+      ] as SlateValue);
+}
+
 function Leaf(props: RenderLeafProps) {
   const { attributes, children, leaf } = props;
   const anyLeaf = leaf as unknown as { bold?: boolean; italic?: boolean; underline?: boolean };

@@ -6,6 +6,8 @@ import { AppService } from './app.service';
 import { PageModule } from './page/page.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { tenantMiddleware } from './common/tenant/tenant.middleware';
+import { TaskModule } from './task/task.module';
+import { ImportsModule } from './imports/imports.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { tenantMiddleware } from './common/tenant/tenant.middleware';
     }),
     PrismaModule,
     PageModule,
+    TaskModule,
+    ImportsModule,
   ],
   controllers: [AppController],
   providers: [AppService]

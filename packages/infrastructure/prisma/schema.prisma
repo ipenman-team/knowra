@@ -13,6 +13,19 @@ enum PageVersionStatus {
   PUBLISHED
 }
 
+enum TaskStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum TaskType {
+  IMPORT
+  EXPORT
+}
+
 model Page {
   id       String @id @default(cuid())
   tenantId String @map("tenant_id")
@@ -61,4 +74,35 @@ model PageVersion {
   @@index([pageId, createdAt])
   @@index([pageId, status])
   @@map("page_versions")
+}
+
+model Task {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+
+  type   TaskType
+  status TaskStatus @default(PENDING)
+
+  progress Int @default(0)
+  message  String?
+
+  payload Json? @db.JsonB
+  result  Json? @db.JsonB
+  error   String?
+
+  cancelRequestedAt DateTime? @map("cancel_requested_at")
+  startedAt         DateTime? @map("started_at")
+  finishedAt        DateTime? @map("finished_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@map("tasks")
 }

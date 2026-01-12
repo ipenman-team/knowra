@@ -1,8 +1,5 @@
-import { useRef } from "react";
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { parseContentToSlateValue, type SlateValue } from "@/components/common/slate-editor";
 
 export function PageTopbar(props: {
   visible: boolean;
@@ -19,11 +16,9 @@ export function PageTopbar(props: {
   onCloseEdit: () => void;
   onEnterEdit: () => void;
   onPublish: () => void;
-  onImported: (value: SlateValue) => void;
+  onOpenImport: () => void;
   onOpenHistory: () => void;
 }) {
-  const importInputRef = useRef<HTMLInputElement | null>(null);
-
   if (!props.visible) return null;
 
   const title = (props.pageMode === "preview" ? props.publishedTitle : props.pageTitle)?.trim() || "无标题文档";
@@ -113,7 +108,7 @@ export function PageTopbar(props: {
                       e.preventDefault();
                       e.stopPropagation();
                       props.setOpenMore(false);
-                      importInputRef.current?.click();
+                      props.onOpenImport();
                     }}
                   >
                     导入
@@ -135,27 +130,6 @@ export function PageTopbar(props: {
                 </div>
               ) : null}
             </div>
-
-            <input
-              ref={importInputRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (!file) return;
-
-                try {
-                  const text = await file.text();
-                  const parsed = JSON.parse(text);
-                  const nextValue = parseContentToSlateValue(parsed);
-                  props.onImported(nextValue);
-                } catch {
-                  // 导入格式不符合时静默失败，避免打断用户。
-                }
-              }}
-            />
           </div>
         )}
       </div>

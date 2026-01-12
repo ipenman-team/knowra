@@ -24,6 +24,13 @@ export const pagesApi = {
     return res.data;
   },
 
+  async createWithOptions(input: CreatePageInput, options?: { signal?: AbortSignal }) {
+    const res = await apiClient.post<PageDto>('/pages', input, {
+      signal: options?.signal,
+    });
+    return res.data;
+  },
+
   async save(id: string, input: SavePageInput) {
     const res = await apiClient.put<PageDto>(`/pages/${encodeURIComponent(id)}`, input);
     return res.data;

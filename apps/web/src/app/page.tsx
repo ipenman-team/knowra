@@ -7,6 +7,7 @@ import type { TreeNode } from "@/components/common/tree";
 import {
   parseContentToSlateValue,
   serializeSlateValue,
+  markdownToSlateValue,
   type SlateValue,
 } from "@/components/common/slate-editor";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ import { DeleteConfirmDialog } from "@/features/home/components/delete-confirm-d
 import { MainContent } from "@/features/home/components/main-content";
 import { Sidebar } from "@/features/home/components/sidebar";
 import { PageTopbar } from "@/features/home/components/topbar";
+import { ImportPageModal } from "@/features/home/components/import-page-modal";
+import { ProgressManager, type ProgressTask } from "@/features/home/components/progress-manager";
 import type { Selected, ViewId } from "@/features/home/types";
 
 export default function HomePage() {
@@ -113,6 +116,10 @@ export function HomeScreen(props: {
   const [creatingPage, setCreatingPage] = useState(false);
   const [openMenuNodeId, setOpenMenuNodeId] = useState<string | null>(null);
   const [openPageMore, setOpenPageMore] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
+  const [tasks, setTasks] = useState<ProgressTask[]>([]);
+  const taskControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const taskIntervalsRef = useRef<Map<string, number>>(new Map());
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [deletingPage, setDeletingPage] = useState(false);
   const [renamingTarget, setRenamingTarget] = useState<{ id: string; title: string } | null>(null);
@@ -126,6 +133,114 @@ export function HomeScreen(props: {
     } finally {
       setPagesLoaded(true);
     }
+  }
+
+  function stripFileExt(name: string) {
+    const trimmed = (name ?? "").trim();
+    const dot = trimmed.lastIndexOf(".");
+    if (dot <= 0) return trimmed || "无标题文档";
+    return trimmed.slice(0, dot) || "无标题文档";
+  }
+
+  function createTaskId() {
+    try {
+      return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    } catch {
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+  }
+
+  function updateTask(taskId: string, patch: Partial<ProgressTask>) {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)));
+  }
+
+  function clearTaskTimer(taskId: string) {
+    const handle = taskIntervalsRef.current.get(taskId);
+    if (handle) {
+      window.clearInterval(handle);
+      taskIntervalsRef.current.delete(taskId);
+    }
+  }
+
+  async function startImportMarkdown(file: File) {
+    const taskId = createTaskId();
+    const controller = new AbortController();
+    taskControllersRef.current.set(taskId, controller);
+
+    setTasks((prev) => [
+      {
+        id: taskId,
+        label: file.name,
+        progress: 0,
+        status: "running",
+      },
+      ...prev,
+    ]);
+
+    const interval = window.setInterval(() => {
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id !== taskId) return t;
+          if (t.status !== "running") return t;
+          return { ...t, progress: Math.min(90, t.progress + 8) };
+        }),
+      );
+    }, 180);
+    taskIntervalsRef.current.set(taskId, interval);
+
+    try {
+      const title = stripFileExt(file.name);
+      const text = await file.text();
+      if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+
+      const content = markdownToSlateValue(text);
+
+      const created = await pagesApi.createWithOptions(
+        {
+          title,
+          content,
+        },
+        { signal: controller.signal },
+      );
+
+      clearTaskTimer(taskId);
+      updateTask(taskId, {
+        progress: 100,
+        status: "success",
+        pageId: created.id,
+      });
+
+      await refreshPages();
+    } catch (e: unknown) {
+      clearTaskTimer(taskId);
+      const isAbort =
+        typeof e === "object" &&
+        e !== null &&
+        "name" in e &&
+        (e as { name?: unknown }).name === "AbortError";
+
+      updateTask(taskId, {
+        status: isAbort ? "cancelled" : "error",
+      });
+    } finally {
+      taskControllersRef.current.delete(taskId);
+    }
+  }
+
+  function handleCancelTask(taskId: string) {
+    const controller = taskControllersRef.current.get(taskId);
+    controller?.abort();
+    clearTaskTimer(taskId);
+    updateTask(taskId, { status: "cancelled" });
+  }
+
+  async function handlePreviewTask(taskId: string) {
+    const task = tasks.find((t) => t.id === taskId);
+    const pageId = task?.pageId;
+    if (!pageId) return;
+
+    await refreshPages();
+    setSelected({ kind: "page", id: pageId, title: "" });
   }
 
   useEffect(() => {
@@ -430,10 +545,7 @@ export function HomeScreen(props: {
           }}
           onEnterEdit={() => setPageMode("edit")}
           onPublish={handlePublish}
-          onImported={(value) => {
-            setEditorValue(value);
-            setPageMode("edit");
-          }}
+          onOpenImport={() => setOpenImportModal(true)}
           onOpenHistory={() => {
             if (!selectedPageId) return;
             router.push(`/page/${encodeURIComponent(selectedPageId)}/versions`);
@@ -467,6 +579,22 @@ export function HomeScreen(props: {
         deleting={deletingPage}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ImportPageModal
+        open={openImportModal}
+        onOpenChange={setOpenImportModal}
+        onPickMarkdownFile={(file) => {
+          void startImportMarkdown(file);
+        }}
+      />
+
+      <ProgressManager
+        tasks={tasks}
+        onCancelTask={handleCancelTask}
+        onPreviewTask={(id) => {
+          void handlePreviewTask(id);
+        }}
       />
     </div>
   );
