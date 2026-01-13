@@ -1,3 +1,5 @@
+import '@/lib/wdyr'; // Must be first import for why-did-you-render
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
