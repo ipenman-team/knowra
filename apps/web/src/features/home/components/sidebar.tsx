@@ -1,4 +1,4 @@
-import type { TreeNode } from "@/components/common/tree";
+import type { TreeNode } from "@/components/shared/tree";
 import { Separator } from "@/components/ui/separator";
 
 import { PageTree } from "./page-tree";

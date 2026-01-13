@@ -4,7 +4,7 @@ import type { PageVersionDto } from '@/lib/api/pages/types';
 import {
   parseContentToSlateValue,
   type SlateValue,
-} from '@/components/common/slate-editor';
+} from '@/components/shared/slate-editor';
 
 interface PageContentState {
   // Active page data

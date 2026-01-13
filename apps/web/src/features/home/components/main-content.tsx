@@ -1,5 +1,5 @@
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlateEditor, parseContentToSlateValue, type SlateValue } from "@/components/common/slate-editor";
+import { SlateEditor, parseContentToSlateValue, type SlateValue } from "@/components/shared/slate-editor";
 import { cn } from "@/lib/utils";
 import type { PageVersionDto, PageVersionStatus } from "@/lib/api/pages/types";
 

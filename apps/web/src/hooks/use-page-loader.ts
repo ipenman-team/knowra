@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { pagesApi } from '@/lib/api';
 import { usePageContentStore } from '@/stores';
-import { parseContentToSlateValue } from '@/components/common/slate-editor';
+import { parseContentToSlateValue } from '@/components/shared/slate-editor';
 
 /**
  * Loads page data when a page is selected

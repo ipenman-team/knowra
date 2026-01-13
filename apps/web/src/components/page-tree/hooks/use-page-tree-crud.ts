@@ -1,28 +1,21 @@
-import { memo, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { PageTreeHeader } from './tree-header';
-import { PageTreeList } from './tree-list';
+import { useCallback, useEffect } from 'react';
+import { pagesApi, type PageDto } from '@/lib/api';
+import { buildPageTreeFromFlatPages } from '@contexta/shared';
 import {
-  usePagesLoaded,
-  usePageTreeNodes,
   usePageTreeStore,
   usePageSelectionStore,
   useUIStateStore,
   useCreatingPage,
 } from '@/stores';
-import { pagesApi, type PageDto } from '@/lib/api';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
-import type { TreeNode } from '@/components/common/tree';
+import type { TreeNode } from '@/components/shared/tree';
 
-// Business logic orchestrator for the page tree
-export const PageTreeContainer = memo(function PageTreeContainer({
-  onOpenImport,
-}: {
-  onOpenImport: () => void;
-}) {
-  const pagesLoaded = usePagesLoaded();
-  const nodes = usePageTreeNodes();
+/**
+ * 页面树 CRUD 操作 Hook
+ * 提供：创建、删除、重命名、刷新等业务逻辑
+ *
+ * 从 tree-container.tsx 提取的业务逻辑
+ */
+export function usePageTreeCRUD() {
   const creatingPage = useCreatingPage();
   const { setPageTreeNodes, setPagesLoaded, setCreatingPage } =
     usePageTreeStore();
@@ -31,6 +24,7 @@ export const PageTreeContainer = memo(function PageTreeContainer({
   const renamingTarget = useUIStateStore((s) => s.renamingTarget);
   const renamingValue = useUIStateStore((s) => s.renamingValue);
 
+  // 刷新页面树
   const refreshPages = useCallback(async () => {
     try {
       const pages = await pagesApi.list();
@@ -40,7 +34,8 @@ export const PageTreeContainer = memo(function PageTreeContainer({
     }
   }, [setPageTreeNodes, setPagesLoaded]);
 
-  const handleCreatePage = useCallback(async () => {
+  // 创建根页面
+  const createPage = useCallback(async () => {
     if (creatingPage) return;
     try {
       setCreatingPage(true);
@@ -52,7 +47,8 @@ export const PageTreeContainer = memo(function PageTreeContainer({
     }
   }, [creatingPage, setCreatingPage, setSelectedPage, refreshPages]);
 
-  const handleCreateChildPage = useCallback(
+  // 创建子页面
+  const createChildPage = useCallback(
     async (parent: TreeNode<PageDto>) => {
       if (creatingPage) return;
       const parentIds = [...(parent.data?.parentIds ?? []), parent.id];
@@ -71,7 +67,8 @@ export const PageTreeContainer = memo(function PageTreeContainer({
     [creatingPage, setCreatingPage, setSelectedPage, refreshPages]
   );
 
-  const handleCommitRename = useCallback(async () => {
+  // 提交重命名
+  const commitRename = useCallback(async () => {
     if (!renamingTarget) return;
 
     const nextTitle = renamingValue.trim() || '无标题文档';
@@ -82,7 +79,7 @@ export const PageTreeContainer = memo(function PageTreeContainer({
         title: nextTitle,
       });
 
-      // Update selection if we're renaming the currently selected page
+      // 如果正在重命名当前选中的页面，更新选择状态
       const { selected } = usePageSelectionStore.getState();
       if (selected.kind === 'page' && selected.id === page.id) {
         setSelectedPage(page.id, page.title);
@@ -102,7 +99,7 @@ export const PageTreeContainer = memo(function PageTreeContainer({
     cancelRename,
   ]);
 
-  // Initial load
+  // 初始加载页面树
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -123,33 +120,11 @@ export const PageTreeContainer = memo(function PageTreeContainer({
     };
   }, [setPageTreeNodes, setPagesLoaded]);
 
-  const empty = pagesLoaded && nodes.length === 0;
-
-  if (empty) {
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        className="h-9 w-full justify-start px-2"
-        disabled={creatingPage}
-        onClick={handleCreatePage}
-      >
-        新建
-      </Button>
-    );
-  }
-
-  return (
-    <>
-      <PageTreeHeader
-        onCreatePage={handleCreatePage}
-        onOpenImport={onOpenImport}
-      />
-      <PageTreeList
-        onCreateChildPage={handleCreateChildPage}
-        onCommitRename={handleCommitRename}
-      />
-      <Separator />
-    </>
-  );
-});
+  return {
+    refreshPages,
+    createPage,
+    createChildPage,
+    commitRename,
+    creatingPage,
+  };
+}

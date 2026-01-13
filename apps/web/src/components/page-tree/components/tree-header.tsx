@@ -2,6 +2,10 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCreatingPage } from '@/stores';
 
+/**
+ * 页面树头部组件
+ * 显示"页面"标题和新建/导入下拉菜单
+ */
 export const PageTreeHeader = memo(function PageTreeHeader({
   onCreatePage,
   onOpenImport,
@@ -38,6 +42,7 @@ export const PageTreeHeader = memo(function PageTreeHeader({
     [onOpenImport]
   );
 
+  // 点击外部关闭菜单
   useEffect(() => {
     if (!openAddMenu) return;
     const handler = () => setOpenAddMenu(false);

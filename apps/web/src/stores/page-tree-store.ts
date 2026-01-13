@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { TreeNode } from '@/components/common/tree';
+import type { TreeNode } from '@/components/shared/tree';
 import type { PageDto } from '@/lib/api';
 
 interface PageTreeState {

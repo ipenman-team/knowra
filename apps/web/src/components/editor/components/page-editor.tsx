@@ -1,19 +1,17 @@
 import { memo, useCallback } from 'react';
-import { SlateEditor } from '@/components/common/slate-editor';
 import {
-  EditorTitleInput,
-  EditorTitleDisplay,
-} from '@/components/atoms/editor';
+  SlateEditor,
+  parseContentToSlateValue,
+  type SlateValue,
+} from '@/components/shared/slate-editor';
+import { EditorTitleInput } from './title-input';
+import { EditorTitleDisplay } from './title-display';
 import {
   usePageMode,
   usePageTitle,
   useEditorValue,
   usePageContentStore,
 } from '@/stores';
-import {
-  parseContentToSlateValue,
-  type SlateValue,
-} from '@/components/common/slate-editor';
 
 export const PageEditor = memo(function PageEditor() {
   const pageMode = usePageMode();

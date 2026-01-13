@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { parseContentToSlateValue, SlateEditor } from "@/components/common/slate-editor";
+import { parseContentToSlateValue, SlateEditor } from "@/components/shared/slate-editor";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { pagesApi } from "@/lib/api";

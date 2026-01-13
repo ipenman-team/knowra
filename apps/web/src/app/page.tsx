@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 // Components
-import { HomeLayout } from '@/components/templates';
-import { PageSidebar } from '@/components/organisms/sidebar';
-import { PageEditor } from '@/components/organisms/editor';
+import { HomeLayout } from '@/components/layout';
+import { PageSidebar } from '@/components/sidebar';
+import { PageEditor } from '@/components/editor';
 import { PageTopbar } from '@/features/home/components/topbar';
 import { MainContent } from '@/features/home/components/main-content';
 import { DeleteConfirmDialog } from '@/features/home/components/delete-confirm-dialog';

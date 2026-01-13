@@ -2,7 +2,11 @@ import { memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export const PageTreeContextMenu = memo(function PageTreeContextMenu({
+/**
+ * 树节点右键菜单
+ * 提供重命名和删除操作
+ */
+export const TreeNodeContextMenu = memo(function TreeNodeContextMenu({
   nodeId,
   label,
   isOpen,

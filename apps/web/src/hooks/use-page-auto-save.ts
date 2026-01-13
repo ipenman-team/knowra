@@ -5,7 +5,7 @@ import {
   usePageSelectionStore,
   usePageTreeStore,
 } from '@/stores';
-import { serializeSlateValue } from '@/components/common/slate-editor';
+import { serializeSlateValue } from '@/components/shared/slate-editor';
 
 /**
  * Automatically saves page changes after 2 seconds of inactivity
