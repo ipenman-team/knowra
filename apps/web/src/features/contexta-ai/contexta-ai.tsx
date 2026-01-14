@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,20 @@ function SpinnerIcon(props: { className?: string }) {
   );
 }
 
+function StopIcon(props: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={props.className}
+      aria-hidden
+    >
+      <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" />
+    </svg>
+  );
+}
+
 function formatZhDate(d: Date): string {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "numeric",
@@ -69,11 +83,30 @@ export function ContextaAiView() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, []);
+
   const canSend = useMemo(() => value.trim().length > 0 && !loading, [value, loading]);
+
+  function handleStop() {
+    if (!loading) return;
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }
 
   async function handleSend() {
     const q = value.trim();
     if (!q || loading) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setSubmittedQuestion(q);
     setValue("");
@@ -86,12 +119,19 @@ export function ContextaAiView() {
         onDelta: (delta) => {
           setAnswer((prev) => (prev ?? "") + delta);
         },
-      });
+      }, { signal: controller.signal });
     } catch (e) {
+      if (
+        (e instanceof DOMException && e.name === "AbortError") ||
+        (typeof e === "object" && e !== null && "name" in e && (e as any).name === "AbortError")
+      ) {
+        return;
+      }
       const message = e instanceof Error ? e.message : "请求失败";
       setError(message);
     } finally {
       setLoading(false);
+      abortRef.current = null;
     }
   }
 
@@ -123,16 +163,28 @@ export function ContextaAiView() {
               />
 
               <div className="absolute bottom-6 right-6">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={canSend ? "default" : "secondary"}
-                  disabled={!canSend}
-                  aria-label="发送"
-                  onClick={handleSend}
-                >
-                  <SendIcon className="h-4 w-4" />
-                </Button>
+                {loading ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="secondary"
+                    aria-label="停止"
+                    onClick={handleStop}
+                  >
+                    <StopIcon className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={canSend ? "default" : "secondary"}
+                    disabled={!canSend}
+                    aria-label="发送"
+                    onClick={handleSend}
+                  >
+                    <SendIcon className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -188,16 +240,28 @@ export function ContextaAiView() {
                 />
 
                 <div className="absolute bottom-6 right-6">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant={canSend ? "default" : "secondary"}
-                    disabled={!canSend}
-                    aria-label="发送"
-                    onClick={handleSend}
-                  >
-                    <SendIcon className="h-4 w-4" />
-                  </Button>
+                  {loading ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      aria-label="停止"
+                      onClick={handleStop}
+                    >
+                      <StopIcon className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={canSend ? "default" : "secondary"}
+                      disabled={!canSend}
+                      aria-label="发送"
+                      onClick={handleSend}
+                    >
+                      <SendIcon className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
