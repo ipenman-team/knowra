@@ -3,7 +3,7 @@ import type { EmbeddingProvider } from '../ports/embedding-provider';
 import type { VectorStore } from '../ports/vector-store';
 import { extractKeywords } from '../core/keywords';
 import { splitText } from '../core/text-splitter';
-import type { RagAnswerResult } from './types';
+import type { RagAnswerResult, RagAnswerStreamEvent } from './types';
 import type { RagHooks } from './hooks';
 
 export type RagConfig = {
@@ -188,7 +188,7 @@ export class RAG {
             {
               role: 'system',
               content:
-                '你是一个面向用户的知识库问答助手。请只依据给定的资料片段回答，不要编造或脑补。回答要自然口语化、直接给结论，必要时再补充一两句解释。不要写“根据上下文/资料”等措辞，也不要输出小标题、编号或列表（除非用户明确要求）。如果资料不足以支撑答案，请直接说“我不知道”，并用一句话说明缺少哪类信息；最多提出 1 个澄清问题。',
+                '你是一个面向用户的知识库问答助手。请只依据给定的资料片段回答，不要编造或脑补。用 Markdown 输出，分段清晰：先给结论，再补充必要解释；当步骤/要点更清楚时可以用无序列表；命令或代码用 ``` 代码块；避免空话，不要写“根据上下文/资料”等措辞。如果资料不足以支撑答案，请直接说“我不知道”，并用一句话说明缺少哪类信息；最多提出 1 个澄清问题。',
             },
             {
               role: 'user',
@@ -238,6 +238,134 @@ export class RAG {
       const ms = Date.now() - started;
       await this.safeHook(() =>
         hooks?.onAnswerError?.({ tenantId: input.tenantId, question, error, ms }),
+      );
+      throw error;
+    }
+  }
+
+  async *answerStream(
+    input: { tenantId: string; question: string },
+    options?: { signal?: AbortSignal },
+  ): AsyncIterable<RagAnswerStreamEvent> {
+    const started = Date.now();
+    const hooks = this.config.hooks;
+
+    const rawQuestion = input.question.trim();
+    const question = hooks?.prepareQuestion
+      ? await hooks.prepareQuestion({ tenantId: input.tenantId, question: rawQuestion })
+      : rawQuestion;
+
+    await this.safeHook(() => hooks?.onAnswerStart?.({ tenantId: input.tenantId, question }));
+
+    try {
+      const embeddingStart = Date.now();
+      const queryEmbedding = await this.config.embeddings.embedQuery(question);
+      const embeddingMs = Date.now() - embeddingStart;
+
+      if (queryEmbedding.length !== this.config.vectorStore.vectorDim) {
+        throw new Error(
+          `vectorDim mismatch: expected ${this.config.vectorStore.vectorDim}, got ${queryEmbedding.length}`,
+        );
+      }
+
+      const retrieveStart = Date.now();
+      const candidates = await this.config.vectorStore.similaritySearch(queryEmbedding, {
+        topK: this.config.retrieval.topK,
+        filter: { tenantId: input.tenantId },
+      });
+      const retrieveMs = Date.now() - retrieveStart;
+
+      const passed = candidates.filter((c) => c.score <= this.config.retrieval.similarityThreshold);
+
+      const context = passed
+        .map((c, i) => `【${i + 1} ${c.sourceId}#${c.chunkIndex}】\n${c.content}`)
+        .join('\n\n');
+
+      const terms = extractKeywords(question).slice(0, 8);
+      const lowerContext = context.toLowerCase();
+      const covered = terms.filter((t) => lowerContext.includes(t.toLowerCase()));
+      const hasCriticalTerms = covered.length > 0;
+
+      const fallback = passed.length === 0 || !hasCriticalTerms;
+
+      const llmStart = Date.now();
+      let answerText = '';
+
+      if (fallback) {
+        answerText = hasCriticalTerms
+          ? '我暂时没在知识库里找到足够相关的内容来回答这个问题。'
+          : '我不知道（目前检索到的资料没有覆盖你问题里的关键信息）。';
+        yield { type: 'delta', delta: answerText };
+      } else {
+        const messages = [
+          {
+            role: 'system' as const,
+            content:
+              '你是一个面向用户的知识库问答助手。请只依据给定的资料片段回答，不要编造或脑补。用 Markdown 输出，分段清晰：先给结论，再补充必要解释；当步骤/要点更清楚时可以用无序列表；命令或代码用 ``` 代码块；避免空话，不要写“根据上下文/资料”等措辞。如果资料不足以支撑答案，请直接说“我不知道”，并用一句话说明缺少哪类信息；最多提出 1 个澄清问题。',
+          },
+          {
+            role: 'user' as const,
+            content: `资料片段：\n${context}\n\n用户问题：\n${question}`,
+          },
+        ];
+
+        if (this.config.chat.generateStream) {
+          for await (const delta of this.config.chat.generateStream(messages, {
+            signal: options?.signal,
+          })) {
+            answerText += delta;
+            yield { type: 'delta', delta };
+          }
+        } else {
+          const res = await this.config.chat.generate(messages);
+          answerText = String(res.content ?? '');
+          if (answerText) {
+            yield { type: 'delta', delta: answerText };
+          }
+        }
+      }
+
+      const llmMs = Date.now() - llmStart;
+      const totalMs = Date.now() - started;
+
+      await this.safeHook(() =>
+        hooks?.onAnswerEnd?.({
+          tenantId: input.tenantId,
+          question,
+          hit: !fallback,
+          ms: totalMs,
+        }),
+      );
+
+      const meta: RagAnswerResult['meta'] = {
+        timing: { embeddingMs, retrieveMs, llmMs, totalMs },
+        termCoverage: {
+          terms,
+          covered,
+          ratio: terms.length ? covered.length / terms.length : 0,
+        },
+        retrieval: {
+          topK: this.config.retrieval.topK,
+          threshold: this.config.retrieval.similarityThreshold,
+          candidates: candidates.map((c) => ({ id: c.id, score: c.score, source: 'semantic' })),
+          selected: passed.map((c) => ({ id: c.id, score: c.score })),
+        },
+        fallback: fallback
+          ? { reason: passed.length === 0 ? 'no_hit' : 'term_not_covered' }
+          : undefined,
+        model: {
+          chatModel: this.config.chat.model,
+          embedModel: this.config.embeddings.model,
+          vectorDim: this.config.vectorStore.vectorDim,
+        },
+      };
+
+      yield { type: 'meta', hit: !fallback, meta };
+      yield { type: 'done' };
+    } catch (error) {
+      const ms = Date.now() - started;
+      await this.safeHook(() =>
+        hooks?.onAnswerError?.({ tenantId: input.tenantId, question: input.question, error, ms }),
       );
       throw error;
     }

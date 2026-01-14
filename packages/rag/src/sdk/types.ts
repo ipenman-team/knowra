@@ -20,6 +20,11 @@ export type RagAnswerResult = {
   };
 };
 
+export type RagAnswerStreamEvent =
+  | { type: 'delta'; delta: string }
+  | { type: 'meta'; hit: boolean; meta: RagAnswerResult['meta'] }
+  | { type: 'done' };
+
 export type RagIndexTextInput = {
   tenantId: string;
   sourceId: string;
@@ -34,4 +39,5 @@ export type RagIndexTextInput = {
 export type RagSdk = {
   indexText(input: RagIndexTextInput): Promise<{ ok: true; chunkCount: number }>;
   answer(input: RagAnswerInput): Promise<RagAnswerResult>;
+  answerStream?(input: RagAnswerInput, options?: { signal?: AbortSignal }): AsyncIterable<RagAnswerStreamEvent>;
 };

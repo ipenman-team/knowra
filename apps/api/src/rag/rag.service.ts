@@ -65,11 +65,11 @@ export class RagService {
     });
   }
 
-  async answer(tenantId: string, question: string) {
+  answerStream(tenantId: string, question: string, options?: { signal?: AbortSignal }) {
     const q = question?.trim() ?? '';
     if (!q) throw new BadRequestException('question is required');
 
-    return this.sdk.answer({ tenantId, question: q });
+    return this.sdk.answerStream({ tenantId, question: q }, options);
   }
 
   async indexPublished(

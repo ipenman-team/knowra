@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Markdown } from "@/components/shared/markdown";
 import { cn } from "@/lib/utils";
-import { answerRagQuestion } from "@/lib/api/rag";
+import { answerQuestion } from "@/lib/api/rag";
 
 function SendIcon(props: { className?: string }) {
   return (
@@ -76,13 +77,16 @@ export function ContextaAiView() {
 
     setSubmittedQuestion(q);
     setValue("");
-    setAnswer(null);
+    setAnswer("");
     setError(null);
     setLoading(true);
 
     try {
-      const res = await answerRagQuestion(q);
-      setAnswer(typeof res?.answer === "string" ? res.answer : "");
+      await answerQuestion(q, {
+        onDelta: (delta) => {
+          setAnswer((prev) => (prev ?? "") + delta);
+        },
+      });
     } catch (e) {
       const message = e instanceof Error ? e.message : "请求失败";
       setError(message);
@@ -162,9 +166,7 @@ export function ContextaAiView() {
                 {error ? (
                   <div className="mt-3 text-sm text-destructive">{error}</div>
                 ) : answer !== null ? (
-                  <div className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground">
-                    {answer}
-                  </div>
+                  <Markdown className="mt-3" content={answer} />
                 ) : null}
               </div>
             </div>
