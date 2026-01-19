@@ -5,7 +5,7 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['<rootDir>/src/**/test/unit/**/*.spec.ts'],
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.ts$': 'ts-jest',
   },
   collectCoverageFrom: ['<rootDir>/src/**/*.(t|j)s'],
   coverageDirectory: '<rootDir>/coverage/unit',

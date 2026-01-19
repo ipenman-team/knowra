@@ -104,5 +104,10 @@ export function usePageAutoSave() {
     editorContentKey,
     editorValue,
     selected,
+    setActivePage,
+    setLastSavedAt,
+    setPageSaving,
+    setPageTreeNodes,
+    setSelected,
   ]);
 }

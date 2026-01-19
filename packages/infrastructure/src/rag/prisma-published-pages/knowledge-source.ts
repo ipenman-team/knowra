@@ -14,9 +14,11 @@ export type PublishedPageKnowledgeSource = {
   }): Promise<PublishedPageVersion>;
 };
 
+import type { PrismaClient } from '@prisma/client';
+
 type PrismaLike = {
   pageVersion: {
-    findFirst: (args: any) => Promise<any>;
+    findFirst: PrismaClient['pageVersion']['findFirst'];
   };
 };
 

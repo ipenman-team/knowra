@@ -18,4 +18,13 @@ export class AppController {
       ts: new Date().toISOString(),
     };
   }
+
+  @Get('health')
+  health(): { ok: true; message: string; ts: string } {
+    return {
+      ok: true,
+      message: 'healthy',
+      ts: new Date().toISOString(),
+    };
+  }
 }

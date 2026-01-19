@@ -14,8 +14,10 @@ import { ImportsModule } from './imports/imports.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
+        path.resolve(process.cwd(), '../../.env.prod'),
         path.resolve(process.cwd(), '../../.env'),
         path.resolve(process.cwd(), '../../.env.local'),
+        path.resolve(process.cwd(), '.env.prod'),
         path.resolve(process.cwd(), '.env'),
         path.resolve(process.cwd(), '.env.local'),
       ],

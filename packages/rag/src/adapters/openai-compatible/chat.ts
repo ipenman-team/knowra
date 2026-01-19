@@ -87,17 +87,27 @@ export class OpenAICompatibleChatProvider implements ChatProvider {
 
         if (dataStr === '[DONE]') return;
 
-        let payloadJson: any;
+        let payloadJson: unknown;
         try {
           payloadJson = JSON.parse(dataStr);
         } catch {
           continue;
         }
 
+        type ChatStreamPayload = {
+          choices?: Array<{
+            delta?: { content?: unknown };
+            message?: { content?: unknown };
+            text?: unknown;
+          }>;
+        };
+
+        const payload = payloadJson as ChatStreamPayload;
+        const choice0 = payload.choices?.[0];
         const delta =
-          payloadJson?.choices?.[0]?.delta?.content ??
-          payloadJson?.choices?.[0]?.message?.content ??
-          payloadJson?.choices?.[0]?.text ??
+          choice0?.delta?.content ??
+          choice0?.message?.content ??
+          choice0?.text ??
           '';
 
         if (typeof delta === 'string' && delta.length > 0) {

@@ -8,6 +8,15 @@ import { Markdown } from "@/components/shared/markdown";
 import { cn } from "@/lib/utils";
 import { answerQuestion } from "@/lib/api/rag";
 
+function hasAbortName(e: unknown): e is { name: string } {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "name" in e &&
+    typeof (e as { name: unknown }).name === "string"
+  );
+}
+
 function SendIcon(props: { className?: string }) {
   return (
     <svg
@@ -127,7 +136,7 @@ export function ContextaAiView() {
     } catch (e) {
       if (
         (e instanceof DOMException && e.name === "AbortError") ||
-        (typeof e === "object" && e !== null && "name" in e && (e as any).name === "AbortError")
+        (hasAbortName(e) && e.name === "AbortError")
       ) {
         return;
       }

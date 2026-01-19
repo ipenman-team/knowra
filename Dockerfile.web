@@ -1,0 +1,29 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+ARG COREPACK_NPM_REGISTRY=https://registry.npmjs.org
+ARG NPM_REGISTRY=https://registry.npmjs.org
+
+ENV COREPACK_NPM_REGISTRY=${COREPACK_NPM_REGISTRY}
+ENV npm_config_registry=${NPM_REGISTRY}
+
+RUN corepack enable
+
+COPY . .
+
+RUN pnpm -w --filter @contexta/web... install --frozen-lockfile --prod=false --config.node-linker=isolated
+RUN pnpm --dir packages/shared build
+
+ARG NEXT_PUBLIC_API_BASE_URL=/api
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ENV NODE_ENV=production
+ENV PORT=3000
+
+RUN pnpm --dir apps/web build
+
+WORKDIR /app/apps/web
+
+EXPOSE 3000
+
+CMD ["pnpm", "start"]

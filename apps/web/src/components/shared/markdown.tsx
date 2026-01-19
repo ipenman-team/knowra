@@ -32,7 +32,7 @@ export function Markdown(props: { content: string; className?: string }) {
             </blockquote>
           ),
           code: (p) => {
-            const inline = (p as any).inline as boolean | undefined;
+            const inline = (p as { inline?: unknown }).inline === true;
             if (inline) {
               return (
                 <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]">

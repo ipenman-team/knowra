@@ -5,8 +5,8 @@ export type PrismaPgVectorStoreConfig = {
 };
 
 type PrismaLike = {
-  $executeRaw: (query: any, ...values: any[]) => Promise<number>;
-  $queryRaw: <T = unknown>(query: any, ...values: any[]) => Promise<T>;
+  $executeRaw: (strings: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
+  $queryRaw: <T = unknown>(strings: TemplateStringsArray, ...values: unknown[]) => Promise<T>;
 };
 
 function toVectorLiteral(vector: number[]): string {
@@ -34,7 +34,7 @@ export class PrismaPgVectorVectorStore implements VectorStore {
     for (const c of chunks) {
       const embedding = toVectorLiteral(c.embedding);
       const pageVersionId = pickPageVersionId(c.metadata);
-      const metadata = c.metadata ? (c.metadata as any) : null;
+      const metadata = c.metadata ?? null;
 
       await this.prisma.$executeRaw`
         INSERT INTO "rag_chunks" (

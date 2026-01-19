@@ -1,10 +1,20 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PageService } from '../../page.service';
+import type { PageDto } from '../../dto/page.dto';
 
 describe('PageService', () => {
   let service: PageService;
+
+  const defaultSlateDoc = (): Prisma.JsonValue =>
+    [
+      {
+        type: 'paragraph',
+        children: [{ text: '' }],
+      },
+    ] as unknown as Prisma.JsonValue;
 
   const prisma = {
     page: {
@@ -14,15 +24,18 @@ describe('PageService', () => {
       delete: jest.fn(),
       findMany: jest.fn(),
     },
+    pageVersion: {
+      create: jest.fn(),
+    },
   };
 
-  const samplePage = (overrides?: Partial<any>) => {
+  const samplePage = (overrides?: Partial<PageDto>): PageDto => {
     const now = new Date('2026-01-11T00:00:00.000Z');
     return {
       id: 'p1',
       tenantId: 't1',
       title: 'Hello',
-      content: '',
+      content: defaultSlateDoc(),
       parentIds: [],
       createdAt: now,
       updatedAt: now,
@@ -43,20 +56,23 @@ describe('PageService', () => {
   describe('create', () => {
     it('creates with defaults', async () => {
       prisma.page.create.mockResolvedValue(samplePage());
+      prisma.pageVersion.create.mockResolvedValue({ id: 'v1' });
 
       await expect(service.create('t1', { title: 'Hello' })).resolves.toMatchObject({
         id: 'p1',
         tenantId: 't1',
         title: 'Hello',
-        content: '',
+        content: defaultSlateDoc(),
       });
 
       expect(prisma.page.create).toHaveBeenCalledWith({
         data: {
           tenantId: 't1',
           title: 'Hello',
-          content: '',
+          content: defaultSlateDoc() as unknown as Prisma.InputJsonValue,
           parentIds: [],
+          createdBy: 'system',
+          updatedBy: 'system',
         },
       });
     });
@@ -76,6 +92,7 @@ describe('PageService', () => {
         samplePage({ title: 'Old', content: 'A', parentIds: ['x'] }),
       );
       prisma.page.update.mockResolvedValue(samplePage({ title: 'New', content: 'A', parentIds: ['x'] }));
+      prisma.pageVersion.create.mockResolvedValue({ id: 'v2' });
 
       await expect(service.save('t1', 'p1', { title: 'New' })).resolves.toMatchObject({
         id: 'p1',
@@ -91,6 +108,7 @@ describe('PageService', () => {
           title: 'New',
           content: 'A',
           parentIds: ['x'],
+          updatedBy: 'system',
         },
       });
     });

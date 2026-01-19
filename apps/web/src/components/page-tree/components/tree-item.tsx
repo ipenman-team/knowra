@@ -136,5 +136,5 @@ export const PageTreeItem = memo(
 
 // 在开发环境中启用 why-did-you-render 追踪
 if (process.env.NODE_ENV === 'development') {
-  (PageTreeItem as any).whyDidYouRender = true;
+  (PageTreeItem as unknown as { whyDidYouRender?: boolean }).whyDidYouRender = true;
 }

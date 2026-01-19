@@ -35,7 +35,7 @@ describe('PageController', () => {
   it('create forwards tenantId + body', async () => {
     pageService.create.mockResolvedValue({ id: 'p1' });
 
-    await expect(controller.create('t1', undefined, { title: 'Hello' } as any)).resolves.toEqual({
+    await expect(controller.create('t1', undefined, { title: 'Hello' })).resolves.toEqual({
       id: 'p1',
     });
 
@@ -45,7 +45,7 @@ describe('PageController', () => {
   it('save forwards tenantId + id + body', async () => {
     pageService.save.mockResolvedValue({ id: 'p1', title: 'X' });
 
-    await expect(controller.save('t1', undefined, 'p1', { title: 'X' } as any)).resolves.toEqual({
+    await expect(controller.save('t1', undefined, 'p1', { title: 'X' })).resolves.toEqual({
       id: 'p1',
       title: 'X',
     });

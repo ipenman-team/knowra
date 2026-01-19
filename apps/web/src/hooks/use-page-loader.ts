@@ -75,5 +75,15 @@ export function usePageLoader(pageId: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [pageId]);
+  }, [
+    pageId,
+    resetPageContent,
+    setActivePage,
+    setEditorValue,
+    setLastSavedAt,
+    setPageLoading,
+    setPageMode,
+    setPageTitle,
+    setPublishedSnapshot,
+  ]);
 }

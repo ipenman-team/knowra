@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { TaskStatus, TaskType, type Prisma } from '@prisma/client';
+import { TaskStatus, type Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskRuntimeService } from './task.runtime.service';
 import type { CreateTaskInput, TaskDto } from './task.dto';

@@ -62,7 +62,7 @@ export function HomeScreen(props: {
     } else if (props.initialSelectedViewId) {
       setSelected({ kind: 'view', id: props.initialSelectedViewId });
     }
-  }, []);
+  }, [props.initialSelectedPageId, props.initialSelectedViewId, setSelected]);
 
   // Custom hooks handle complex logic
   useUrlSync();
@@ -76,13 +76,11 @@ export function HomeScreen(props: {
   const deletingPage = useUIStateStore((s) => s.deletingPage);
   const setDeletingPage = useUIStateStore((s) => s.setDeletingPage);
   const openPageMore = useUIStateStore((s) => s.openPageMore);
-  const setOpenPageMoreRaw = useUIStateStore.getState().setOpenPageMore;
+  const setOpenPageMoreRaw = useUIStateStore((s) => s.setOpenPageMore);
   const setOpenPageMore = useCallback((open: boolean | ((prev: boolean) => boolean)) => {
-    const value = typeof open === 'function'
-      ? open(useUIStateStore.getState().openPageMore)
-      : open;
+    const value = typeof open === 'function' ? open(openPageMore) : open;
     setOpenPageMoreRaw(value);
-  }, []);
+  }, [openPageMore, setOpenPageMoreRaw]);
 
   // Page content state for topbar
   const pageMode = usePageContentStore((s) => s.pageMode);
@@ -101,8 +99,7 @@ export function HomeScreen(props: {
 
   // Task state
   const tasks = useTaskStore((s) => s.tasks);
-  const { addTask, updateTask, replaceTaskId, removeTask, cleanupAllRuntimes } =
-    useTaskStore();
+  const { addTask, updateTask, replaceTaskId, cleanupAllRuntimes } = useTaskStore();
 
   // Page tree refresh
   const { setPageTreeNodes } = usePageTreeStore();

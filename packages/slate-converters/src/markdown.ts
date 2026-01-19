@@ -1,9 +1,4 @@
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-
 import type { SlateText, SlateValue } from './types';
-
-type MdastNode = any;
 
 type Marks = {
   bold?: boolean;
@@ -22,140 +17,212 @@ function ensureParagraph(children: SlateText[]): { type: 'paragraph'; children: 
   };
 }
 
-function convertInline(nodes: MdastNode[] | undefined, marks: Marks = {}): SlateText[] {
-  if (!nodes?.length) return [{ text: '' }];
+function applyMark(text: string, marks: Marks): SlateText[] {
+  if (!text) return [{ text: '', ...marks }];
+  return [{ text, ...marks }];
+}
+
+function convertInlineText(input: string, marks: Marks = {}): SlateText[] {
+  const text = String(input ?? '');
+  if (!text) return [{ text: '' }];
 
   const out: SlateText[] = [];
 
-  for (const node of nodes) {
-    if (!node) continue;
+  const pushText = (chunk: string, nextMarks: Marks) => {
+    if (chunk) out.push(...applyMark(chunk, nextMarks));
+  };
 
-    switch (node.type) {
-      case 'text':
-        out.push({ text: String(node.value ?? ''), ...marks });
-        break;
-      case 'html': {
-        const html = String(node.value ?? '');
-        const u = html.match(/^<(u|ins)>([\s\S]*)<\/(u|ins)>$/i);
-        if (u) {
-          out.push({ text: u[2] ?? '', ...marks, underline: true });
-          break;
-        }
-
-        out.push({ text: html, ...marks });
-        break;
+  let i = 0;
+  while (i < text.length) {
+    const uOpen = text.slice(i).match(/^<(u|ins)>/i);
+    if (uOpen) {
+      const tag = uOpen[1];
+      const close = new RegExp(`^</${tag}>`, 'i');
+      const start = i + uOpen[0].length;
+      const rest = text.slice(start);
+      const closeIndex = rest.search(close);
+      if (closeIndex >= 0) {
+        const inner = rest.slice(0, closeIndex);
+        out.push(...convertInlineText(inner, { ...marks, underline: true }));
+        i = start + closeIndex + `</${tag}>`.length;
+        continue;
       }
-      case 'strong':
-        out.push(...convertInline(node.children, { ...marks, bold: true }));
-        break;
-      case 'emphasis':
-        out.push(...convertInline(node.children, { ...marks, italic: true }));
-        break;
-      case 'inlineCode':
-        out.push({ text: String(node.value ?? ''), ...marks });
-        break;
-      case 'break':
-        out.push({ text: '\n', ...marks });
-        break;
-      case 'link':
-      case 'linkReference':
-        // 当前 schema 没有 link inline element：先降级为纯文本。
-        out.push(...convertInline(node.children, marks));
-        break;
-      default:
-        if (Array.isArray(node.children)) {
-          out.push(...convertInline(node.children, marks));
-        } else if (typeof node.value === 'string') {
-          out.push({ text: node.value, ...marks });
-        }
     }
+
+    const tokenSpecs: Array<{ open: string; close: string; next: Marks }> = [
+      { open: '**', close: '**', next: { ...marks, bold: true } },
+      { open: '__', close: '__', next: { ...marks, bold: true } },
+      { open: '*', close: '*', next: { ...marks, italic: true } },
+      { open: '_', close: '_', next: { ...marks, italic: true } },
+      { open: '`', close: '`', next: { ...marks } },
+    ];
+
+    let matched = false;
+    for (const spec of tokenSpecs) {
+      if (!text.startsWith(spec.open, i)) continue;
+      const start = i + spec.open.length;
+      const end = text.indexOf(spec.close, start);
+      if (end === -1) continue;
+
+      const before = text.slice(i, i);
+      if (before) pushText(before, marks);
+
+      const inner = text.slice(start, end);
+      if (spec.open === '`') {
+        pushText(inner, spec.next);
+      } else {
+        out.push(...convertInlineText(inner, spec.next));
+      }
+
+      i = end + spec.close.length;
+      matched = true;
+      break;
+    }
+    if (matched) continue;
+
+    const nextToken = (() => {
+      const candidates: number[] = [];
+      const pushCandidate = (idx: number) => {
+        if (idx >= 0) candidates.push(idx);
+      };
+      pushCandidate(text.indexOf('<u>', i));
+      pushCandidate(text.indexOf('<ins>', i));
+      pushCandidate(text.indexOf('**', i));
+      pushCandidate(text.indexOf('__', i));
+      pushCandidate(text.indexOf('*', i));
+      pushCandidate(text.indexOf('_', i));
+      pushCandidate(text.indexOf('`', i));
+      if (candidates.length === 0) return -1;
+      return Math.min(...candidates.filter((n) => n >= 0));
+    })();
+
+    if (nextToken === -1) {
+      pushText(text.slice(i), marks);
+      break;
+    }
+
+    pushText(text.slice(i, nextToken), marks);
+    i = nextToken;
   }
 
   return out.length ? out : [{ text: '' }];
 }
 
-function convertBlocks(node: MdastNode): SlateValue {
-  if (!node) return [];
+function splitLines(input: string): string[] {
+  return normalizeMarkdown(input).split('\n');
+}
 
-  switch (node.type) {
-    case 'paragraph':
-      return [ensureParagraph(convertInline(node.children))];
+function parseParagraphLines(lines: string[]): SlateValue {
+  const text = lines.join('\n').trimEnd();
+  return [ensureParagraph(convertInlineText(text))];
+}
 
-    case 'heading': {
-      const depth = Number(node.depth ?? 1);
-      const type = depth === 1 ? 'heading-one' : 'heading-two';
-      return [
-        {
-          type,
-          children: convertInline(node.children),
-        },
-      ];
-    }
+function parseBlockquoteLines(lines: string[]): SlateValue {
+  const innerText = lines
+    .map((l) => l.replace(/^\s*>\s?/, ''))
+    .join('\n');
+  const inner = markdownToSlateValue(innerText);
+  return [
+    {
+      type: 'block-quote',
+      children: inner.length ? inner : [ensureParagraph([{ text: '' }])],
+    },
+  ];
+}
 
-    case 'blockquote': {
-      const inner: SlateValue = [];
-      for (const child of node.children ?? []) {
-        inner.push(...convertBlocks(child));
-      }
-      return [
-        {
-          type: 'block-quote',
-          children: (inner.length ? inner : [ensureParagraph([{ text: '' }])]) as any,
-        },
-      ];
-    }
+function parseList(lines: string[], ordered: boolean): SlateValue {
+  const listType = ordered ? 'numbered-list' : 'bulleted-list';
+  const items = lines
+    .map((l) => {
+      const cleaned = ordered ? l.replace(/^\s*\d+\.\s+/, '') : l.replace(/^\s*[-*+]\s+/, '');
+      return {
+        type: 'list-item',
+        children: [ensureParagraph(convertInlineText(cleaned.trimEnd()))],
+      };
+    })
+    .filter(Boolean);
 
-    case 'list': {
-      const ordered = Boolean(node.ordered);
-      const listType = ordered ? 'numbered-list' : 'bulleted-list';
-
-      const items = (node.children ?? []).map((item: MdastNode) => {
-        const itemBlocks: SlateValue = [];
-        for (const child of item?.children ?? []) {
-          itemBlocks.push(...convertBlocks(child));
-        }
-        const normalized = itemBlocks.length ? itemBlocks : [ensureParagraph([{ text: '' }])];
-
-        return {
-          type: 'list-item',
-          children: normalized as any,
-        };
-      });
-
-      return [
-        {
-          type: listType,
-          children: items as any,
-        },
-      ];
-    }
-
-    case 'code': {
-      const value = String(node.value ?? '');
-      return [ensureParagraph([{ text: value }])];
-    }
-
-    case 'thematicBreak':
-      return [ensureParagraph([{ text: '' }])];
-
-    default: {
-      if (Array.isArray(node.children)) {
-        const blocks: SlateValue = [];
-        for (const child of node.children) blocks.push(...convertBlocks(child));
-        return blocks;
-      }
-      return [];
-    }
-  }
+  return [
+    {
+      type: listType,
+      children: items.length ? items : [{ type: 'list-item', children: [ensureParagraph([{ text: '' }])] }],
+    },
+  ];
 }
 
 export function markdownToSlateValue(markdown: string): SlateValue {
-  const raw = normalizeMarkdown(markdown);
-  const tree = unified().use(remarkParse).parse(raw) as MdastNode;
-
+  const lines = splitLines(markdown);
   const blocks: SlateValue = [];
-  for (const child of tree?.children ?? []) {
-    blocks.push(...convertBlocks(child));
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i] ?? '';
+
+    if (!line.trim()) {
+      i += 1;
+      continue;
+    }
+
+    if (/^\s*```/.test(line)) {
+      const fence = line.trim();
+      const codeLines: string[] = [];
+      i += 1;
+      while (i < lines.length && lines[i].trim() !== fence) {
+        codeLines.push(lines[i]);
+        i += 1;
+      }
+      if (i < lines.length) i += 1;
+      blocks.push(ensureParagraph([{ text: codeLines.join('\n') }]));
+      continue;
+    }
+
+    const heading = line.match(/^\s*(#{1,6})\s+(.*)$/);
+    if (heading) {
+      const depth = heading[1].length;
+      const text = heading[2] ?? '';
+      const type = depth === 1 ? 'heading-one' : 'heading-two';
+      blocks.push({ type, children: convertInlineText(text.trimEnd()) });
+      i += 1;
+      continue;
+    }
+
+    if (/^\s*>/.test(line)) {
+      const quoteLines: string[] = [];
+      while (i < lines.length && /^\s*>/.test(lines[i] ?? '')) {
+        quoteLines.push(lines[i] ?? '');
+        i += 1;
+      }
+      blocks.push(...parseBlockquoteLines(quoteLines));
+      continue;
+    }
+
+    const isBullet = /^\s*[-*+]\s+/.test(line);
+    const isOrdered = /^\s*\d+\.\s+/.test(line);
+    if (isBullet || isOrdered) {
+      const listLines: string[] = [];
+      const ordered = isOrdered;
+      const lineRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*+]\s+/;
+      while (i < lines.length && lineRe.test(lines[i] ?? '')) {
+        listLines.push(lines[i] ?? '');
+        i += 1;
+      }
+      blocks.push(...parseList(listLines, ordered));
+      continue;
+    }
+
+    const paraLines: string[] = [];
+    while (i < lines.length) {
+      const current = lines[i] ?? '';
+      if (!current.trim()) break;
+      if (/^\s*```/.test(current)) break;
+      if (/^\s*(#{1,6})\s+/.test(current)) break;
+      if (/^\s*>/.test(current)) break;
+      if (/^\s*[-*+]\s+/.test(current)) break;
+      if (/^\s*\d+\.\s+/.test(current)) break;
+      paraLines.push(current);
+      i += 1;
+    }
+    blocks.push(...parseParagraphLines(paraLines));
   }
 
   return blocks.length ? blocks : [ensureParagraph([{ text: '' }])];

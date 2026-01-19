@@ -1,5 +1,9 @@
 import { ApiError, getApiBaseUrl } from "../client";
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
 export type RagAnswerResult = {
   answer: string;
   hit: boolean;
@@ -74,7 +78,7 @@ export async function answerQuestion(
       const dataStr = dataLines.join("\n").trim();
       if (!dataStr) continue;
 
-      let payload: any = dataStr;
+      let payload: unknown = dataStr;
       try {
         payload = JSON.parse(dataStr);
       } catch {
@@ -82,13 +86,18 @@ export async function answerQuestion(
       }
 
       if (eventName === "delta") {
-        const delta = typeof payload === "string" ? payload : String(payload?.delta ?? "");
+        const delta =
+          typeof payload === "string"
+            ? payload
+            : isRecord(payload)
+              ? String(payload.delta ?? "")
+              : "";
         if (delta) handlers.onDelta(delta);
         continue;
       }
 
       if (eventName === "meta") {
-        if (payload && typeof payload === "object") {
+        if (isRecord(payload)) {
           handlers.onMeta?.({ hit: Boolean(payload.hit), meta: payload.meta });
         }
         continue;
@@ -96,7 +105,11 @@ export async function answerQuestion(
 
       if (eventName === "error") {
         const message =
-          typeof payload === "string" ? payload : String(payload?.message ?? "stream error");
+          typeof payload === "string"
+            ? payload
+            : isRecord(payload)
+              ? String(payload.message ?? "stream error")
+              : "stream error";
         throw new Error(message);
       }
 
