@@ -49,6 +49,18 @@ export function HomeScreen(props: {
   const router = useRouter();
   const pathname = usePathname();
 
+  const urlPageId = (() => {
+    if (!pathname.startsWith('/pages/')) return null;
+    const rest = pathname.slice('/pages/'.length);
+    const raw = rest.split('/')[0];
+    if (!raw) return null;
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  })();
+
   // Initialize selection from props
   const { setSelected } = usePageSelectionStore();
   const selected = usePageSelectionStore((s) => s.selected);
@@ -69,12 +81,12 @@ export function HomeScreen(props: {
   // Custom hooks handle complex logic
   useUrlSync();
   const isEditRoute = pathname.startsWith('/pages/') && pathname.endsWith('/edit');
-  usePageLoader(selectedPageId, {
+  usePageLoader(urlPageId, {
     enabled: isEditRoute,
     mode: 'edit',
     loadPublishedSnapshot: false,
   });
-  usePublishedPageLoader(selectedPageId, { enabled: !isEditRoute });
+  usePublishedPageLoader(urlPageId, { enabled: !isEditRoute });
   usePageAutoSave();
   const { subscribeTaskEvents } = useTaskSubscription();
 

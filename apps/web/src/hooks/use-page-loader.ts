@@ -129,11 +129,6 @@ export function usePublishedPageLoader(
     resetPageContent,
   } = usePageContentStore();
 
-  const selectedTitle = usePageSelectionStore((s) =>
-    s.selected.kind === 'page' && s.selected.id === pageId ? s.selected.title : ''
-  );
-  const pageTreeNodes = usePageTreeStore((s) => s.pageTreeNodes);
-
   useEffect(() => {
     if (options?.enabled === false) return;
     if (!pageId) {
@@ -164,6 +159,10 @@ export function usePublishedPageLoader(
             updatedAt: published.updatedAt,
           });
         } catch {
+          const selected = usePageSelectionStore.getState().selected;
+          const selectedTitle =
+            selected.kind === 'page' && selected.id === pageId ? selected.title : '';
+          const pageTreeNodes = usePageTreeStore.getState().pageTreeNodes;
           const fallbackTitle =
             selectedTitle.trim() || findTitleInTree(pageTreeNodes, pageId) || '未发布';
           setPageTitle(fallbackTitle);
@@ -182,9 +181,7 @@ export function usePublishedPageLoader(
   }, [
     pageId,
     options?.enabled,
-    pageTreeNodes,
     resetPageContent,
-    selectedTitle,
     setActivePage,
     setEditorValue,
     setLastSavedAt,

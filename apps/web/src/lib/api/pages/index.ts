@@ -8,6 +8,10 @@ import type {
   SavePageInput,
 } from './types';
 
+const inflightPublished = new Map<string, Promise<PublishedPageDto>>();
+const inflightVersions = new Map<string, Promise<PageVersionDto[]>>();
+const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
+
 export const pagesApi = {
   async list() {
     const res = await apiClient.get<PageDto[]>('/pages');
@@ -52,24 +56,51 @@ export const pagesApi = {
   },
 
   async listVersions(id: string) {
-    const res = await apiClient.get<PageVersionDto[]>(
-      `/pages/${encodeURIComponent(id)}/versions`,
-    );
-    return res.data;
+    const existing = inflightVersions.get(id);
+    if (existing) return existing;
+
+    const req = apiClient
+      .get<PageVersionDto[]>(`/pages/${encodeURIComponent(id)}/versions`)
+      .then((res) => res.data)
+      .finally(() => {
+        inflightVersions.delete(id);
+      });
+
+    inflightVersions.set(id, req);
+    return req;
   },
 
   async getVersion(pageId: string, versionId: string) {
-    const res = await apiClient.get<PageVersionDetailDto>(
-      `/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`,
-    );
-    return res.data;
+    const key = `${pageId}:${versionId}`;
+    const existing = inflightVersionDetail.get(key);
+    if (existing) return existing;
+
+    const req = apiClient
+      .get<PageVersionDetailDto>(
+        `/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`,
+      )
+      .then((res) => res.data)
+      .finally(() => {
+        inflightVersionDetail.delete(key);
+      });
+
+    inflightVersionDetail.set(key, req);
+    return req;
   },
 
   async getLatestPublished(id: string) {
-    const res = await apiClient.get<PublishedPageDto>(
-      `/pages/${encodeURIComponent(id)}/published`,
-    );
-    return res.data;
+    const existing = inflightPublished.get(id);
+    if (existing) return existing;
+
+    const req = apiClient
+      .get<PublishedPageDto>(`/pages/${encodeURIComponent(id)}/published`)
+      .then((res) => res.data)
+      .finally(() => {
+        inflightPublished.delete(id);
+      });
+
+    inflightPublished.set(id, req);
+    return req;
   },
 
   async remove(id: string) {

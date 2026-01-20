@@ -11,7 +11,6 @@ import {
 import type { TreeNode } from '@/components/shared/tree';
 
 export async function commitRenameFromState(args: {
-  refreshPages: () => Promise<void>;
   setSelectedPage: (id: string, title: string) => void;
 }) {
   const { renamingTarget, renamingValue, setSavingRename, cancelRename } =
@@ -26,6 +25,11 @@ export async function commitRenameFromState(args: {
       title: nextTitle,
     });
 
+    usePageTreeStore.getState().updateNode(page.id, {
+      label: page.title,
+      data: page,
+    });
+
     const { selected } = usePageSelectionStore.getState();
     if (selected.kind === 'page' && selected.id === page.id) {
       args.setSelectedPage(page.id, page.title);
@@ -36,8 +40,6 @@ export async function commitRenameFromState(args: {
         setPageTitle,
         publishedSnapshot,
         setPublishedSnapshot,
-        setVersionsLoading,
-        setPageVersions,
       } = usePageContentStore.getState();
 
       if (activePage?.id === page.id) {
@@ -48,17 +50,7 @@ export async function commitRenameFromState(args: {
           setPublishedSnapshot({ ...publishedSnapshot, title: page.title });
         }
       }
-
-      try {
-        setVersionsLoading(true);
-        const versions = await pagesApi.listVersions(page.id);
-        setPageVersions(versions);
-      } finally {
-        setVersionsLoading(false);
-      }
     }
-
-    await args.refreshPages();
     cancelRename();
   } finally {
     setSavingRename(false);
@@ -73,8 +65,8 @@ export async function commitRenameFromState(args: {
  */
 export function usePageTreeCRUD() {
   const creatingPage = useCreatingPage();
-  const { setPageTreeNodes, setPagesLoaded, setCreatingPage } =
-    usePageTreeStore();
+  const pagesLoaded = usePageTreeStore((s) => s.pagesLoaded);
+  const { setPageTreeNodes, setPagesLoaded, setCreatingPage } = usePageTreeStore();
   const { setSelectedPage } = usePageSelectionStore();
 
   // 刷新页面树
@@ -124,14 +116,14 @@ export function usePageTreeCRUD() {
   const commitRename = useCallback(
     async () =>
       commitRenameFromState({
-        refreshPages,
         setSelectedPage,
       }),
-    [refreshPages, setSelectedPage]
+    [setSelectedPage]
   );
 
   // 初始加载页面树
   useEffect(() => {
+    if (pagesLoaded) return;
     let cancelled = false;
     (async () => {
       try {
@@ -149,7 +141,7 @@ export function usePageTreeCRUD() {
     return () => {
       cancelled = true;
     };
-  }, [setPageTreeNodes, setPagesLoaded]);
+  }, [pagesLoaded, setPageTreeNodes, setPagesLoaded]);
 
   return {
     refreshPages,

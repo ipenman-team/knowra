@@ -12,6 +12,8 @@ export function useUrlSync() {
   const selected = usePageSelectionStore((s) => s.selected);
 
   useEffect(() => {
+    if (pathname.startsWith('/page/')) return;
+
     if (selected.kind === 'page') {
       const editing = pathname.startsWith('/pages/') && pathname.endsWith('/edit');
       const target = editing

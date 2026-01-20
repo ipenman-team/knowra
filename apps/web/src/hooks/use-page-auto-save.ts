@@ -16,7 +16,7 @@ export function usePageAutoSave() {
     usePageContentStore();
   const { setPageSaving, setLastSavedAt, setActivePage } = usePageContentStore();
   const { selected, setSelected } = usePageSelectionStore();
-  const { setPageTreeNodes } = usePageTreeStore();
+  const { updateNode } = usePageTreeStore();
 
   const lastSavedRef = useRef<{
     id: string;
@@ -83,13 +83,7 @@ export function usePageAutoSave() {
           selected.title !== saved.title
         ) {
           setSelected({ kind: 'page', id: saved.id, title: saved.title });
-
-          // Refresh tree to show updated title
-          const pages = await pagesApi.list();
-          const { buildPageTreeFromFlatPages } = await import(
-            '@contexta/shared'
-          );
-          setPageTreeNodes(buildPageTreeFromFlatPages(pages));
+          updateNode(saved.id, { label: saved.title, data: saved });
         }
       } finally {
         setPageSaving(false);
@@ -107,7 +101,7 @@ export function usePageAutoSave() {
     setActivePage,
     setLastSavedAt,
     setPageSaving,
-    setPageTreeNodes,
     setSelected,
+    updateNode,
   ]);
 }
