@@ -4,6 +4,7 @@ import { SidebarItem } from '@/features/home/components/sidebar-item';
 import { PageTreeContainer } from '../page-tree';
 import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
+import { UserProfilePanel } from '../profile';
 
 export const PageSidebar = memo(function PageSidebar({
   onOpenImport,
@@ -21,6 +22,12 @@ export const PageSidebar = memo(function PageSidebar({
   return (
     <aside className="w-72 border-r bg-muted/30">
       <div className="flex h-dvh flex-col overflow-hidden p-3">
+        <div className='flex justify-between p-3'>
+          <div></div>
+          <div>
+            <UserProfilePanel></UserProfilePanel>
+          </div>
+        </div>
         <div className="flex flex-col gap-4">
           <SidebarItem
             label="仪表盘"
