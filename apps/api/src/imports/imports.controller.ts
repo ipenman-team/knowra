@@ -2,14 +2,13 @@ import {
   Body,
   BadRequestException,
   Controller,
-  Headers,
   Post,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { TenantId } from '../common/tenant/tenant-id.decorator';
+import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import type { ImportRequest } from './imports.types';
 import { ImportsService } from './imports.service';
 
@@ -30,7 +29,7 @@ export class ImportsController {
   )
   async create(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') userId: string | undefined,
+    @UserId() userId: string | undefined,
     @Body() body: ImportRequest,
     @UploadedFile()
     file: { buffer?: Buffer; path?: string; originalname?: string } | undefined,

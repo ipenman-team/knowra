@@ -5,9 +5,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PageModule } from './page/page.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { tenantMiddleware } from './common/tenant/tenant.middleware';
+import { TenantMiddleware } from './common/tenant/tenant.middleware';
 import { TaskModule } from './task/task.module';
 import { ImportsModule } from './imports/imports.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -26,12 +27,13 @@ import { ImportsModule } from './imports/imports.module';
     PageModule,
     TaskModule,
     ImportsModule,
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, TenantMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(tenantMiddleware).forRoutes('*');
+    consumer.apply(TenantMiddleware).forRoutes('*');
   }
 }

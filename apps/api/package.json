@@ -24,6 +24,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --selectProjects unit --runInBand"
   },
   "dependencies": {
+    "@contexta/utils": "workspace:*",
     "@contexta/infrastructure": "workspace:*",
     "@contexta/rag": "workspace:*",
     "@contexta/slate-converters": "workspace:*",
@@ -35,6 +36,7 @@
     "dotenv": "^17.2.3",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.12",
     "pdf-parse": "^2.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -50,6 +52,7 @@
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.10.7",
+    "@types/nodemailer": "^7.0.5",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",

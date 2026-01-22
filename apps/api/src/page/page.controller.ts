@@ -3,12 +3,11 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Post,
   Put,
 } from '@nestjs/common';
-import { TenantId } from '../common/tenant/tenant-id.decorator';
+import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { CreatePageDto } from './dto/create-page.dto';
 import { SavePageDto } from './dto/save-page.dto';
 import { PageService } from './page.service';
@@ -24,7 +23,7 @@ export class PageController {
   @Post()
   create(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') userId: string | undefined,
+    @UserId() userId: string | undefined,
     @Body() body: CreatePageDto,
   ) {
     return this.pageService.create(tenantId, body, userId);
@@ -33,7 +32,7 @@ export class PageController {
   @Put(':id')
   save(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') userId: string | undefined,
+    @UserId() userId: string | undefined,
     @Param('id') id: string,
     @Body() body: SavePageDto,
   ) {
@@ -43,7 +42,7 @@ export class PageController {
   @Post(':id/rename')
   rename(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') userId: string | undefined,
+    @UserId() userId: string | undefined,
     @Param('id') id: string,
     @Body() body: { title: string },
   ) {
@@ -53,7 +52,7 @@ export class PageController {
   @Post(':id/publish')
   publish(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') userId: string | undefined,
+    @UserId() userId: string | undefined,
     @Param('id') id: string,
   ) {
     const actor = userId?.trim() || 'system';

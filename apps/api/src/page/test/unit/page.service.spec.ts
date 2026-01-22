@@ -260,6 +260,7 @@ describe('PageService', () => {
       expect(prisma.page.findMany).toHaveBeenCalledWith({
         where: { tenantId: 't1' },
         orderBy: { updatedAt: 'desc' },
+        omit: { content: true },
       });
     });
 

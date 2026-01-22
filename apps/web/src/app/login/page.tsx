@@ -2,20 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { isValidEmail, toDigits } from '@contexta/utils';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-
-function isValidEmail(value: string) {
-  const v = value.trim();
-  if (v.length < 3) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
-
-function toDigits(value: string, maxLen: number) {
-  return value.replace(/\D/g, '').slice(0, maxLen);
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,14 +36,14 @@ export default function LoginPage() {
   const canSendCode = useMemo(() => {
     if (sending) return false;
     if (cooldown > 0) return false;
-    return isValidEmail(email);
+    return isValidEmail(email.trim());
   }, [cooldown, email, sending]);
 
   const canSubmit = useMemo(() => {
     if (submitting) return false;
     if (!agreed) return false;
-    if (!isValidEmail(email)) return false;
-    if (code.trim().length !== 6) return false;
+    if (!isValidEmail(email.trim())) return false;
+    if (!/^\d{6}$/.test(code.trim())) return false;
     return true;
   }, [agreed, code, email, submitting]);
 
@@ -70,11 +61,30 @@ export default function LoginPage() {
 
     setSending(true);
     try {
-      const mock = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-      sessionStorage.setItem('ctxa_mock_email_code', mock);
-      sessionStorage.setItem('ctxa_mock_email', email.trim());
-      setSentHint(`验证码已发送（mock）：${mock}`);
-      setCooldown(60);
+      const trimmedEmail = email.trim();
+      const res = await fetch('/api/auth/verification-codes/send', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ channel: 'email', recipient: trimmedEmail, type: 'login' }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        setApiError(text || '发送失败，请稍后重试');
+        return;
+      }
+
+      const data = (await res.json().catch(() => null)) as null | {
+        cooldownSeconds?: unknown;
+      };
+
+      const cooldownSeconds =
+        data && typeof data === 'object' && typeof data.cooldownSeconds === 'number'
+          ? data.cooldownSeconds
+          : 60;
+
+      setSentHint('验证码已发送');
+      setCooldown(Math.max(0, Math.floor(cooldownSeconds)));
     } finally {
       setSending(false);
     }
@@ -98,29 +108,18 @@ export default function LoginPage() {
       setEmailError('请输入正确的邮箱地址');
       ok = false;
     }
-    if (trimmedCode.length !== 6) {
+    if (!/^\d{6}$/.test(trimmedCode)) {
       setCodeError('请输入 6 位验证码');
       ok = false;
     }
     if (!ok) return;
-
-    const expectedCode = sessionStorage.getItem('ctxa_mock_email_code');
-    const expectedEmail = sessionStorage.getItem('ctxa_mock_email');
-    if (!expectedCode || !expectedEmail) {
-      setCodeError('请先获取验证码');
-      return;
-    }
-    if (expectedEmail !== trimmedEmail || expectedCode !== trimmedCode) {
-      setCodeError('验证码错误或已过期');
-      return;
-    }
 
     setSubmitting(true);
     try {
       const res = await fetch('/api/auth/login-or-register-email-code', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: trimmedEmail, code: trimmedCode }),
+        body: JSON.stringify({ channel: 'email', recipient: trimmedEmail, code: trimmedCode, type: 'login' }),
       });
 
       if (!res.ok) {
@@ -168,7 +167,7 @@ export default function LoginPage() {
                     'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     emailError ? 'border-destructive' : 'border-input'
                   )}
-                  disabled={submitting}
+                  disabled={submitting || sending}
                 />
                 {emailError ? (
                   <div className="text-xs text-destructive">{emailError}</div>
@@ -193,7 +192,7 @@ export default function LoginPage() {
                       'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                       codeError ? 'border-destructive' : 'border-input'
                     )}
-                    disabled={submitting}
+                  disabled={submitting || sending}
                   />
 
                   <Button
@@ -224,7 +223,7 @@ export default function LoginPage() {
                       setApiError(null);
                     }}
                     className="mt-1 h-4 w-4"
-                    disabled={submitting}
+                  disabled={submitting || sending}
                   />
                   <div className="text-sm text-muted-foreground">
                     我已阅读并同意 Contexta{' '}
@@ -257,11 +256,21 @@ export default function LoginPage() {
         <div className="mt-6 text-center text-xs text-muted-foreground">
           其他登录方式（敬请期待）
           <div className="mt-3 flex justify-center gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full border bg-muted/30 text-xs"
+              aria-label="微信扫码登录（敬请期待）"
+              title="微信扫码登录（敬请期待）"
+              disabled
+            >
+              微
+            </button>
+            {Array.from({ length: 3 }).map((_, i) => (
               <button
                 key={i}
                 type="button"
                 className="h-9 w-9 rounded-full border bg-muted/30"
+                aria-label="其他登录方式（敬请期待）"
                 disabled
               />
             ))}
@@ -271,4 +280,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

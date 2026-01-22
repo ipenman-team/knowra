@@ -3,11 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { PageVersionsScreen } from '@/features/page-versions/page-versions-screen';
 
-const MOCK_AUTH_COOKIE = 'ctxa_mock_auth';
+const ACCESS_TOKEN_COOKIE = 'ctxa_access_token';
 
 export default async function PageVersionsRoute(props: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const isLoggedIn = cookieStore.get(MOCK_AUTH_COOKIE)?.value === '1';
+  const isLoggedIn = Boolean(cookieStore.get(ACCESS_TOKEN_COOKIE)?.value);
   if (!isLoggedIn) redirect('/login');
 
   const params = await props.params;

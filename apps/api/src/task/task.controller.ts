@@ -1,7 +1,7 @@
-import { Controller, Get, Headers, Param, Post, Sse } from '@nestjs/common';
+import { Controller, Get, Param, Post, Sse } from '@nestjs/common';
 import type { MessageEvent } from '@nestjs/common';
 import { concat, from, map, type Observable } from 'rxjs';
-import { TenantId } from '../common/tenant/tenant-id.decorator';
+import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { TaskRuntimeService } from './task.runtime.service';
 import { TaskService } from './task.service';
 
@@ -31,7 +31,7 @@ export class TaskController {
   @Post(':id/cancel')
   async cancel(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') userId: string | undefined,
+    @UserId() userId: string | undefined,
     @Param('id') id: string,
   ) {
     const actor = userId?.trim() || 'system';

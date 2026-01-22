@@ -3,10 +3,10 @@ import { cookies } from 'next/headers';
 import { AppHome } from './app-home';
 import { LandingHome } from './landing-home';
 
-const MOCK_AUTH_COOKIE = 'ctxa_mock_auth';
+const ACCESS_TOKEN_COOKIE = 'ctxa_access_token';
 
 export default async function Page() {
   const cookieStore = await cookies();
-  const isLoggedIn = cookieStore.get(MOCK_AUTH_COOKIE)?.value === '1';
+  const isLoggedIn = Boolean(cookieStore.get(ACCESS_TOKEN_COOKIE)?.value);
   return isLoggedIn ? <AppHome /> : <LandingHome />;
 }

@@ -1,4 +1,4 @@
-import { ApiError, getApiBaseUrl } from "../client";
+import { ApiError, getApiBaseUrl, handleUnauthorized } from "../client";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -26,10 +26,10 @@ export async function answerQuestion(
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/rag/answer`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "content-type": "application/json",
       accept: "text/event-stream",
-      "x-user-id": (process.env.NEXT_PUBLIC_USER_ID ?? "demo").toString(),
     },
     body: JSON.stringify({ question: q }),
     signal: options?.signal,
@@ -37,6 +37,9 @@ export async function answerQuestion(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    if (res.status === 401) {
+      void handleUnauthorized();
+    }
     throw new ApiError(text || `HTTP ${res.status}`, res.status, text);
   }
 

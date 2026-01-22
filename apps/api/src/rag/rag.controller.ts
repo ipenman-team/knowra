@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { TenantId } from '../common/tenant/tenant-id.decorator';
 import { RagService } from './rag.service';
@@ -10,7 +10,6 @@ export class RagController {
   @Post('answer')
   async answer(
     @TenantId() tenantId: string,
-    @Headers('x-user-id') _userId: string | undefined,
     @Body() body: { question?: unknown },
     @Req() req: Request,
     @Res() res: Response,

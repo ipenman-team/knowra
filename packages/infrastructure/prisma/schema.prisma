@@ -27,6 +27,17 @@ enum TaskType {
   RAG_INDEX
 }
 
+enum TenantType {
+  PERSONAL
+  ORG
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -131,4 +142,160 @@ model Task {
   @@index([tenantId, type])
   @@index([tenantId, status])
   @@map("tasks")
+}
+
+model VerificationCode {
+  id       String @id @default(cuid())
+
+  channel   String
+  recipient String
+  code      String
+  type      String
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([channel, recipient, type, used])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+model User {
+  id String @id @default(cuid())
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profile     UserProfile?
+  identities  UserIdentity[]
+  memberships TenantMembership[]
+  sessions    AuthSession[]
+
+  @@index([id])
+  @@map("users")
+}
+
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+
+  nickname  String? @map("nickname")
+  avatarUrl String? @map("avatar_url")
+  bio       String? @map("bio")
+  phone     String? @map("phone")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_profiles")
+}
+
+model UserIdentity {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  provider   String
+  identifier String
+  secretHash String? @map("secret_hash")
+  isVerified Boolean  @default(false) @map("is_verified")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, identifier])
+  @@index([userId])
+  @@map("user_identities")
+}
+
+model Tenant {
+  id String @id @default(cuid())
+
+  type TenantType
+  key  String? @unique
+  name String
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships TenantMembership[]
+  sessions    AuthSession[]
+
+  @@index([type])
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  userId   String @map("user_id")
+
+  role TenantRole
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("tenant_memberships")
+}
+
+model AuthSession {
+  id String @id @default(cuid())
+
+  userId   String @map("user_id")
+  tenantId String @map("tenant_id")
+
+  tokenHash String @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }

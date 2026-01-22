@@ -45,7 +45,7 @@ export function useTaskSubscription() {
   const subscribeTaskEvents = useCallback(
     (taskId: string) => {
       const url = `${getApiBaseUrl()}/tasks/${encodeURIComponent(taskId)}/events`;
-      const es = new EventSource(url);
+      const es = new EventSource(url, { withCredentials: true });
 
       const runtime = getTaskRuntime(taskId) ?? {};
       runtime.sse = es;
