@@ -1,5 +1,7 @@
+"use client";
 
-import { memo } from "react";
+import { memo, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -7,18 +9,29 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
     DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 export const UserProfilePanel = memo(function UserProfilePanel(
     props: { url?: string; title?: string } = {},
 ) {
+    const router = useRouter();
+    const [loggingOut, setLoggingOut] = useState(false);
+
+    const handleLogout = useCallback(async () => {
+        if (loggingOut) return;
+        setLoggingOut(true);
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+        } finally {
+            setLoggingOut(false);
+            router.replace("/login");
+            router.refresh();
+        }
+    }, [loggingOut, router]);
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -37,7 +50,13 @@ export const UserProfilePanel = memo(function UserProfilePanel(
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                    disabled={loggingOut}
+                    onSelect={(e) => {
+                        e.preventDefault();
+                        void handleLogout();
+                    }}
+                >
                     退出登录
                     <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
                 </DropdownMenuItem>

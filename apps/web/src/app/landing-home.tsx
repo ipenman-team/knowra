@@ -7,8 +7,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const MOCK_AUTH_COOKIE = 'ctxa_mock_auth';
-
 export function LandingHome() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
@@ -22,9 +20,7 @@ export function LandingHome() {
   }, []);
 
   const enterApp = useCallback(() => {
-    document.cookie = `${MOCK_AUTH_COOKIE}=1; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-    router.push('/?from=landing');
-    router.refresh();
+    router.push('/login');
   }, [router]);
 
   const shot = useMemo(() => {
@@ -342,4 +338,3 @@ export function LandingHome() {
     </div>
   );
 }
-

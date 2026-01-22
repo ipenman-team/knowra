@@ -1,13 +1,15 @@
-"use client";
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-import { useParams } from "next/navigation";
+import { PageVersionsScreen } from '@/features/page-versions/page-versions-screen';
 
-import { PageVersionsScreen } from "@/features/page-versions/page-versions-screen";
+const MOCK_AUTH_COOKIE = 'ctxa_mock_auth';
 
-export default function PageVersionsRoute() {
-  const params = useParams<{ id: string }>();
-  const pageId = params?.id;
+export default async function PageVersionsRoute(props: { params: Promise<{ id: string }> }) {
+  const cookieStore = await cookies();
+  const isLoggedIn = cookieStore.get(MOCK_AUTH_COOKIE)?.value === '1';
+  if (!isLoggedIn) redirect('/login');
 
-  if (!pageId) return null;
-  return <PageVersionsScreen pageId={pageId} />;
+  const params = await props.params;
+  return <PageVersionsScreen pageId={params.id} />;
 }
