@@ -4,6 +4,9 @@ CREATE TYPE "TenantType" AS ENUM ('PERSONAL', 'ORG');
 -- CreateEnum
 CREATE TYPE "TenantRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -21,6 +24,8 @@ CREATE TABLE "user_profiles" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "nickname" TEXT,
+    "nickname_pinyin" TEXT,
+    "nickname_pinyin_abbr" TEXT,
     "avatar_url" TEXT,
     "bio" TEXT,
     "phone" TEXT,
@@ -107,10 +112,31 @@ CREATE UNIQUE INDEX "user_profiles_user_id_key" ON "user_profiles"("user_id");
 CREATE INDEX "user_profiles_user_id_idx" ON "user_profiles"("user_id");
 
 -- CreateIndex
+CREATE INDEX "user_profiles_phone_idx" ON "user_profiles"("phone");
+
+-- CreateIndex
+CREATE INDEX "user_profiles_nickname_pinyin_idx" ON "user_profiles"("nickname_pinyin");
+
+-- CreateIndex
+CREATE INDEX "user_profiles_nickname_pinyin_abbr_idx" ON "user_profiles"("nickname_pinyin_abbr");
+
+-- CreateIndex
+CREATE INDEX "user_profiles_nickname_trgm_idx" ON "user_profiles" USING GIN ("nickname" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "user_profiles_nickname_pinyin_trgm_idx" ON "user_profiles" USING GIN ("nickname_pinyin" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "user_profiles_nickname_pinyin_abbr_trgm_idx" ON "user_profiles" USING GIN ("nickname_pinyin_abbr" gin_trgm_ops);
+
+-- CreateIndex
 CREATE INDEX "user_identities_user_id_idx" ON "user_identities"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_identities_provider_identifier_key" ON "user_identities"("provider", "identifier");
+
+-- CreateIndex
+CREATE INDEX "user_identities_identifier_trgm_idx" ON "user_identities" USING GIN ("identifier" gin_trgm_ops);
 
 -- CreateIndex
 CREATE UNIQUE INDEX "tenants_key_key" ON "tenants"("key");

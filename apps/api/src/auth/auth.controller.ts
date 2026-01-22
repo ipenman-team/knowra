@@ -1,5 +1,9 @@
 import { Body, Controller, Post, Get } from '@nestjs/common';
-import { SessionId, TenantId, UserId } from '../common/tenant/tenant-id.decorator';
+import {
+  SessionId,
+  TenantId,
+  UserId,
+} from '../common/tenant/tenant-id.decorator';
 import { AuthService } from './auth.service';
 
 type SendVerificationCodeBody = {
@@ -42,7 +46,10 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout(@SessionId() sessionId: string | undefined, @UserId() userId: string | undefined) {
+  logout(
+    @SessionId() sessionId: string | undefined,
+    @UserId() userId: string | undefined,
+  ) {
     return this.authService.logout({ sessionId, userId });
   }
 

@@ -16,6 +16,7 @@ import { ProgressManager } from '@/features/home/components/progress-manager';
 import {
   usePageSelectionStore,
   useSelectedPageId,
+  useMeStore,
   usePageContentStore,
   usePageTreeStore,
   useUIStateStore,
@@ -45,6 +46,8 @@ export function HomeScreen(props: {
   const router = useRouter();
   const pathname = usePathname();
 
+  const ensureMeLoaded = useMeStore((s) => s.ensureLoaded);
+
   const urlPageId = (() => {
     if (!pathname.startsWith('/pages/')) return null;
     const rest = pathname.slice('/pages/'.length);
@@ -72,6 +75,10 @@ export function HomeScreen(props: {
       setSelected({ kind: 'view', id: props.initialSelectedViewId });
     }
   }, [props.initialSelectedPageId, props.initialSelectedViewId, setSelected]);
+
+  useEffect(() => {
+    void ensureMeLoaded();
+  }, [ensureMeLoaded]);
 
   useUrlSync();
   const isEditRoute = pathname.startsWith('/pages/') && pathname.endsWith('/edit');
@@ -373,7 +380,9 @@ export function HomeScreen(props: {
   };
 
   return (
-    <HomeLayout sidebar={<PageSidebar onOpenImport={() => setOpenImportModal(true)} />}>
+    <HomeLayout
+      sidebar={<PageSidebar onOpenImport={() => setOpenImportModal(true)} />}
+    >
       <PageTopbar
         visible={selected.kind === 'page'}
         pageMode={pageMode}
@@ -449,4 +458,3 @@ export function HomeScreen(props: {
     </HomeLayout>
   );
 }
-

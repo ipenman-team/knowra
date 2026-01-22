@@ -11,3 +11,4 @@ coverage/
 plan*.md
 .github/agents/*.agent.md
 DEPLOYMENT*
+draft*

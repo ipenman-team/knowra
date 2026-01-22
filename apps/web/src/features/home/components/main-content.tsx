@@ -190,7 +190,11 @@ export function MainContent(props: {
   const titleById: Record<ViewId, string> = {
     dashboard: '仪表盘',
     'contexta-ai': 'ContextAI',
-    settings: '设置',
+    settings: '用户资料',
+  };
+
+  const descriptionById: Partial<Record<ViewId, string>> = {
+    settings: '该页面 UI 待实现。',
   };
 
   return (
@@ -199,7 +203,7 @@ export function MainContent(props: {
         {titleById[props.selected.id]}
       </div>
       <div className="text-sm text-muted-foreground">
-        该区域会随左侧选中项变化。
+        {descriptionById[props.selected.id] ?? '该区域会随左侧选中项变化。'}
       </div>
     </div>
   );

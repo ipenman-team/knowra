@@ -12,7 +12,7 @@ import { SavePageDto } from './dto/save-page.dto';
 
 @Injectable()
 export class PageService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private normalizePageContent(input: unknown): Prisma.InputJsonValue {
     const defaultDoc = () =>
@@ -353,7 +353,7 @@ export class PageService {
     return page;
   }
 
-  async list(tenantId: string): Promise<(Omit<PageDto, 'content'>)[]> {
+  async list(tenantId: string): Promise<Omit<PageDto, 'content'>[]> {
     if (!tenantId) throw new BadRequestException('tenantId is required');
 
     return this.prisma.page.findMany({

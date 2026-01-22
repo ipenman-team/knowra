@@ -190,6 +190,8 @@ model UserProfile {
   userId String @unique @map("user_id")
 
   nickname  String? @map("nickname")
+  nicknamePinyin     String? @map("nickname_pinyin")
+  nicknamePinyinAbbr String? @map("nickname_pinyin_abbr")
   avatarUrl String? @map("avatar_url")
   bio       String? @map("bio")
   phone     String? @map("phone")
@@ -204,6 +206,9 @@ model UserProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([nicknamePinyin])
+  @@index([nicknamePinyinAbbr])
+  @@index([phone])
   @@map("user_profiles")
 }
 

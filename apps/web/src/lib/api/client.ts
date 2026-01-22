@@ -6,6 +6,7 @@ import {
   usePageTreeStore,
   useTaskStore,
   useUIStateStore,
+  useMeStore,
 } from '@/stores';
 
 export class ApiError extends Error {
@@ -67,6 +68,15 @@ export async function handleUnauthorized(): Promise<void> {
       publishedSnapshot: null,
       pageVersions: [],
       versionsLoading: false,
+    });
+
+    useMeStore.setState({
+      user: null,
+      profile: null,
+      tenant: null,
+      memberships: [],
+      loaded: false,
+      loading: false,
     });
 
     if (window.location.pathname !== '/login') {

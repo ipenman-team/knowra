@@ -90,6 +90,46 @@ export class AuthService {
     return { subject, text, html };
   }
 
+  private buildDefaultNickname(args: {
+    provider: string;
+    recipient: string;
+    identifier: string;
+  }): string {
+    const fallback = args.provider === 'email' ? 'user@example.com' : '用户';
+    const raw =
+      normalizeTrim(args.recipient) ||
+      normalizeTrim(args.identifier) ||
+      fallback;
+    const maxLen = 80;
+    return raw.length > maxLen ? raw.slice(0, maxLen) : raw;
+  }
+
+  private buildAvatarLabel(nickname: string): string {
+    const raw = normalizeTrim(nickname);
+    if (!raw) return 'U';
+
+    const head = raw.includes('@') ? raw.split('@')[0] : raw;
+    const cleaned = head.replace(/[^0-9a-zA-Z\u4e00-\u9fff]/g, '');
+    if (!cleaned) return 'U';
+
+    const chars = Array.from(cleaned);
+    const label = chars.slice(0, 2).join('');
+    return /^[a-z0-9]+$/i.test(label) ? label.toUpperCase() : label;
+  }
+
+  private buildDefaultAvatarDataUrl(args: {
+    seed: string;
+    nickname: string;
+  }): string {
+    const label = this.buildAvatarLabel(args.nickname).replace(/[<>&'"]/g, '');
+    const hash = crypto.createHash('sha256').update(args.seed).digest('hex');
+    const hue = parseInt(hash.slice(0, 8), 16) % 360;
+    const bg = `hsl(${hue} 70% 45%)`;
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" rx="64" fill="${bg}"/><text x="64" y="78" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="48" font-weight="700" fill="#ffffff">${label}</text></svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  }
+
   async sendVerificationCode(
     body: { channel: string; recipient: string; type: string },
     ctx: { userId?: string },
@@ -102,7 +142,10 @@ export class AuthService {
       throw new BadRequestException('channel 不支持');
     }
 
-    if (!type || (type !== 'register' && type !== 'login' && type !== 'reset_password')) {
+    if (
+      !type ||
+      (type !== 'register' && type !== 'login' && type !== 'reset_password')
+    ) {
       throw new BadRequestException('type 不支持');
     }
 
@@ -136,7 +179,9 @@ export class AuthService {
     });
 
     if (latest) {
-      const elapsedSeconds = Math.floor((now.getTime() - latest.createdAt.getTime()) / 1000);
+      const elapsedSeconds = Math.floor(
+        (now.getTime() - latest.createdAt.getTime()) / 1000,
+      );
       if (elapsedSeconds < cooldownSeconds) {
         const remaining = Math.max(0, cooldownSeconds - elapsedSeconds);
         return {
@@ -193,7 +238,10 @@ export class AuthService {
         data: { isDeleted: true, updatedBy: actor },
         select: { id: true },
       });
-      throw new HttpException('邮件发送失败，请稍后重试', HttpStatus.SERVICE_UNAVAILABLE);
+      throw new HttpException(
+        '邮件发送失败，请稍后重试',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
 
     return {
@@ -221,7 +269,10 @@ export class AuthService {
       throw new BadRequestException('channel 不支持');
     }
 
-    if (!type || (type !== 'register' && type !== 'login' && type !== 'reset_password')) {
+    if (
+      !type ||
+      (type !== 'register' && type !== 'login' && type !== 'reset_password')
+    ) {
       throw new BadRequestException('type 不支持');
     }
 
@@ -267,7 +318,9 @@ export class AuthService {
     const now2 = new Date();
 
     const sessionTtlDays = 30;
-    const expiresAt = new Date(now2.getTime() + sessionTtlDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      now2.getTime() + sessionTtlDays * 24 * 60 * 60 * 1000,
+    );
     const makeSessionToken = () => crypto.randomBytes(32).toString('base64url');
     const hashSessionToken = (token: string) =>
       crypto.createHash('sha256').update(token).digest('hex');
@@ -415,6 +468,72 @@ export class AuthService {
 
       const actorId = userId;
 
+      const defaultNickname = this.buildDefaultNickname({
+        provider,
+        recipient,
+        identifier,
+      });
+      const defaultPhone =
+        provider === 'phone' ? normalizeTrim(recipient) : null;
+
+      const existingProfile = await tx.userProfile.findFirst({
+        where: { userId, isDeleted: false },
+        select: {
+          id: true,
+          nickname: true,
+          avatarUrl: true,
+          phone: true,
+        },
+      });
+
+      if (!existingProfile) {
+        const avatarUrl = this.buildDefaultAvatarDataUrl({
+          seed: userId,
+          nickname: defaultNickname,
+        });
+        await tx.userProfile.create({
+          data: {
+            userId,
+            nickname: defaultNickname,
+            avatarUrl,
+            bio: null,
+            phone: defaultPhone,
+            isDeleted: false,
+            createdBy: actorId,
+            updatedBy: actorId,
+          },
+          select: { id: true },
+        });
+      } else {
+        const next: {
+          nickname?: string;
+          avatarUrl?: string | null;
+          phone?: string | null;
+        } = {};
+
+        const baseNickname = existingProfile.nickname || defaultNickname;
+
+        if (!existingProfile.nickname) next.nickname = defaultNickname;
+        if (existingProfile.avatarUrl == null) {
+          next.avatarUrl = this.buildDefaultAvatarDataUrl({
+            seed: userId,
+            nickname: baseNickname,
+          });
+        }
+        if (defaultPhone && !existingProfile.phone) next.phone = defaultPhone;
+
+        if (Object.keys(next).length > 0) {
+          await tx.userProfile.update({
+            where: { id: existingProfile.id },
+            data: {
+              ...next,
+              updatedBy: actorId,
+            },
+            select: { id: true },
+          });
+        }
+      }
+
       const used = await tx.verificationCode.updateMany({
         where: {
           id: latest.id,
@@ -492,11 +611,22 @@ export class AuthService {
     if (!userId) throw new BadRequestException('userId is required');
     if (!tenantId) throw new BadRequestException('tenantId is required');
 
+    const profile = await this.prisma.userProfile.findFirst({
+      where: { userId, isDeleted: false },
+      select: {
+        nickname: true,
+        avatarUrl: true,
+        bio: true,
+        phone: true,
+      },
+    });
+
     const tenant = await this.prisma.tenant.findFirst({
       where: { id: tenantId, isDeleted: false },
       select: { id: true, type: true, key: true, name: true },
     });
-    if (!tenant) throw new HttpException('tenant 不存在', HttpStatus.UNAUTHORIZED);
+    if (!tenant)
+      throw new HttpException('tenant 不存在', HttpStatus.UNAUTHORIZED);
 
     const memberships = await this.prisma.tenantMembership.findMany({
       where: {
@@ -514,6 +644,7 @@ export class AuthService {
     return {
       ok: true,
       user: { id: userId },
+      profile,
       tenant,
       memberships,
     };
@@ -556,9 +687,14 @@ export class AuthService {
     }
 
     const sessionTtlDays = 30;
-    const expiresAt = new Date(Date.now() + sessionTtlDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + sessionTtlDays * 24 * 60 * 60 * 1000,
+    );
     const accessToken = crypto.randomBytes(32).toString('base64url');
-    const tokenHash = crypto.createHash('sha256').update(accessToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(accessToken)
+      .digest('hex');
     const actor = pickActorId(userId);
 
     await this.prisma.authSession.create({
