@@ -17,8 +17,8 @@ RUN corepack enable
 
 COPY . .
 
-RUN pnpm -w --filter @contexta/web... install --frozen-lockfile --prod=false --config.node-linker=isolated
-RUN pnpm --dir packages/shared build
+RUN pnpm -w install --frozen-lockfile --prod=false --config.node-linker=isolated
+RUN pnpm -w -r build
 
 ARG NEXT_PUBLIC_API_BASE_URL=/api
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
