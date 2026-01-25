@@ -19,12 +19,9 @@ import {
 } from '@/components/ui/sidebar';
 import { spacesApi, type SpaceDto } from '@/lib/api';
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
+import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 
-// const CreateSpaceModal = dynamic(
-//   () => import('@/components/space/create-space-modal'),
-//   { ssr: false },
-// );
 import {
   BookMinus,
   BotIcon,
@@ -35,9 +32,12 @@ import CreateSpaceModal from '../space/create-space-modal';
 
 export const HomeSidebar = memo(function HomeSidebar(...props: any) {
   const { setSelectedView } = usePageSelectionStore();
-  const [spaces, setSpaces] = useState<SpaceDto[]>([]);
-  const [loading, setLoading] = useState(false);
+  const spaces = useSpaces();
+  const loading = useSpacesLoading();
+  const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
   const [openCreate, setOpenCreate] = useState(false);
+
+  const router = useRouter();
 
   const handleSelectView = useCallback(
     (id: ViewId) => setSelectedView(id),
@@ -45,24 +45,12 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
   );
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    spacesApi
-      .list({ skip: 0, take: 100 })
-      .then((res) => {
-        if (!mounted) return;
-        setSpaces(res.items || []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    void ensureSpacesLoaded();
+  }, [ensureSpacesLoaded]);
 
   const handleCreated = (created: SpaceDto) => {
-    setSpaces((s) => [created, ...s]);
+    // prepend to store list
+    useSpaceStore.setState((prev) => ({ spaces: [created, ...prev.spaces] }));
   };
 
   return (
@@ -128,7 +116,13 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
                   </div>
                 ) : (
                   spaces.map((space) => (
-                    <SidebarMenuItem key={space.id}>
+                    <SidebarMenuItem
+                      key={space.id}
+                      onClick={() => {
+                        useSpaceStore.setState({ currentSpaceId: space.id });
+                        router.push(`/spaces/${encodeURIComponent(space.id)}`);
+                      }}
+                    >
                       <SidebarMenuButton asChild>
                         <div className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                           <BookMinus

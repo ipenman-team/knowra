@@ -13,8 +13,8 @@ const inflightVersions = new Map<string, Promise<PageVersionDto[]>>();
 const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
 
 export const pagesApi = {
-  async list() {
-    const res = await apiClient.get<PageDto[]>('/pages');
+  async list(spaceId: string) {
+    const res = await apiClient.get<PageDto[]>(`/spaces/${encodeURIComponent(spaceId)}/pages`);
     return res.data;
   },
 

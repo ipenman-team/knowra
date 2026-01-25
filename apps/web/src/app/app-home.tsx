@@ -17,6 +17,7 @@ import {
   usePageSelectionStore,
   useSelectedPageId,
   useMeStore,
+  useSpaceStore,
   usePageContentStore,
   usePageTreeStore,
   useUIStateStore,
@@ -47,6 +48,7 @@ export function HomeScreen(props: {
   const pathname = usePathname();
 
   const ensureMeLoaded = useMeStore((s) => s.ensureLoaded);
+  const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
 
   const urlPageId = (() => {
     if (!pathname.startsWith('/pages/')) return null;
@@ -78,7 +80,8 @@ export function HomeScreen(props: {
 
   useEffect(() => {
     void ensureMeLoaded();
-  }, [ensureMeLoaded]);
+    void ensureSpacesLoaded();
+  }, [ensureMeLoaded, ensureSpacesLoaded]);
 
   useUrlSync();
   const isEditRoute = pathname.startsWith('/pages/') && pathname.endsWith('/edit');
@@ -123,7 +126,7 @@ export function HomeScreen(props: {
 
   const { setPageTreeNodes } = usePageTreeStore();
   const refreshPages = useCallback(async () => {
-    const pages = await pagesApi.list();
+    const pages = await pagesApi.list('null');
     setPageTreeNodes(buildPageTreeFromFlatPages(pages));
   }, [setPageTreeNodes]);
 

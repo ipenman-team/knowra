@@ -47,3 +47,6 @@ export {
   type MeTenant,
   type MeMembership,
 } from './me-store';
+
+// Space Store
+export { useSpaceStore, useSpaces, useSpacesLoaded, useSpacesLoading, useCurrentSpaceId } from './space-store';
