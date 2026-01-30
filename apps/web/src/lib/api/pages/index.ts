@@ -7,6 +7,7 @@ import type {
   PublishedPageDto,
   SavePageInput,
 } from './types';
+import _ from 'lodash';
 
 const inflightPublished = new Map<string, Promise<PublishedPageDto>>();
 const inflightVersions = new Map<string, Promise<PageVersionDto[]>>();
@@ -14,21 +15,31 @@ const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
 
 export const pagesApi = {
   async list(spaceId: string) {
-    const res = await apiClient.get<PageDto[]>(`/spaces/${encodeURIComponent(spaceId)}/pages`);
+    const res = await apiClient.get<PageDto[]>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages`,
+    );
     return res.data;
   },
 
   async get(id: string) {
-    const res = await apiClient.get<PageDto>(`/pages/${encodeURIComponent(id)}`);
+    const res = await apiClient.get<PageDto>(
+      `/pages/${encodeURIComponent(id)}`,
+    );
     return res.data;
   },
 
   async create(input: CreatePageInput) {
-    const res = await apiClient.post<PageDto>('/pages', input);
+    const res = await apiClient.post<PageDto>(
+      `/spaces/${input.spaceId}/pages`,
+      _.omit(input, 'spaceId'),
+    );
     return res.data;
   },
 
-  async createWithOptions(input: CreatePageInput, options?: { signal?: AbortSignal }) {
+  async createWithOptions(
+    input: CreatePageInput,
+    options?: { signal?: AbortSignal },
+  ) {
     const res = await apiClient.post<PageDto>('/pages', input, {
       signal: options?.signal,
     });
@@ -44,7 +55,10 @@ export const pagesApi = {
   },
 
   async save(id: string, input: SavePageInput) {
-    const res = await apiClient.put<PageDto>(`/pages/${encodeURIComponent(id)}`, input);
+    const res = await apiClient.put<PageDto>(
+      `/pages/${encodeURIComponent(id)}`,
+      input,
+    );
     return res.data;
   },
 
@@ -104,7 +118,9 @@ export const pagesApi = {
   },
 
   async remove(id: string) {
-    const res = await apiClient.delete<{ ok: true }>(`/pages/${encodeURIComponent(id)}`);
+    const res = await apiClient.delete<{ ok: true }>(
+      `/pages/${encodeURIComponent(id)}`,
+    );
     return res.data;
   },
 };

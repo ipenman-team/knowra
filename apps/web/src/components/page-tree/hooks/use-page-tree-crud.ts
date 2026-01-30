@@ -7,6 +7,7 @@ import {
   usePageSelectionStore,
   useUIStateStore,
   useCreatingPage,
+  useSpaceStore,
 } from '@/stores';
 import type { TreeNode } from '@/components/shared/tree';
 
@@ -65,8 +66,10 @@ export async function commitRenameFromState(args: {
  */
 export function usePageTreeCRUD() {
   const creatingPage = useCreatingPage();
+  const space = useSpaceStore();
   const pagesLoaded = usePageTreeStore((s) => s.pagesLoaded);
-  const { setPageTreeNodes, setPagesLoaded, setCreatingPage } = usePageTreeStore();
+  const { setPageTreeNodes, setPagesLoaded, setCreatingPage } =
+    usePageTreeStore();
   const { setSelectedPage } = usePageSelectionStore();
 
   // 刷新页面树
@@ -84,7 +87,10 @@ export function usePageTreeCRUD() {
     if (creatingPage) return;
     try {
       setCreatingPage(true);
-      const page = await pagesApi.create({ title: '无标题文档' });
+      const page = await pagesApi.create({
+        title: '无标题文档',
+        spaceId: space.currentSpaceId as string,
+      });
       setSelectedPage(page.id, page.title);
       await refreshPages();
     } finally {
@@ -109,7 +115,7 @@ export function usePageTreeCRUD() {
         setCreatingPage(false);
       }
     },
-    [creatingPage, setCreatingPage, setSelectedPage, refreshPages]
+    [creatingPage, setCreatingPage, setSelectedPage, refreshPages],
   );
 
   // 提交重命名
@@ -118,7 +124,7 @@ export function usePageTreeCRUD() {
       commitRenameFromState({
         setSelectedPage,
       }),
-    [setSelectedPage]
+    [setSelectedPage],
   );
 
   // 初始加载页面树

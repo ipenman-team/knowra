@@ -13,7 +13,7 @@ import { SavePageDto } from './dto/save-page.dto';
 import { PageService } from './page.service';
 import { RagIndexService } from '../rag/rag.index.service';
 
-@Controller('pages')
+@Controller('spaces/:spaceId/pages')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
@@ -23,10 +23,11 @@ export class PageController {
   @Post()
   create(
     @TenantId() tenantId: string,
+    @Param('spaceId') spaceId: string,
     @UserId() userId: string | undefined,
     @Body() body: CreatePageDto,
   ) {
-    return this.pageService.create(tenantId, body, userId);
+    return this.pageService.create(tenantId, { ...body, spaceId }, userId);
   }
 
   @Put(':id')

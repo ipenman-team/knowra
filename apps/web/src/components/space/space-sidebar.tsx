@@ -13,8 +13,9 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
-import { BookMinus, ChevronLeft, PlusCircleIcon } from 'lucide-react';
+import { BookMinus, ChevronLeft } from 'lucide-react';
 import { PageTreeContainer } from '@/components/page-tree/components/tree-container';
+import { CreatePageMenu } from '../page-tree/components/create-page-menu';
 
 export const SpaceSidebar = memo(function SpaceSidebar({
   onOpenImport,
@@ -92,10 +93,7 @@ export const SpaceSidebar = memo(function SpaceSidebar({
             <SidebarGroupLabel>
               <div className="flex justify-between flex-1">
                 页面
-                <PlusCircleIcon
-                  className="w-4 h-4 cursor-pointer text-muted-foreground"
-                  onClick={() => {}}
-                />
+                <CreatePageMenu />
               </div>
             </SidebarGroupLabel>
             <SidebarGroupContent>

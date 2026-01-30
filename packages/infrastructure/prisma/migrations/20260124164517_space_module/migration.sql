@@ -37,6 +37,24 @@ CREATE TABLE "spaces" (
     CONSTRAINT "spaces_pkey" PRIMARY KEY ("id")
 );
 
+-- Seed default space for each tenant (use tenant_id as space id)
+INSERT INTO "spaces" ("id", "tenant_id", "name", "type", "is_archived", "created_by", "updated_by", "is_deleted", "created_at", "updated_at")
+SELECT
+    t."id",
+    t."id",
+    '默认空间',
+    CASE WHEN t."type" = 'PERSONAL' THEN 'PERSONAL'::"SpaceType" ELSE 'ORG'::"SpaceType" END,
+    false,
+    t."created_by",
+    t."updated_by",
+    false,
+    NOW(),
+    NOW()
+FROM "tenants" t
+WHERE NOT EXISTS (
+    SELECT 1 FROM "spaces" s WHERE s."tenant_id" = t."id"
+);
+
 -- CreateTable
 CREATE TABLE "space_members" (
     "id" TEXT NOT NULL,
@@ -93,6 +111,31 @@ CREATE INDEX "space_favorites_space_id_idx" ON "space_favorites"("space_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "space_favorites_space_id_user_id_key" ON "space_favorites"("space_id", "user_id");
+
+-- AlterTable
+ALTER TABLE "page_versions" ADD COLUMN "space_id" TEXT;
+
+-- AlterTable
+ALTER TABLE "pages" ADD COLUMN "space_id" TEXT;
+
+-- Backfill space_id using tenant_id
+UPDATE "page_versions"
+SET "space_id" = "tenant_id"
+WHERE "space_id" IS NULL;
+
+UPDATE "pages"
+SET "space_id" = "tenant_id"
+WHERE "space_id" IS NULL;
+
+-- Enforce NOT NULL after backfill
+ALTER TABLE "page_versions" ALTER COLUMN "space_id" SET NOT NULL;
+ALTER TABLE "pages" ALTER COLUMN "space_id" SET NOT NULL;
+
+-- CreateIndex
+CREATE INDEX "page_versions_tenant_id_space_id_idx" ON "page_versions"("tenant_id", "space_id");
+
+-- CreateIndex
+CREATE INDEX "pages_tenant_id_space_id_idx" ON "pages"("tenant_id", "space_id");
 
 -- AddForeignKey
 ALTER TABLE "spaces" ADD CONSTRAINT "spaces_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;

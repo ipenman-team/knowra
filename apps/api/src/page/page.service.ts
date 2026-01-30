@@ -54,6 +54,7 @@ export class PageService {
 
   private async createPageVersion(args: {
     tenantId: string;
+    spaceId: string;
     pageId: string;
     status: PageVersionStatus;
     title: string;
@@ -63,6 +64,7 @@ export class PageService {
   }) {
     return this.prisma.pageVersion.create({
       data: {
+        spaceId: args.spaceId,
         tenantId: args.tenantId,
         pageId: args.pageId,
         status: args.status,
@@ -91,6 +93,7 @@ export class PageService {
     const created = await this.prisma.page.create({
       data: {
         tenantId,
+        spaceId: input.spaceId,
         title: input.title,
         content: normalizedContent,
         parentIds,
@@ -101,6 +104,7 @@ export class PageService {
 
     await this.createPageVersion({
       tenantId,
+      spaceId: input.spaceId,
       pageId: created.id,
       status: PageVersionStatus.DRAFT,
       title: created.title,
@@ -147,6 +151,7 @@ export class PageService {
 
     await this.createPageVersion({
       tenantId,
+      spaceId: updated.spaceId,
       pageId: updated.id,
       status: PageVersionStatus.TEMP,
       title: updated.title,
@@ -225,6 +230,7 @@ export class PageService {
 
     const version = await this.createPageVersion({
       tenantId,
+      spaceId: page.spaceId,
       pageId: page.id,
       status: PageVersionStatus.PUBLISHED,
       title: page.title,

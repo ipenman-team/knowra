@@ -122,6 +122,7 @@ export class ImportsService {
         args.req.title?.trim() || fileNameToTitle(args.file.originalname)
       ).trim();
 
+      const spaceId = '';
       if (controller.signal.aborted) {
         await this.taskService.cancel(
           args.tenantId,
@@ -142,6 +143,7 @@ export class ImportsService {
       const created = await this.pageService.create(
         args.tenantId,
         {
+          spaceId,
           title,
           content,
           parentIds,
@@ -278,6 +280,7 @@ export class ImportsService {
       const created = await this.pageService.create(
         args.tenantId,
         {
+          spaceId: '',
           title,
           content,
           parentIds,
@@ -417,6 +420,7 @@ export class ImportsService {
       const created = await this.pageService.create(
         args.tenantId,
         {
+          spaceId: '',
           title,
           content,
           parentIds,

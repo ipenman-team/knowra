@@ -46,6 +46,7 @@ export type PageDto = {
 };
 
 export type CreatePageInput = {
+  spaceId: string;
   title: string;
   content?: PageContent;
   parentIds?: string[];

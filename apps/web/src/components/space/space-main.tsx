@@ -1,66 +1,29 @@
 "use client";
 
-import { useMemo } from 'react';
-import { useSpaces, useCurrentSpaceId, usePageTreeNodes, useSelectedPageId } from '@/stores';
-import { Tree } from '@/components/shared/tree';
-import { PageTreeItem } from '@/components/page-tree/components/tree-item';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
-import type { PageDto } from '@/lib/api';
+import { useSelectedPageId, usePageSelectionStore } from '@/stores';
 
 export default function SpaceMain() {
-  const spaces = useSpaces();
-  const currentId = useCurrentSpaceId();
-  const nodes = usePageTreeNodes();
   const selectedPageId = useSelectedPageId();
+  const selected = usePageSelectionStore((s) => s.selected);
 
-  const space = spaces.find((s) => s.id === currentId);
-
-  // mock flat pages when API / store has no nodes
-  const nodesToRender = useMemo(() => {
-    if (nodes && nodes.length > 0) return nodes;
-
-    const now = new Date().toISOString();
-    const flat: PageDto[] = [
-      { id: 'd1', tenantId: 't', title: '标签一', content: null, parentIds: [], createdAt: now, updatedAt: now },
-      { id: 'p1', tenantId: 't', title: '概览', content: null, parentIds: ['d1'], createdAt: now, updatedAt: now },
-      { id: 'p2', tenantId: 't', title: '使用指南', content: null, parentIds: ['d1'], createdAt: now, updatedAt: now },
-      { id: 'd2', tenantId: 't', title: '项目', content: null, parentIds: [], createdAt: now, updatedAt: now },
-      { id: 'p3', tenantId: 't', title: '项目计划', content: null, parentIds: ['d2'], createdAt: now, updatedAt: now },
-    ];
-
-    return buildPageTreeFromFlatPages(flat);
-  }, [nodes]);
-
-  const docCount = (() => {
-    let c = 0;
-    const walk = (ns: any[]) => {
-      for (const n of ns) {
-        c += 1;
-        if (n.children) walk(n.children);
-      }
-    };
-    walk(nodesToRender);
-    return c;
-  })();
+  if (!selectedPageId || selected.kind !== 'page') {
+    return (
+      <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+        请选择或创建一个页面
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="bg-card rounded p-6 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded bg-muted flex items-center justify-center text-xl">📘</div>
-          <div>
-            <div className="text-2xl font-semibold">{space?.name ?? '空间'}</div>
-            <div className="text-sm text-muted-foreground">{docCount} 文档</div>
-          </div>
+    <div className="flex min-h-[520px] flex-col overflow-hidden rounded-lg border bg-card">
+      <div className="flex items-center justify-between border-b px-6 py-4">
+        <div className="text-lg font-semibold">
+          {selected.title || '无标题文档'}
         </div>
+        <div className="h-6 w-40 rounded bg-muted/40" aria-hidden="true" />
       </div>
-
-      <div>
-        <Tree<PageDto>
-          nodes={nodesToRender}
-          selectedId={selectedPageId ?? undefined}
-          renderNode={(ctx) => <PageTreeItem {...ctx} />}
-        />
+      <div className="flex-1 px-6 py-8">
+        <div className="h-full rounded-lg border border-dashed bg-muted/20" />
       </div>
     </div>
   );
