@@ -14,10 +14,29 @@ const inflightVersions = new Map<string, Promise<PageVersionDto[]>>();
 const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
 
 export const pagesApi = {
-  async list(spaceId: string) {
+  async list(spaceId: string, params?: { skip?: number; take?: number; q?: string }) {
     const res = await apiClient.get<PageDto[]>(
       `/spaces/${encodeURIComponent(spaceId)}/pages`,
+      { params },
     );
+    return res.data;
+  },
+
+  async listForTree(
+    spaceId: string,
+    params?: {
+      cursor?: string | null;
+      take?: number;
+      query?: string;
+      parentId?: string | null;
+      onlyRoots?: boolean;
+    }
+  ) {
+    const res = await apiClient.get<{
+      items: PageDto[];
+      nextCursor?: string | null;
+      hasMore?: boolean;
+    }>(`/spaces/${encodeURIComponent(spaceId)}/pages/tree`, { params });
     return res.data;
   },
 

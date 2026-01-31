@@ -1,15 +1,14 @@
 import { useCallback, useEffect } from 'react';
-import { pagesApi, type PageDto } from '@/lib/api';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
+import { pagesApi } from '@/lib/api';
 import {
   usePageTreeStore,
   usePageContentStore,
   usePageSelectionStore,
   useUIStateStore,
   useCreatingPage,
-  useSpaceStore,
+  usePagesStore,
 } from '@/stores';
-import type { TreeNode } from '@/components/shared/tree';
+import { useRequiredSpaceId } from '@/hooks/use-required-space';
 
 export async function commitRenameFromState(args: {
   setSelectedPage: (id: string, title: string) => void;
@@ -66,57 +65,34 @@ export async function commitRenameFromState(args: {
  */
 export function usePageTreeCRUD() {
   const creatingPage = useCreatingPage();
-  const space = useSpaceStore();
+  const spaceId = useRequiredSpaceId();
+  const { upsertTreePage } = usePagesStore();
   const pagesLoaded = usePageTreeStore((s) => s.pagesLoaded);
   const { setPageTreeNodes, setPagesLoaded, setCreatingPage } =
     usePageTreeStore();
   const { setSelectedPage } = usePageSelectionStore();
 
-  // 刷新页面树
-  const refreshPages = useCallback(async () => {
-    try {
-      const pages = await pagesApi.list();
-      setPageTreeNodes(buildPageTreeFromFlatPages(pages));
-    } finally {
-      setPagesLoaded(true);
-    }
-  }, [setPageTreeNodes, setPagesLoaded]);
-
   // 创建根页面
   const createPage = useCallback(async () => {
-    if (creatingPage) return;
+    if (creatingPage || !spaceId) return;
     try {
       setCreatingPage(true);
       const page = await pagesApi.create({
         title: '无标题文档',
-        spaceId: space.currentSpaceId as string,
+        spaceId,
       });
       setSelectedPage(page.id, page.title);
-      await refreshPages();
+      upsertTreePage(spaceId, page);
     } finally {
       setCreatingPage(false);
     }
-  }, [creatingPage, setCreatingPage, setSelectedPage, refreshPages]);
-
-  // 创建子页面
-  const createChildPage = useCallback(
-    async (parent: TreeNode<PageDto>) => {
-      if (creatingPage) return;
-      const parentIds = [...(parent.data?.parentIds ?? []), parent.id];
-      try {
-        setCreatingPage(true);
-        const page = await pagesApi.create({
-          title: '无标题文档',
-          parentIds,
-        });
-        setSelectedPage(page.id, page.title);
-        await refreshPages();
-      } finally {
-        setCreatingPage(false);
-      }
-    },
-    [creatingPage, setCreatingPage, setSelectedPage, refreshPages],
-  );
+  }, [
+    creatingPage,
+    setCreatingPage,
+    setSelectedPage,
+    spaceId,
+    upsertTreePage,
+  ]);
 
   // 提交重命名
   const commitRename = useCallback(
@@ -133,9 +109,7 @@ export function usePageTreeCRUD() {
     let cancelled = false;
     (async () => {
       try {
-        const pages = await pagesApi.list();
         if (cancelled) return;
-        setPageTreeNodes(buildPageTreeFromFlatPages(pages));
       } catch {
         if (cancelled) return;
         setPageTreeNodes([]);
@@ -150,9 +124,7 @@ export function usePageTreeCRUD() {
   }, [pagesLoaded, setPageTreeNodes, setPagesLoaded]);
 
   return {
-    refreshPages,
     createPage,
-    createChildPage,
     commitRename,
     creatingPage,
   };

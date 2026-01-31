@@ -36,6 +36,7 @@ describe('PageService', () => {
     return {
       id: 'p1',
       tenantId: 't1',
+      spaceId: 's1',
       title: 'Hello',
       content: defaultSlateDoc(),
       parentIds: [],
@@ -61,7 +62,7 @@ describe('PageService', () => {
       prisma.pageVersion.create.mockResolvedValue({ id: 'v1' });
 
       await expect(
-        service.create('t1', { title: 'Hello' }),
+        service.create('t1', { title: 'Hello', spaceId: 's1' }),
       ).resolves.toMatchObject({
         id: 'p1',
         tenantId: 't1',
@@ -72,6 +73,7 @@ describe('PageService', () => {
       expect(prisma.page.create).toHaveBeenCalledWith({
         data: {
           tenantId: 't1',
+          spaceId: 's1',
           title: 'Hello',
           content: defaultSlateDoc() as unknown as Prisma.InputJsonValue,
           parentIds: [],
@@ -83,12 +85,14 @@ describe('PageService', () => {
 
     it('rejects missing tenantId', async () => {
       await expect(
-        service.create('', { title: 'Hello' }),
+        service.create('', { title: 'Hello', spaceId: 's1' }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects missing title', async () => {
-      await expect(service.create('t1', { title: '' })).rejects.toBeInstanceOf(
+      await expect(
+        service.create('t1', { title: '', spaceId: 's1' }),
+      ).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
@@ -256,16 +260,24 @@ describe('PageService', () => {
     it('returns list ordered by updatedAt desc', async () => {
       prisma.page.findMany.mockResolvedValue([samplePage()]);
 
-      await expect(service.list('t1')).resolves.toHaveLength(1);
+      await expect(service.list('t1', 's1')).resolves.toHaveLength(1);
       expect(prisma.page.findMany).toHaveBeenCalledWith({
-        where: { tenantId: 't1' },
+        where: { tenantId: 't1', spaceId: 's1' },
+        skip: 0,
+        take: 50,
         orderBy: { updatedAt: 'desc' },
         omit: { content: true },
       });
     });
 
     it('rejects missing tenantId', async () => {
-      await expect(service.list('')).rejects.toBeInstanceOf(
+      await expect(service.list('', 's1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('rejects missing spaceId', async () => {
+      await expect(service.list('t1', '')).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });

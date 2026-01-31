@@ -1,37 +1,91 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useSpaceStore } from '@/stores';
-import { pagesApi } from '@/lib/api';
+import { useCallback, useEffect, useMemo } from 'react';
 import { buildPageTreeFromFlatPages } from '@contexta/shared';
-import { usePageTreeStore, usePageSelectionStore } from '@/stores';
-import { PageTreeContainer } from '@/components/page-tree/components/tree-container';
+import {
+  usePageSelectionStore,
+  usePageTreeStore,
+  usePagesStore,
+  useTreePages,
+  useTreePagesHasMore,
+  useTreePagesLoading,
+} from '@/stores';
+import { useRequiredSpaceId } from '@/hooks/use-required-space';
 import type { PageDto } from '@/lib/api';
 
-export default function DirectoryList({ spaceId }: { spaceId: string }) {
-  const setPageTreeNodes = usePageTreeStore((s) => s.setPageTreeNodes);
+type DirectoryListProps = {
+  spaceId: string;
+  autoSelectFirst?: boolean;
+  clearOnEmptySpace?: boolean;
+  query?: string;
+  parentId?: string | null;
+  onlyRoots?: boolean;
+  pageSize?: number;
+  autoLoadAll?: boolean;
+  onLoaded?: (pages: PageDto[]) => void;
+};
+
+export default function DirectoryList({
+  spaceId,
+  autoSelectFirst = true,
+  clearOnEmptySpace = true,
+  query,
+  parentId,
+  onlyRoots = false,
+  pageSize = 200,
+  autoLoadAll = false,
+  onLoaded,
+}: DirectoryListProps) {
+  const ensuredSpaceId = useRequiredSpaceId();
+  const { setPageTreeNodes } = usePageTreeStore();
+  const { setSelectedPage } = usePageSelectionStore();
+  const { ensureTreeLoaded, loadMoreTree, resetTree } = usePagesStore();
+  const activeSpaceId = spaceId || ensuredSpaceId;
+  const pages = useTreePages(activeSpaceId);
+  const loading = useTreePagesLoading(activeSpaceId);
+  const hasMore = useTreePagesHasMore(activeSpaceId);
+
+  const nodes = useMemo(
+    () => buildPageTreeFromFlatPages(pages),
+    [pages]
+  );
+
+  const selectFirstNode = useCallback(
+    (pages: PageDto[]) => {
+      if (!autoSelectFirst) return;
+      const nodes = buildPageTreeFromFlatPages(pages);
+      const first = nodes[0];
+      if (first?.id) {
+        setSelectedPage(first.id, first.data?.title || '');
+      }
+    },
+    [autoSelectFirst, setSelectedPage]
+  );
 
   useEffect(() => {
-    if (!spaceId) {
-      // clear tree if no space selected
-      setPageTreeNodes([]);
+    if (!activeSpaceId) {
+      if (clearOnEmptySpace) setPageTreeNodes([]);
       return;
     }
 
     let cancelled = false;
+    resetTree(activeSpaceId, {
+      query,
+      parentId,
+      onlyRoots,
+      take: pageSize,
+    });
+
     (async () => {
       try {
-        const pages: PageDto[] = await pagesApi.list(spaceId);
-        if (cancelled) return;
-        const nodes = buildPageTreeFromFlatPages(pages);
-        setPageTreeNodes(nodes);
-
-        // default select first top-level node (directory) if any
-        const first = nodes[0];
-        if (first && first.id) {
-          usePageSelectionStore.setState({ selected: { kind: 'page', id: first.id, title: first.data?.title || '' } });
-        }
-      } catch (e) {
+        await ensureTreeLoaded(activeSpaceId, {
+          query,
+          parentId,
+          onlyRoots,
+          take: pageSize,
+          force: true,
+        });
+      } catch {
         if (cancelled) return;
         setPageTreeNodes([]);
       }
@@ -40,9 +94,32 @@ export default function DirectoryList({ spaceId }: { spaceId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [spaceId, setPageTreeNodes]);
+  }, [
+    clearOnEmptySpace,
+    ensureTreeLoaded,
+    onlyRoots,
+    onLoaded,
+    pageSize,
+    parentId,
+    query,
+    resetTree,
+    selectFirstNode,
+    setPageTreeNodes,
+    activeSpaceId,
+  ]);
 
-  return (
-    <div />
-  );
+  useEffect(() => {
+    setPageTreeNodes(nodes);
+    if (!nodes.length) return;
+    selectFirstNode(pages);
+    onLoaded?.(pages);
+  }, [nodes, onLoaded, pages, selectFirstNode, setPageTreeNodes]);
+
+  useEffect(() => {
+    if (!autoLoadAll) return;
+    if (loading || !hasMore) return;
+    void loadMoreTree(activeSpaceId as string);
+  }, [activeSpaceId, autoLoadAll, hasMore, loadMoreTree, loading]);
+
+  return <div />;
 }

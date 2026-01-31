@@ -11,4 +11,4 @@ export { PageTreeHeader } from './components/tree-header';
 export * from './components/tree-node';
 
 // 导出 hooks
-export { usePageTreeCRUD } from './hooks/use-page-tree-crud';
+export { usePageTreeCRUD } from './hooks/use-pages';

@@ -6,12 +6,15 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { CreatePageDto } from './dto/create-page.dto';
 import { SavePageDto } from './dto/save-page.dto';
 import { PageService } from './page.service';
 import { RagIndexService } from '../rag/rag.index.service';
+import { ListPageQuery } from './dto/list-page.query';
+import { ListPageTreeQuery } from './dto/list-page-tree.query';
 
 @Controller('spaces/:spaceId/pages')
 export class PageController {
@@ -97,13 +100,26 @@ export class PageController {
     return this.pageService.remove(id, tenantId);
   }
 
+  @Get('tree')
+  listTree(
+    @TenantId() tenantId: string,
+    @Param('spaceId') spaceId: string,
+    @Query() query: ListPageTreeQuery,
+  ) {
+    return this.pageService.listTree(tenantId, spaceId, query);
+  }
+
   @Get(':id')
   get(@Param('id') id: string, @TenantId() tenantId: string) {
     return this.pageService.get(id, tenantId);
   }
 
   @Get()
-  list(@TenantId() tenantId: string) {
-    return this.pageService.list(tenantId);
+  list(
+    @TenantId() tenantId: string,
+    @Param('spaceId') spaceId: string,
+    @Query() query: ListPageQuery,
+  ) {
+    return this.pageService.list(tenantId, spaceId, query);
   }
 }

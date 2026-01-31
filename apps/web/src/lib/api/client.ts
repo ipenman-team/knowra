@@ -1,13 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { parseContentToSlateValue } from '@/components/shared/slate-editor';
-import {
-  usePageContentStore,
-  usePageSelectionStore,
-  usePageTreeStore,
-  useTaskStore,
-  useUIStateStore,
-  useMeStore,
-} from '@/stores';
+import { useMeStore } from '@/stores';
 
 export class ApiError extends Error {
   readonly status?: number;
@@ -23,7 +15,9 @@ export class ApiError extends Error {
 
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
-  return (base && base.trim().length > 0 ? base : 'http://localhost:3001').replace(/\/$/, '');
+  return (
+    base && base.trim().length > 0 ? base : 'http://localhost:3001'
+  ).replace(/\/$/, '');
 }
 
 export const apiClient = axios.create({
@@ -38,38 +32,9 @@ export async function handleUnauthorized(): Promise<void> {
   if (unauthorizedHandling) return;
   unauthorizedHandling = true;
 
-    try {
-      await apiClient.post('/auth/logout').catch(() => null);
-    } finally {
-    useTaskStore.getState().cleanupAllRuntimes();
-
-    useTaskStore.setState({ tasks: [], taskRuntime: new Map() });
-    usePageTreeStore.setState({ pageTreeNodes: [], pagesLoaded: false, creatingPage: false });
-    usePageSelectionStore.setState({ selected: { kind: 'view', id: 'dashboard' } });
-    useUIStateStore.setState({
-      openMenuNodeId: null,
-      openPageMore: false,
-      openImportModal: false,
-      renamingTarget: null,
-      renamingValue: '',
-      savingRename: false,
-      deleteTarget: null,
-      deletingPage: false,
-    });
-    usePageContentStore.setState({
-      activePage: null,
-      pageMode: 'preview',
-      pageLoading: false,
-      pageTitle: '',
-      editorValue: parseContentToSlateValue(''),
-      pageSaving: false,
-      pagePublishing: false,
-      lastSavedAt: null,
-      publishedSnapshot: null,
-      pageVersions: [],
-      versionsLoading: false,
-    });
-
+  try {
+    await apiClient.post('/auth/logout').catch(() => null);
+  } finally {
     useMeStore.setState({
       user: null,
       profile: null,
@@ -101,10 +66,9 @@ apiClient.interceptors.response.use(
       }
 
       const payload = axiosError.response?.data;
-      const message =
-        hasMessage(payload)
-          ? String(payload.message)
-          : axiosError.message;
+      const message = hasMessage(payload)
+        ? String(payload.message)
+        : axiosError.message;
       throw new ApiError(message, status, payload);
     }
 

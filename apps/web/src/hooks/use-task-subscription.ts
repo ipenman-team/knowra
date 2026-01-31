@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { getApiBaseUrl } from '@/lib/api/client';
 import { useTaskStore, usePageTreeStore } from '@/stores';
+import { useRequiredSpaceId } from '@/hooks/use-required-space';
 import type { ApiTaskDto } from '@/lib/api';
 import type { ProgressTask } from '@/features/home/components/progress-manager';
 import { pagesApi } from '@/lib/api';
@@ -36,11 +37,13 @@ function extractPageIdFromResult(result: unknown): string | undefined {
 export function useTaskSubscription() {
   const { updateTask, getTaskRuntime, setTaskRuntime } = useTaskStore();
   const { setPageTreeNodes } = usePageTreeStore();
+  const spaceId = useRequiredSpaceId();
 
   const refreshPages = useCallback(async () => {
-    const pages = await pagesApi.list();
+    if (!spaceId) return;
+    const pages = await pagesApi.list(spaceId);
     setPageTreeNodes(buildPageTreeFromFlatPages(pages));
-  }, [setPageTreeNodes]);
+  }, [setPageTreeNodes, spaceId]);
 
   const subscribeTaskEvents = useCallback(
     (taskId: string) => {

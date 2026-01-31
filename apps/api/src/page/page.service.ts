@@ -9,6 +9,8 @@ import { CreatePageDto } from './dto/create-page.dto';
 import { PageDto } from './dto/page.dto';
 import { PageVersionDto } from './dto/page-version.dto';
 import { SavePageDto } from './dto/save-page.dto';
+import { ListPageQuery } from './dto/list-page.query';
+import { ListPageTreeQuery } from './dto/list-page-tree.query';
 
 @Injectable()
 export class PageService {
@@ -359,13 +361,86 @@ export class PageService {
     return page;
   }
 
-  async list(tenantId: string): Promise<Omit<PageDto, 'content'>[]> {
+  async list(
+    tenantId: string,
+    spaceId: string,
+    q?: ListPageQuery,
+  ): Promise<Omit<PageDto, 'content'>[]> {
     if (!tenantId) throw new BadRequestException('tenantId is required');
+    if (!spaceId) throw new BadRequestException('spaceId is required');
+
+    const skip = Number(q?.skip) || 0;
+    const take = Math.min(Math.max(Number(q?.take) || 50, 1), 200);
+    const query = q?.q?.trim();
 
     return this.prisma.page.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        spaceId,
+        ...(query
+          ? { title: { contains: query, mode: 'insensitive' } }
+          : {}),
+      },
+      skip,
+      take,
       orderBy: { updatedAt: 'desc' },
       omit: { content: true },
     });
+  }
+
+  async listTree(
+    tenantId: string,
+    spaceId: string,
+    q?: ListPageTreeQuery,
+  ): Promise<{
+    items: Omit<PageDto, 'content'>[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  }> {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+    if (!spaceId) throw new BadRequestException('spaceId is required');
+
+    const take = Math.min(Math.max(Number(q?.take) || 200, 1), 500);
+    const cursor = q?.cursor?.trim() || null;
+    const query = q?.query?.trim();
+    const parentId = q?.parentId?.trim() || null;
+    const onlyRoots = String(q?.onlyRoots).toLowerCase() === 'true';
+
+    const where: Prisma.PageWhereInput = {
+      tenantId,
+      spaceId,
+    };
+
+    if (query) {
+      where.title = { contains: query, mode: 'insensitive' };
+    }
+
+    if (parentId) {
+      where.parentIds = { has: parentId };
+    } else if (onlyRoots) {
+      where.parentIds = { isEmpty: true };
+    }
+
+    const rows = await this.prisma.page.findMany({
+      where,
+      orderBy: { id: 'asc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        tenantId: true,
+        spaceId: true,
+        title: true,
+        parentIds: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    const items = rows.slice(0, take);
+    const hasMore = rows.length > take;
+    const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
+
+    return { items, nextCursor, hasMore };
   }
 }

@@ -24,6 +24,18 @@ export {
   useCreatingPage,
 } from './page-tree-store';
 
+// Pages Store
+export {
+  usePagesStore,
+  usePages,
+  usePagesLoadedBySpace,
+  usePagesLoadingBySpace,
+  useTreePages,
+  useTreePagesLoaded,
+  useTreePagesLoading,
+  useTreePagesHasMore,
+} from './pages-store';
+
 // UI State Store
 export {
   useUIStateStore,

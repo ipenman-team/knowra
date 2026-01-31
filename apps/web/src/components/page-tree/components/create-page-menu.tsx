@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PlusCircleIcon, FileText } from "lucide-react";
 import { memo, useCallback } from "react";
-import { usePageTreeCRUD } from "../hooks/use-page-tree-crud";
+import { usePageTreeCRUD } from "../hooks/use-pages";
 
 export const CreatePageMenu = memo(function CreatePageMenu() {
   const { createPage, creatingPage } = usePageTreeCRUD();

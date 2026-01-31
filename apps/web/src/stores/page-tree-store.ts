@@ -2,40 +2,51 @@ import { create } from 'zustand';
 import type { TreeNode } from '@/components/shared/tree';
 import type { PageDto } from '@/lib/api';
 
+type PageTreeNode = TreeNode<PageDto>;
+
 interface PageTreeState {
-  pageTreeNodes: TreeNode<PageDto>[];
+  pageTreeNodes: PageTreeNode[];
   pagesLoaded: boolean;
   creatingPage: boolean;
 
-  setPageTreeNodes: (nodes: TreeNode<PageDto>[]) => void;
+  setPageTreeNodes: (nodes: PageTreeNode[]) => void;
   setPagesLoaded: (loaded: boolean) => void;
   setCreatingPage: (creating: boolean) => void;
-
-  // Optimized update for single node changes
   updateNode: (
-    nodeId: string,
-    updates: Partial<TreeNode<PageDto>>
+    id: string,
+    updates: Partial<Pick<PageTreeNode, 'label' | 'data'>>
   ) => void;
 }
 
-// Helper function for immutable tree updates
-function updateTreeNode<T>(
-  nodes: TreeNode<T>[],
-  nodeId: string,
-  updates: Partial<TreeNode<T>>
-): TreeNode<T>[] {
-  return nodes.map((node) => {
-    if (node.id === nodeId) {
-      return { ...node, ...updates };
-    }
-    if (node.children) {
+function updateNodeInTree(
+  nodes: PageTreeNode[],
+  id: string,
+  updates: Partial<Pick<PageTreeNode, 'label' | 'data'>>
+): { next: PageTreeNode[]; changed: boolean } {
+  let changed = false;
+
+  const next = nodes.map((node) => {
+    if (node.id === id) {
+      changed = true;
       return {
         ...node,
-        children: updateTreeNode(node.children, nodeId, updates),
+        ...updates,
       };
     }
-    return node;
+
+    if (!node.children?.length) return node;
+
+    const childResult = updateNodeInTree(node.children, id, updates);
+    if (!childResult.changed) return node;
+
+    changed = true;
+    return {
+      ...node,
+      children: childResult.next,
+    };
   });
+
+  return { next, changed };
 }
 
 export const usePageTreeStore = create<PageTreeState>((set) => ({
@@ -47,14 +58,14 @@ export const usePageTreeStore = create<PageTreeState>((set) => ({
   setPagesLoaded: (pagesLoaded) => set({ pagesLoaded }),
   setCreatingPage: (creatingPage) => set({ creatingPage }),
 
-  updateNode: (nodeId, updates) =>
-    set((state) => ({
-      pageTreeNodes: updateTreeNode(state.pageTreeNodes, nodeId, updates),
-    })),
+  updateNode: (id, updates) =>
+    set((state) => {
+      const result = updateNodeInTree(state.pageTreeNodes, id, updates);
+      if (!result.changed) return state;
+      return { pageTreeNodes: result.next };
+    }),
 }));
 
-// Selector hooks
-export const usePageTreeNodes = () =>
-  usePageTreeStore((s) => s.pageTreeNodes);
+export const usePageTreeNodes = () => usePageTreeStore((s) => s.pageTreeNodes);
 export const usePagesLoaded = () => usePageTreeStore((s) => s.pagesLoaded);
 export const useCreatingPage = () => usePageTreeStore((s) => s.creatingPage);

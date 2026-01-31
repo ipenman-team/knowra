@@ -13,6 +13,7 @@ describe('PageController', () => {
     remove: jest.fn(),
     get: jest.fn(),
     list: jest.fn(),
+    listTree: jest.fn(),
   };
 
   const ragIndexService = {
@@ -37,14 +38,14 @@ describe('PageController', () => {
     pageService.create.mockResolvedValue({ id: 'p1' });
 
     await expect(
-      controller.create('t1', undefined, { title: 'Hello' }),
+      controller.create('t1', 's1', undefined, { title: 'Hello' }),
     ).resolves.toEqual({
       id: 'p1',
     });
 
     expect(pageService.create).toHaveBeenCalledWith(
       't1',
-      { title: 'Hello' },
+      { title: 'Hello', spaceId: 's1' },
       undefined,
     );
   });
@@ -102,7 +103,27 @@ describe('PageController', () => {
   it('list forwards tenantId', async () => {
     pageService.list.mockResolvedValue([{ id: 'p1' }]);
 
-    await expect(controller.list('t1')).resolves.toEqual([{ id: 'p1' }]);
-    expect(pageService.list).toHaveBeenCalledWith('t1');
+    await expect(controller.list('t1', 's1', { q: 'hi' })).resolves.toEqual([
+      { id: 'p1' },
+    ]);
+    expect(pageService.list).toHaveBeenCalledWith('t1', 's1', { q: 'hi' });
+  });
+
+  it('listTree forwards tenantId + spaceId + query', async () => {
+    pageService.listTree.mockResolvedValue({
+      items: [{ id: 'p1' }],
+      nextCursor: null,
+      hasMore: false,
+    });
+
+    await expect(
+      controller.listTree('t1', 's1', { take: 50 }),
+    ).resolves.toEqual({
+      items: [{ id: 'p1' }],
+      nextCursor: null,
+      hasMore: false,
+    });
+
+    expect(pageService.listTree).toHaveBeenCalledWith('t1', 's1', { take: 50 });
   });
 });
