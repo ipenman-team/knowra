@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import type { MeProfile } from "@/stores";
+import type { MeProfile, MeVerification } from "@/stores";
 import { SettingsModalSidebar } from "./settings-modal-sidebar";
 import { SettingsModalMain } from "./settings-modal-main";
 import type { SettingsSection, SettingsSectionId } from "./settings-modal.types";
@@ -11,6 +11,7 @@ type SettingsModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profile: MeProfile | null | undefined;
+  verification: MeVerification | null | undefined;
 };
 
 const sections: SettingsSection[] = [
@@ -24,6 +25,7 @@ export const SettingsModal = memo(function SettingsModal({
   open,
   onOpenChange,
   profile,
+  verification,
 }: SettingsModalProps) {
   const [activeId, setActiveId] = useState<SettingsSectionId>("account");
 
@@ -43,6 +45,7 @@ export const SettingsModal = memo(function SettingsModal({
         />
         <SettingsModalMain
           profile={profile}
+          verification={verification}
         />
       </div>
     </Modal>

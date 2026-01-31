@@ -52,12 +52,14 @@ export { useTaskStore, useTasks, useTaskById } from './task-store';
 export {
   useMeStore,
   useMeProfile,
+  useMeVerification,
   useMeLoaded,
   useMeLoading,
   type MeProfile,
   type MeUser,
   type MeTenant,
   type MeMembership,
+  type MeVerification,
 } from './me-store';
 
 // Space Store

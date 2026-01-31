@@ -12,15 +12,42 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import type { MeProfile } from "@/stores";
+import type { MeProfile, MeVerification } from "@/stores";
 import { apiClient } from "@/lib/api";
 
 export const SettingsModalMain = memo(function SettingsModalMain({
   profile,
+  verification,
 }: {
   profile: MeProfile | null | undefined;
+  verification: MeVerification | null | undefined;
 }) {
-  const phone = profile?.phone?.trim() || "";
+  const phoneValue =
+    profile?.phone?.trim() ||
+    verification?.phone.identifier?.trim() ||
+    "";
+  const phoneBound = verification?.phone.bound ?? Boolean(phoneValue);
+  const phoneVerified = verification?.phone.verified ?? false;
+
+  const emailValue = verification?.email.identifier?.trim() || "";
+  const emailBound = verification?.email.bound ?? Boolean(emailValue);
+  const emailVerified = verification?.email.verified ?? false;
+
+  const passwordSet = verification?.password.set ?? false;
+
+  const phoneStatusText = phoneBound
+    ? phoneVerified
+      ? phoneValue
+      : "手机号未验证"
+    : "未绑定手机号";
+  const emailStatusText = emailBound
+    ? emailVerified
+      ? emailValue
+      : "邮箱未验证"
+    : "暂未绑定";
+  const passwordStatusText = passwordSet
+    ? "用于登录与安全验证"
+    : "未设置密码，建议设置";
   const [resetOpen, setResetOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -94,47 +121,64 @@ export const SettingsModalMain = memo(function SettingsModalMain({
       <div className="flex flex-col gap-6">
         <Item variant="muted">
           <ItemMedia variant="icon">
-            <CheckCircle2 className="text-emerald-500" />
+            {phoneVerified ? (
+              <CheckCircle2 className="text-emerald-500" />
+            ) : (
+              <AlertCircle className="text-amber-500" />
+            )}
           </ItemMedia>
           <ItemContent>
             <ItemTitle>手机号</ItemTitle>
             <ItemDescription>
-              {phone ? phone : "未绑定手机号"}
+              {phoneStatusText}
             </ItemDescription>
           </ItemContent>
           <ItemActions>
             <Button size="sm" variant="outline" disabled>
-              {phone ? "更改" : "绑定"}
+              {phoneBound ? "更改" : "绑定"}
             </Button>
           </ItemActions>
         </Item>
 
         <Item variant="muted">
           <ItemMedia variant="icon">
-            <AlertCircle className="text-amber-500" />
+            {emailVerified ? (
+              <CheckCircle2 className="text-emerald-500" />
+            ) : (
+              <AlertCircle className="text-amber-500" />
+            )}
           </ItemMedia>
           <ItemContent>
             <ItemTitle>邮箱</ItemTitle>
-            <ItemDescription>暂未绑定</ItemDescription>
+            <ItemDescription>{emailStatusText}</ItemDescription>
           </ItemContent>
           <ItemActions>
             <Button size="sm" variant="outline" disabled>
-              绑定
+              {emailBound ? "更改" : "绑定"}
             </Button>
           </ItemActions>
         </Item>
 
         <Item variant="muted">
           <ItemMedia variant="icon">
-            <CheckCircle2 className="text-emerald-500" />
+            {passwordSet ? (
+              <CheckCircle2 className="text-emerald-500" />
+            ) : (
+              <AlertCircle className="text-amber-500" />
+            )}
           </ItemMedia>
           <ItemContent>
             <ItemTitle>账户密码</ItemTitle>
-            <ItemDescription>用于登录与安全验证</ItemDescription>
+            <ItemDescription>{passwordStatusText}</ItemDescription>
           </ItemContent>
           <ItemActions>
-            <Button size="sm" variant="outline" onClick={handleOpenReset}>
-              重置密码
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleOpenReset}
+              disabled={!emailBound}
+            >
+              {passwordSet ? "重置密码" : "设置密码"}
             </Button>
           </ItemActions>
         </Item>

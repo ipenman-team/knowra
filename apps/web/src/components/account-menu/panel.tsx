@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useEffect, useRef, useState } from 'react';
-import { useMeProfile, type MeProfile } from '@/stores';
+import { useMeProfile, useMeVerification, type MeProfile, type MeVerification } from '@/stores';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -20,16 +20,21 @@ import { ProfileModal } from './profile/profile-modal';
 
 type AccountMenuProps = {
   profile?: MeProfile | null;
+  verification?: MeVerification | null;
 };
 
 export const AccountMenu = memo(function AccountMenu({
   profile: profileProp,
+  verification: verificationProp,
 }: AccountMenuProps = {}) {
   const [mounted, setMounted] = useState(false);
   const pointerDownOutsideRef = useRef(false);
 
   const cachedProfile = useMeProfile();
+  const cachedVerification = useMeVerification();
   const profile = profileProp === undefined ? cachedProfile : profileProp;
+  const verification =
+    verificationProp === undefined ? cachedVerification : verificationProp;
 
   useEffect(() => {
     setMounted(true);
@@ -102,6 +107,7 @@ export const AccountMenu = memo(function AccountMenu({
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         profile={profile}
+        verification={verification}
       />
     </>
   );

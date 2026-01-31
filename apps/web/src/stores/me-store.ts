@@ -29,11 +29,28 @@ export type MeMembership = {
   tenant: MeTenant;
 };
 
+export type MeVerification = {
+  email: {
+    bound: boolean;
+    verified: boolean;
+    identifier: string | null;
+  };
+  phone: {
+    bound: boolean;
+    verified: boolean;
+    identifier: string | null;
+  };
+  password: {
+    set: boolean;
+  };
+};
+
 type MeSnapshot = {
   user: MeUser | null;
   profile: MeProfile | null;
   tenant: MeTenant | null;
   memberships: MeMembership[];
+  verification: MeVerification | null;
 };
 
 interface MeState extends MeSnapshot {
@@ -54,6 +71,7 @@ const initialSnapshot: MeSnapshot = {
   profile: null,
   tenant: null,
   memberships: [],
+  verification: null,
 };
 
 let inflight: Promise<void> | null = null;
@@ -116,6 +134,38 @@ function normalizeMemberships(input: unknown): MeMembership[] {
   return out;
 }
 
+function normalizeVerification(input: unknown): MeVerification | null {
+  if (!isRecord(input)) return null;
+  const emailRaw = input.email;
+  const phoneRaw = input.phone;
+  const passwordRaw = input.password;
+
+  if (!isRecord(emailRaw) || !isRecord(phoneRaw) || !isRecord(passwordRaw)) {
+    return null;
+  }
+
+  const normalizeIdentity = (raw: Record<string, unknown>) => {
+    const bound = raw.bound === true;
+    const verified = raw.verified === true;
+    const identifier = typeof raw.identifier === 'string' ? raw.identifier.trim() : '';
+    return {
+      bound,
+      verified,
+      identifier: identifier.length > 0 ? identifier : null,
+    };
+  };
+
+  const email = normalizeIdentity(emailRaw);
+  const phone = normalizeIdentity(phoneRaw);
+  const passwordSet = passwordRaw.set === true;
+
+  return {
+    email,
+    phone,
+    password: { set: passwordSet },
+  };
+}
+
 export const useMeStore = create<MeState>((set, get) => ({
   ...initialSnapshot,
   loaded: false,
@@ -175,8 +225,9 @@ export const useMeStore = create<MeState>((set, get) => ({
         const profile = normalizeProfile(data.profile);
         const tenant = normalizeTenant(data.tenant);
         const memberships = normalizeMemberships(data.memberships);
+        const verification = normalizeVerification(data.verification);
 
-        set({ user, profile, tenant, memberships, loaded: true });
+        set({ user, profile, tenant, memberships, verification, loaded: true });
       } finally {
         inflight = null;
         set({ loading: false });
@@ -188,5 +239,6 @@ export const useMeStore = create<MeState>((set, get) => ({
 }));
 
 export const useMeProfile = () => useMeStore((s) => s.profile);
+export const useMeVerification = () => useMeStore((s) => s.verification);
 export const useMeLoaded = () => useMeStore((s) => s.loaded);
 export const useMeLoading = () => useMeStore((s) => s.loading);

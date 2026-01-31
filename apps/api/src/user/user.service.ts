@@ -43,12 +43,47 @@ export class UserService {
             },
         });
 
+        const identities = await this.prisma.userIdentity.findMany({
+            where: {
+                userId,
+                isDeleted: false,
+                provider: { in: ['email', 'phone'] },
+            },
+            select: {
+                provider: true,
+                identifier: true,
+                isVerified: true,
+                secretHash: true,
+            },
+        });
+
+        const emailIdentity = identities.find((item) => item.provider === 'email');
+        const phoneIdentity = identities.find((item) => item.provider === 'phone');
+        const passwordSet = identities.some(
+            (item) => typeof item.secretHash === 'string' && item.secretHash.trim().length > 0,
+        );
+
         return {
             ok: true,
             user: { id: userId },
             profile,
             tenant,
             memberships,
+            verification: {
+                email: {
+                    bound: Boolean(emailIdentity?.identifier),
+                    verified: Boolean(emailIdentity?.isVerified),
+                    identifier: emailIdentity?.identifier ?? null,
+                },
+                phone: {
+                    bound: Boolean(phoneIdentity?.identifier),
+                    verified: Boolean(phoneIdentity?.isVerified),
+                    identifier: phoneIdentity?.identifier ?? null,
+                },
+                password: {
+                    set: passwordSet,
+                },
+            },
         };
     }
 
