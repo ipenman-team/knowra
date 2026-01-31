@@ -12,8 +12,16 @@ import {
   SidebarProvider,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
-import { BookMinus, ChevronLeft } from 'lucide-react';
+import {
+  BoltIcon,
+  BookMinus,
+  ChevronLeft,
+  ListTreeIcon,
+  RecycleIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import { PageTreeContainer } from '@/components/page-tree/components/tree-container';
 import { CreatePageMenu } from '../page-tree/components/create-page-menu';
 import {
@@ -23,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
 
 export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
   const router = useRouter();
@@ -105,6 +115,22 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarFooter>
+          <Separator />
+          <div className="flex justify-between text-muted-foreground items-center h-6">
+            <Button variant="ghost" size='lg'>
+              <ListTreeIcon />
+            </Button>
+            <Separator orientation="vertical" />
+            <Button variant="ghost" size='lg'>
+              <RecycleIcon />
+            </Button>
+            <Separator orientation="vertical" />
+            <Button variant="ghost" size='lg'>
+              <BoltIcon />
+            </Button>
+          </div>
+        </SidebarFooter>
       </Sidebar>
     </SidebarProvider>
   );
