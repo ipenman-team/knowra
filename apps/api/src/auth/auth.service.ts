@@ -130,6 +130,116 @@ export class AuthService {
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   }
 
+  private hashPassword(raw: string): string {
+    const salt = crypto.randomBytes(16);
+    const hash = crypto.scryptSync(raw, salt, 32);
+    return `${salt.toString('hex')}:${hash.toString('hex')}`;
+  }
+
+  private verifyPassword(raw: string, secretHash: string | null | undefined): boolean {
+    if (!secretHash) return false;
+    const [saltHex, hashHex] = secretHash.split(':');
+    if (!saltHex || !hashHex) return false;
+    const salt = Buffer.from(saltHex, 'hex');
+    const expected = Buffer.from(hashHex, 'hex');
+    const actual = crypto.scryptSync(raw, salt, expected.length);
+    return crypto.timingSafeEqual(actual, expected);
+  }
+
+  private makeSessionToken(): string {
+    return crypto.randomBytes(32).toString('base64url');
+  }
+
+  private hashSessionToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private async ensureTenantForUser(
+    db: Prisma.TransactionClient,
+    args: { userId: string; tenantKey?: string; actorId: string },
+  ) {
+    const key = normalizeLowerTrim(args.tenantKey ?? '');
+    if (key) {
+      const tenant = await db.tenant.findFirst({
+        where: { key, isDeleted: false },
+        select: { id: true, type: true, key: true, name: true },
+      });
+      if (!tenant) {
+        throw new BadRequestException('tenant 不存在');
+      }
+
+      const membership = await db.tenantMembership.findFirst({
+        where: {
+          tenantId: tenant.id,
+          userId: args.userId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+      if (!membership) {
+        throw new HttpException('无权限访问该租户', HttpStatus.FORBIDDEN);
+      }
+      return tenant;
+    }
+
+    const personal = await db.tenantMembership.findFirst({
+      where: {
+        userId: args.userId,
+        isDeleted: false,
+        tenant: {
+          isDeleted: false,
+          type: 'PERSONAL',
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        tenant: { select: { id: true, type: true, key: true, name: true } },
+      },
+    });
+    if (personal?.tenant) return personal.tenant;
+
+    const anyMembership = await db.tenantMembership.findFirst({
+      where: {
+        userId: args.userId,
+        isDeleted: false,
+        tenant: {
+          isDeleted: false,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        tenant: { select: { id: true, type: true, key: true, name: true } },
+      },
+    });
+    if (anyMembership?.tenant) return anyMembership.tenant;
+
+    const createdTenant = await db.tenant.create({
+      data: {
+        type: 'PERSONAL',
+        key: null,
+        name: '个人空间',
+        isDeleted: false,
+        createdBy: args.actorId,
+        updatedBy: args.actorId,
+      },
+      select: { id: true, type: true, key: true, name: true },
+    });
+
+    await db.tenantMembership.create({
+      data: {
+        tenantId: createdTenant.id,
+        userId: args.userId,
+        role: 'OWNER',
+        isDeleted: false,
+        createdBy: args.actorId,
+        updatedBy: args.actorId,
+      },
+      select: { id: true },
+    });
+
+    return createdTenant;
+  }
+
   async sendVerificationCode(
     body: { channel: string; recipient: string; type: string },
     ctx: { userId?: string },
@@ -149,11 +259,30 @@ export class AuthService {
       throw new BadRequestException('type 不支持');
     }
 
+    if (type === 'reset_password' && channel !== 'email') {
+      throw new BadRequestException('重置密码仅支持邮箱验证码');
+    }
+
     if (channel === 'email' && !isValidEmail(recipient)) {
       throw new BadRequestException('邮箱格式不正确');
     }
     if (channel === 'sms' && !isValidE164(recipient)) {
       throw new BadRequestException('手机号格式不正确');
+    }
+
+    if (type === 'reset_password') {
+      const identifier = normalizeLowerTrim(recipient);
+      const existingIdentity = await this.prisma.userIdentity.findFirst({
+        where: {
+          provider: 'email',
+          identifier,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+      if (!existingIdentity) {
+        throw new BadRequestException('邮箱未注册');
+      }
     }
 
     const actor = pickActorId(ctx.userId);
@@ -321,100 +450,6 @@ export class AuthService {
     const expiresAt = new Date(
       now2.getTime() + sessionTtlDays * 24 * 60 * 60 * 1000,
     );
-    const makeSessionToken = () => crypto.randomBytes(32).toString('base64url');
-    const hashSessionToken = (token: string) =>
-      crypto.createHash('sha256').update(token).digest('hex');
-
-    const ensureTenantForUser = async (
-      db: Prisma.TransactionClient,
-      args: {
-        userId: string;
-        tenantKey?: string;
-        actorId: string;
-      },
-    ) => {
-      const key = normalizeLowerTrim(args.tenantKey ?? '');
-      if (key) {
-        const tenant = await db.tenant.findFirst({
-          where: { key, isDeleted: false },
-          select: { id: true, type: true, key: true, name: true },
-        });
-        if (!tenant) {
-          throw new BadRequestException('tenant 不存在');
-        }
-
-        const membership = await db.tenantMembership.findFirst({
-          where: {
-            tenantId: tenant.id,
-            userId: args.userId,
-            isDeleted: false,
-          },
-          select: { id: true },
-        });
-        if (!membership) {
-          throw new HttpException('无权限访问该租户', HttpStatus.FORBIDDEN);
-        }
-        return tenant;
-      }
-
-      const personal = await db.tenantMembership.findFirst({
-        where: {
-          userId: args.userId,
-          isDeleted: false,
-          tenant: {
-            isDeleted: false,
-            type: 'PERSONAL',
-          },
-        },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          tenant: { select: { id: true, type: true, key: true, name: true } },
-        },
-      });
-      if (personal?.tenant) return personal.tenant;
-
-      const anyMembership = await db.tenantMembership.findFirst({
-        where: {
-          userId: args.userId,
-          isDeleted: false,
-          tenant: {
-            isDeleted: false,
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          tenant: { select: { id: true, type: true, key: true, name: true } },
-        },
-      });
-      if (anyMembership?.tenant) return anyMembership.tenant;
-
-      const createdTenant = await db.tenant.create({
-        data: {
-          type: 'PERSONAL',
-          key: null,
-          name: '个人空间',
-          isDeleted: false,
-          createdBy: args.actorId,
-          updatedBy: args.actorId,
-        },
-        select: { id: true, type: true, key: true, name: true },
-      });
-
-      await db.tenantMembership.create({
-        data: {
-          tenantId: createdTenant.id,
-          userId: args.userId,
-          role: 'OWNER',
-          isDeleted: false,
-          createdBy: args.actorId,
-          updatedBy: args.actorId,
-        },
-        select: { id: true },
-      });
-
-      return createdTenant;
-    };
-
     return this.prisma.$transaction(async (tx) => {
       const existingIdentity = await tx.userIdentity.findFirst({
         where: {
@@ -554,14 +589,14 @@ export class AuthService {
         throw new BadRequestException('验证码错误或已过期');
       }
 
-      const tenant = await ensureTenantForUser(tx, {
+      const tenant = await this.ensureTenantForUser(tx, {
         userId,
         tenantKey: tenantKey || undefined,
         actorId,
       });
 
-      const accessToken = makeSessionToken();
-      const tokenHash = hashSessionToken(accessToken);
+      const accessToken = this.makeSessionToken();
+      const tokenHash = this.hashSessionToken(accessToken);
       await tx.authSession.create({
         data: {
           userId,
@@ -603,6 +638,166 @@ export class AuthService {
     });
 
     return { ok: true };
+  }
+
+  async loginByPassword(
+    body: { account: string; password: string; tenantKey?: string },
+    ctx: { userId?: string },
+  ) {
+    const account = normalizeTrim(body.account);
+    const password = (body.password ?? '').trim();
+    const tenantKey = normalizeLowerTrim(body.tenantKey ?? '');
+
+    if (!account) {
+      throw new BadRequestException('账号不能为空');
+    }
+    if (!password) {
+      throw new BadRequestException('密码不能为空');
+    }
+
+    let provider: 'email' | 'phone';
+    let identifier: string;
+    if (isValidEmail(account)) {
+      provider = 'email';
+      identifier = normalizeLowerTrim(account);
+    } else if (isValidE164(account)) {
+      provider = 'phone';
+      identifier = normalizeTrim(account);
+    } else {
+      throw new BadRequestException('账号格式不正确');
+    }
+
+    const now = new Date();
+    const sessionTtlDays = 30;
+    const expiresAt = new Date(
+      now.getTime() + sessionTtlDays * 24 * 60 * 60 * 1000,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      const identity = await tx.userIdentity.findFirst({
+        where: {
+          provider,
+          identifier,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          userId: true,
+          isVerified: true,
+          secretHash: true,
+        },
+      });
+
+      if (!identity || !this.verifyPassword(password, identity.secretHash)) {
+        throw new BadRequestException('账号或密码错误');
+      }
+
+      const userId = identity.userId;
+      const actorId = userId;
+
+      if (!identity.isVerified) {
+        await tx.userIdentity.update({
+          where: { id: identity.id },
+          data: { isVerified: true, updatedBy: actorId },
+          select: { id: true },
+        });
+      }
+
+      const defaultNickname = this.buildDefaultNickname({
+        provider,
+        recipient: account,
+        identifier,
+      });
+      const defaultPhone =
+        provider === 'phone' ? normalizeTrim(account) : null;
+
+      const existingProfile = await tx.userProfile.findFirst({
+        where: { userId, isDeleted: false },
+        select: {
+          id: true,
+          nickname: true,
+          avatarUrl: true,
+          phone: true,
+        },
+      });
+
+      if (!existingProfile) {
+        const avatarUrl = this.buildDefaultAvatarDataUrl({
+          seed: userId,
+          nickname: defaultNickname,
+        });
+        await tx.userProfile.create({
+          data: {
+            userId,
+            nickname: defaultNickname,
+            avatarUrl,
+            bio: null,
+            phone: defaultPhone,
+            isDeleted: false,
+            createdBy: actorId,
+            updatedBy: actorId,
+          },
+          select: { id: true },
+        });
+      } else {
+        const next: {
+          nickname?: string;
+          avatarUrl?: string | null;
+          phone?: string | null;
+        } = {};
+
+        const baseNickname = existingProfile.nickname || defaultNickname;
+
+        if (!existingProfile.nickname) next.nickname = defaultNickname;
+        if (existingProfile.avatarUrl == null) {
+          next.avatarUrl = this.buildDefaultAvatarDataUrl({
+            seed: userId,
+            nickname: baseNickname,
+          });
+        }
+        if (defaultPhone && !existingProfile.phone) next.phone = defaultPhone;
+
+        if (Object.keys(next).length > 0) {
+          await tx.userProfile.update({
+            where: { id: existingProfile.id },
+            data: {
+              ...next,
+              updatedBy: actorId,
+            },
+            select: { id: true },
+          });
+        }
+      }
+
+      const tenant = await this.ensureTenantForUser(tx, {
+        userId,
+        tenantKey: tenantKey || undefined,
+        actorId,
+      });
+
+      const accessToken = this.makeSessionToken();
+      const tokenHash = this.hashSessionToken(accessToken);
+      await tx.authSession.create({
+        data: {
+          userId,
+          tenantId: tenant.id,
+          tokenHash,
+          expiresAt,
+          revokedAt: null,
+          isDeleted: false,
+          createdBy: actorId,
+          updatedBy: actorId,
+        },
+        select: { id: true },
+      });
+
+      return {
+        ok: true,
+        user: { id: userId },
+        tenant,
+        token: { accessToken, expiresIn: sessionTtlDays * 24 * 60 * 60 },
+      };
+    });
   }
 
   async switchTenant(input: {
@@ -687,5 +882,95 @@ export class AuthService {
       tenant,
       token: { accessToken, expiresIn: sessionTtlDays * 24 * 60 * 60 },
     };
+  }
+
+  async resetPasswordByEmail(
+    body: { recipient: string; code: string; newPassword: string },
+    ctx: { userId?: string },
+  ) {
+    const recipient = normalizeTrim(body.recipient);
+    const code = (body.code ?? '').trim();
+    const newPassword = (body.newPassword ?? '').trim();
+
+    if (!isValidEmail(recipient)) {
+      throw new BadRequestException('邮箱格式不正确');
+    }
+    if (!/^\d{6}$/.test(code)) {
+      throw new BadRequestException('验证码格式不正确');
+    }
+    if (newPassword.length < 8) {
+      throw new BadRequestException('密码至少 8 位');
+    }
+
+    const actor = pickActorId(ctx.userId);
+    const identifier = normalizeLowerTrim(recipient);
+    const now = new Date();
+
+    const latest = await this.prisma.verificationCode.findFirst({
+      where: {
+        channel: 'email',
+        recipient,
+        type: 'reset_password',
+        used: false,
+        isDeleted: false,
+        expiresAt: { gt: now },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        code: true,
+      },
+    });
+
+    if (!latest || latest.code !== code) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const identity = await tx.userIdentity.findFirst({
+        where: {
+          provider: 'email',
+          identifier,
+          isDeleted: false,
+        },
+        select: { id: true, userId: true },
+      });
+
+      if (!identity) {
+        throw new BadRequestException('邮箱未注册');
+      }
+
+      await tx.userIdentity.update({
+        where: { id: identity.id },
+        data: {
+          secretHash: this.hashPassword(newPassword),
+          isVerified: true,
+          updatedBy: actor,
+        },
+        select: { id: true },
+      });
+
+      const used = await tx.verificationCode.updateMany({
+        where: {
+          id: latest.id,
+          channel: 'email',
+          recipient,
+          type: 'reset_password',
+          code,
+          used: false,
+          isDeleted: false,
+          expiresAt: { gt: now },
+        },
+        data: {
+          used: true,
+          updatedBy: actor,
+        },
+      });
+      if (used.count !== 1) {
+        throw new BadRequestException('验证码错误或已过期');
+      }
+
+      return { ok: true };
+    });
   }
 }

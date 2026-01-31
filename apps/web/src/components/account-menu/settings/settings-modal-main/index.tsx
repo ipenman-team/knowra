@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/item";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import type { MeProfile } from "@/stores";
+import { apiClient } from "@/lib/api";
 
 export const SettingsModalMain = memo(function SettingsModalMain({
   profile,
@@ -25,6 +26,18 @@ export const SettingsModalMain = memo(function SettingsModalMain({
   const [code, setCode] = useState("");
   const [nextPassword, setNextPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [sendingCode, setSendingCode] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const canSendCode = useMemo(() => {
+    if (sendingCode) return false;
+    if (cooldown > 0) return false;
+    if (!email.trim()) return false;
+    return true;
+  }, [cooldown, email, sendingCode]);
 
   const handleOpenReset = () => {
     setResetOpen(true);
@@ -32,7 +45,49 @@ export const SettingsModalMain = memo(function SettingsModalMain({
     setCode("");
     setNextPassword("");
     setConfirmPassword("");
+    setSendError(null);
+    setResetError(null);
+    setCooldown(0);
   };
+
+  const handleSendCode = async () => {
+    if (!canSendCode) return;
+    setSendError(null);
+    setSendingCode(true);
+    try {
+      const trimmedEmail = email.trim();
+      const { data } = await apiClient
+        .post("/auth/verification-codes/send", {
+          channel: "email",
+          recipient: trimmedEmail,
+          type: "reset_password",
+        })
+        .catch(() => ({ data: null }));
+
+      const cooldownSeconds =
+        data && typeof data === "object" && typeof (data as any).cooldownSeconds === "number"
+          ? (data as any).cooldownSeconds
+          : 60;
+
+      setCooldown(Math.max(0, Math.floor(cooldownSeconds)));
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message?: unknown }).message)
+          : "发送失败，请稍后重试";
+      setSendError(message);
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
 
   return (
     <section className="flex-1 px-8 py-6">
@@ -88,10 +143,57 @@ export const SettingsModalMain = memo(function SettingsModalMain({
       <Modal
         open={resetOpen}
         title="邮箱重置密码"
-        onOpenChange={setResetOpen}
-        confirmText="提交"
-        onConfirm={() => {
-          // TODO: connect reset password API
+        onOpenChange={(open) => {
+          setResetError(null);
+          setResetOpen(open);
+        }}
+        confirmText={resetting ? "提交中…" : "提交"}
+        confirmDisabled={resetting}
+        onConfirm={async () => {
+          setResetError(null);
+          const trimmedEmail = email.trim();
+          const trimmedCode = code.trim();
+          const trimmedPassword = nextPassword.trim();
+          const trimmedConfirm = confirmPassword.trim();
+
+          if (!trimmedEmail) {
+            setResetError("请输入邮箱");
+            return;
+          }
+          if (!/^\d{6}$/.test(trimmedCode)) {
+            setResetError("请输入 6 位验证码");
+            return;
+          }
+          if (trimmedPassword.length < 8) {
+            setResetError("密码至少 8 位");
+            return;
+          }
+          if (trimmedPassword !== trimmedConfirm) {
+            setResetError("两次输入的密码不一致");
+            return;
+          }
+
+          setResetting(true);
+          try {
+            const res = await apiClient.post("/auth/password/reset", {
+              recipient: trimmedEmail,
+              code: trimmedCode,
+              newPassword: trimmedPassword,
+            });
+            if (!res.data?.ok) {
+              setResetError("重置失败，请稍后重试");
+              return;
+            }
+            setResetOpen(false);
+          } catch (err) {
+            const message =
+              err && typeof err === "object" && "message" in err
+                ? String((err as { message?: unknown }).message)
+                : "重置失败，请稍后重试";
+            setResetError(message);
+          } finally {
+            setResetting(false);
+          }
         }}
         className="w-[520px]"
       >
@@ -106,20 +208,28 @@ export const SettingsModalMain = memo(function SettingsModalMain({
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="text-sm font-medium">验证码</div>
-            <div className="flex gap-2">
-              <input
-                className="h-9 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="6 位验证码"
-              />
-              <Button variant="outline" size="sm">
-                获取验证码
-              </Button>
+            <div className="space-y-2">
+              <div className="text-sm font-medium">验证码</div>
+              <div className="flex gap-2">
+                <input
+                  className="h-9 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="6 位验证码"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!canSendCode}
+                  onClick={handleSendCode}
+                >
+                  {cooldown > 0 ? `${cooldown}s` : "获取验证码"}
+                </Button>
+              </div>
+              {sendError ? (
+                <div className="text-xs text-destructive">{sendError}</div>
+              ) : null}
             </div>
-          </div>
 
           <div className="space-y-2">
             <div className="text-sm font-medium">新密码</div>
@@ -142,6 +252,9 @@ export const SettingsModalMain = memo(function SettingsModalMain({
               placeholder="再次输入新密码"
             />
           </div>
+          {resetError ? (
+            <div className="text-xs text-destructive">{resetError}</div>
+          ) : null}
         </div>
       </Modal>
     </section>

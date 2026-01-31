@@ -21,9 +21,21 @@ type LoginOrRegisterByCodeBody = {
   tenantKey?: string;
 };
 
+type LoginByPasswordBody = {
+  account: string;
+  password: string;
+  tenantKey?: string;
+};
+
 type SwitchTenantBody = {
   tenantId?: string;
   tenantKey?: string;
+};
+
+type ResetPasswordBody = {
+  recipient: string;
+  code: string;
+  newPassword: string;
 };
 
 @Controller('auth')
@@ -45,6 +57,24 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const data = await this.authService.loginOrRegisterByCode(body, { userId });
+    const accessToken = String(data?.token?.accessToken ?? '');
+    res.cookie('ctxa_access_token', accessToken, {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+      maxAge: /* seconds */ 30 * 24 * 3600,
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return data;
+  }
+
+  @Post('login-by-password')
+  async loginByPassword(
+    @UserId() userId: string | undefined,
+    @Body() body: LoginByPasswordBody,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const data = await this.authService.loginByPassword(body, { userId });
     const accessToken = String(data?.token?.accessToken ?? '');
     res.cookie('ctxa_access_token', accessToken, {
       httpOnly: true,
@@ -100,5 +130,13 @@ export class AuthController {
         }
         return result;
       });
+  }
+
+  @Post('password/reset')
+  resetPassword(
+    @UserId() userId: string | undefined,
+    @Body() body: ResetPasswordBody,
+  ) {
+    return this.authService.resetPasswordByEmail(body, { userId });
   }
 }
