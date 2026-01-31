@@ -1,1 +1,0 @@
-export { UserProfilePanel } from './panel';

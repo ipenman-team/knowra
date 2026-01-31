@@ -3,7 +3,7 @@
 import { memo, useCallback } from 'react';
 import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
-import { UserProfilePanel } from '../profile';
+import { AccountMenu } from '../account-menu';
 import {
   Sidebar,
   SidebarHeader,
@@ -60,7 +60,7 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
           <div className="flex justify-between p-3">
             <div></div>
             <div>
-              <UserProfilePanel />
+              <AccountMenu />
             </div>
           </div>
         </SidebarHeader>
@@ -147,19 +147,6 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
             onCreated={handleCreated}
           />
         )}
-        {/* <SidebarContent>
-        <PageTreeContainer onOpenImport={onOpenImport} />
-      </SidebarContent>
-
-      <Separator />
-
-      <SidebarFooter>
-        <SidebarItem
-          label="设置"
-          active={selected.kind === 'view' && selected.id === 'settings'}
-          onClick={() => handleSelectView('settings')}
-        />
-      </SidebarFooter> */}
       </Sidebar>
     </SidebarProvider>
   );
