@@ -14,7 +14,10 @@ const inflightVersions = new Map<string, Promise<PageVersionDto[]>>();
 const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
 
 export const pagesApi = {
-  async list(spaceId: string, params?: { skip?: number; take?: number; q?: string }) {
+  async list(
+    spaceId: string,
+    params?: { skip?: number; take?: number; q?: string },
+  ) {
     const res = await apiClient.get<PageDto[]>(
       `/spaces/${encodeURIComponent(spaceId)}/pages`,
       { params },
@@ -30,7 +33,7 @@ export const pagesApi = {
       query?: string;
       parentId?: string | null;
       onlyRoots?: boolean;
-    }
+    },
   ) {
     const res = await apiClient.get<{
       items: PageDto[];
@@ -65,9 +68,9 @@ export const pagesApi = {
     return res.data;
   },
 
-  async rename(id: string, input: { title: string }) {
+  async rename(id: string, input: { spaceId: string; title: string }) {
     const res = await apiClient.post<PageDto>(
-      `/pages/${encodeURIComponent(id)}/rename`,
+      `/spaces/${input.spaceId}/pages/${encodeURIComponent(id)}/rename`,
       input,
     );
     return res.data;

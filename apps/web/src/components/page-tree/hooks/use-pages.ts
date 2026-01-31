@@ -15,6 +15,7 @@ export async function commitRenameFromState(args: {
 }) {
   const { renamingTarget, renamingValue, setSavingRename, cancelRename } =
     useUIStateStore.getState();
+  const spaceId = useRequiredSpaceId();
   if (!renamingTarget) return;
 
   const nextTitle = renamingValue.trim() || '无标题文档';
@@ -22,6 +23,7 @@ export async function commitRenameFromState(args: {
   try {
     setSavingRename(true);
     const page = await pagesApi.rename(renamingTarget.id, {
+      spaceId: spaceId!,
       title: nextTitle,
     });
 
@@ -86,13 +88,7 @@ export function usePageTreeCRUD() {
     } finally {
       setCreatingPage(false);
     }
-  }, [
-    creatingPage,
-    setCreatingPage,
-    setSelectedPage,
-    spaceId,
-    upsertTreePage,
-  ]);
+  }, [creatingPage, setCreatingPage, setSelectedPage, spaceId, upsertTreePage]);
 
   // 提交重命名
   const commitRename = useCallback(

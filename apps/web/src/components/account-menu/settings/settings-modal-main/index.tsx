@@ -46,7 +46,7 @@ export const SettingsModalMain = memo(function SettingsModalMain({
       : "邮箱未验证"
     : "暂未绑定";
   const passwordStatusText = passwordSet
-    ? "用于登录与安全验证"
+    ? "已设置，可通过账户密码登录"
     : "未设置密码，建议设置";
   const [resetOpen, setResetOpen] = useState(false);
   const [email, setEmail] = useState("");

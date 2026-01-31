@@ -26,9 +26,8 @@ export const SettingsModalSidebar = memo(function SettingsModalSidebar({
   return (
     <SidebarProvider className="min-h-0 w-56 flex-none">
       <Sidebar collapsible="none" className="h-full border-r bg-muted/20">
-        <SidebarContent className="p-3">
+        <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>账户</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {sections.map((item) => (
