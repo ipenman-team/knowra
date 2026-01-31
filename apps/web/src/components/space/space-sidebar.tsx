@@ -16,12 +16,15 @@ import {
 import { BookMinus, ChevronLeft } from 'lucide-react';
 import { PageTreeContainer } from '@/components/page-tree/components/tree-container';
 import { CreatePageMenu } from '../page-tree/components/create-page-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-export const SpaceSidebar = memo(function SpaceSidebar({
-  onOpenImport,
-}: {
-  onOpenImport?: () => void;
-}) {
+export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
   const router = useRouter();
   const spaces = useSpaces();
   const currentId = useCurrentSpaceId();
@@ -67,23 +70,22 @@ export const SpaceSidebar = memo(function SpaceSidebar({
                     color={current?.color || 'currentColor'}
                   />
                   <div className="flex-1">
-                    <div className="font-semibold">
-                      {current?.name ?? '空间'}
-                    </div>
+                    <Select
+                      value={current?.id ?? ''}
+                      onValueChange={handleSelectSpace}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="选择空间" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {spaces.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                <div className="mt-2">
-                  <select
-                    className="w-full rounded border px-2 py-1 text-sm"
-                    value={current?.id ?? ''}
-                    onChange={(e) => handleSelectSpace(e.target.value)}
-                  >
-                    {spaces.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
                 </div>
               </div>
             </SidebarGroupContent>
@@ -98,7 +100,7 @@ export const SpaceSidebar = memo(function SpaceSidebar({
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <PageTreeContainer onOpenImport={onOpenImport ?? (() => {})} />
+                <PageTreeContainer />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
