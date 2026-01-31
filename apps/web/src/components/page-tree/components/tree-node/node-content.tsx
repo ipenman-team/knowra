@@ -71,7 +71,6 @@ export const TreeNodeContent = memo(function TreeNodeContent({
     );
   }
 
-  // 显示模式：显示标签按钮
   return (
     <Button
       type="button"

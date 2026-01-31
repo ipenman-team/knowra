@@ -8,13 +8,11 @@ export const PageTreeContainer = memo(function PageTreeContainer(props: {}) {
   const { createPage, commitRename, creatingPage } =
     usePageTreeCRUD();
   const nodes = usePageTreeNodes();
-  const selectedPageId = useSelectedPageId();
 
   return (
     <>
       <Tree<PageDto>
         nodes={nodes}
-        selectedId={selectedPageId ?? undefined}
         renderNode={(ctx) => (
           <PageTreeItem
             {...ctx}

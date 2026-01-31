@@ -1,4 +1,5 @@
 import React, { memo, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import type { TreeNode } from '@/components/shared/tree';
 import type { TreeRenderContext } from '@/components/shared/tree';
 import {
@@ -41,9 +42,6 @@ export const PageTreeItem = memo(
     onCreateChildPage,
     onCommitRename,
   }: PageTreeItemProps<T>) {
-    // ✅ 关键优化：每节点订阅
-    // 只有该节点在其选中状态改变时才重渲染
-    // 其他节点保持不变！
     const isSelected = useIsPageSelected(node.id);
     const isMenuOpen = useNodeMenuState(node.id);
 
@@ -87,8 +85,9 @@ export const PageTreeItem = memo(
 
     return (
       <div
-        className="group flex min-w-0 items-center"
+        className={cn('flex min-w-0 items-center', 'group/page-node')}
         style={{ paddingLeft: 8 + depth * 14 }}
+        data-node-row
       >
         <TreeNodeExpandButton
           hasChildren={hasChildren}
@@ -123,7 +122,6 @@ export const PageTreeItem = memo(
       </div>
     );
   },
-  // ✅ 自定义比较函数 - 仅在该节点数据改变时重渲染
   (prevProps, nextProps) => {
     return (
       prevProps.node.id === nextProps.node.id &&

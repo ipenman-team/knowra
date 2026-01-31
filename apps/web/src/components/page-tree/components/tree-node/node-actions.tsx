@@ -12,6 +12,8 @@ export const TreeNodeActions = memo(function TreeNodeActions({
   onToggleMenu: () => void;
 }) {
   const isMenuOpen = useNodeMenuState(nodeId);
+  const visibilityClass =
+    'opacity-0 transition-opacity group-hover/page-node:opacity-100 group-focus-within/page-node:opacity-100';
 
   const handleToggleMenu = useCallback(
     (e: React.PointerEvent) => {
@@ -25,7 +27,7 @@ export const TreeNodeActions = memo(function TreeNodeActions({
     <div
       className={cn(
         'ml-1 flex shrink-0 items-center gap-0.5',
-        'opacity-0 transition-opacity group-hover:opacity-100'
+        visibilityClass
       )}
     >
       <Button
