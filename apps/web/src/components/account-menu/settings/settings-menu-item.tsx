@@ -1,17 +1,19 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 
-export const SettingsMenuItem = memo(function SettingsMenuItem() {
-  const router = useRouter();
+export const SettingsMenuItem = memo(function SettingsMenuItem({
+  onOpenSettings,
+}: {
+  onOpenSettings: () => void;
+}) {
   const handleSelect = useCallback(() => {
-    router.push("/settings");
-  }, [router]);
+    onOpenSettings();
+  }, [onOpenSettings]);
 
   return (
     <DropdownMenuItem onSelect={handleSelect}>

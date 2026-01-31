@@ -1,21 +1,22 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useMeProfile, type MeProfile } from '@/stores';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AccountNameItem } from './account-name-item';
-import { ProfileModal } from './profile-modal';
 import { InviteMenuItem } from './invite-menu-item';
-import { SettingsMenuItem } from './settings-menu-item';
+import { SettingsMenuItem } from './settings/settings-menu-item';
 import { LogoutMenuItem } from './logout-menu-item';
+import { SettingsModal } from './settings/settings-modal';
+import { ProfileMenuItem } from './profile/profile-menu.item';
+import { ProfileModal } from './profile/profile-modal';
 
 type AccountMenuProps = {
   profile?: MeProfile | null;
@@ -38,9 +39,7 @@ export const AccountMenu = memo(function AccountMenu({
   const avatarUrl = mounted ? profile?.avatarUrl || undefined : undefined;
   const fallbackText = nickname ? nickname.slice(0, 1) : 'CN';
   const [profileOpen, setProfileOpen] = useState(false);
-  const handleSelect = useCallback(() => {
-    setProfileOpen(true);
-  }, [setProfileOpen]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   if (!mounted) {
     return (
@@ -82,11 +81,9 @@ export const AccountMenu = memo(function AccountMenu({
         >
           <DropdownMenuGroup>
             <AccountNameItem nickname={nickname} />
-            <DropdownMenuItem onSelect={handleSelect}>
-              个人资料
-            </DropdownMenuItem>
+            <ProfileMenuItem onOpenProfile={() => setProfileOpen(true)} />
             <InviteMenuItem />
-            <SettingsMenuItem />
+            <SettingsMenuItem onOpenSettings={() => setSettingsOpen(true)} />
           </DropdownMenuGroup>
 
           <DropdownMenuSeparator />
@@ -99,6 +96,11 @@ export const AccountMenu = memo(function AccountMenu({
         onOpenChange={setProfileOpen}
         nickname={nickname}
         avatarUrl={avatarUrl}
+        profile={profile}
+      />
+      <SettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
         profile={profile}
       />
     </>
