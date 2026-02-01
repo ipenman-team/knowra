@@ -1,8 +1,8 @@
 'use client';
 
-import { PageEditor } from '@/components/editor';
 import { useSelectedPageId } from '@/stores';
 import { PageHeader } from './page-header';
+import { PageContent } from './page-content';
 
 export function PageContainer(props: {}) {
   const selectedPageId = useSelectedPageId();
@@ -10,15 +10,9 @@ export function PageContainer(props: {}) {
   return (
     <>
       <PageHeader />
-      {selectedPageId ? (
-        <div className="p-6">
-          <PageEditor />
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          请选择或创建一个页面
-        </div>
-      )}
+      <div className="px-6">
+        <PageContent />
+      </div>
     </>
   );
 }

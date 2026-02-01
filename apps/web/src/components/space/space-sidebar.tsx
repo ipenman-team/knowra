@@ -13,8 +13,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarFooter,
