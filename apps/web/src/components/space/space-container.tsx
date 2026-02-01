@@ -2,6 +2,8 @@
 
 import React, { useEffect } from 'react';
 
+import { usePageStoreSync } from '@/hooks';
+
 import { HomeLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';
 
@@ -13,6 +15,8 @@ import { SpaceSidebar } from '@/components/space/space-sidebar';
 
 export default function SpaceInfo({ spaceId }: { spaceId: string }) {
   const setCurrent = useSpaceStore((s) => s.setCurrentSpaceId);
+
+  usePageStoreSync();
 
   useEffect(() => {
     if (spaceId) setCurrent(spaceId);

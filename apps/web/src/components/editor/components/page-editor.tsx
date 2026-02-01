@@ -12,6 +12,7 @@ import {
   useEditorValue,
   usePageContentStore,
   useSelectedPageId,
+  usePageStore,
 } from '@/stores';
 
 export const PageEditor = memo(function PageEditor() {
@@ -21,7 +22,8 @@ export const PageEditor = memo(function PageEditor() {
   const selectedPageId = useSelectedPageId();
   const publishedSnapshot = usePageContentStore((s) => s.publishedSnapshot);
   const pageLoading = usePageContentStore((s) => s.pageLoading);
-  const { setPageTitle, setEditorValue } = usePageContentStore();
+  const setDraftTitle = usePageStore((s) => s.setDraftTitle);
+  const { setEditorValue } = usePageContentStore();
 
   const isPreview = pageMode === 'preview';
   const previewTitle = publishedSnapshot?.title ?? pageTitle;
@@ -34,8 +36,8 @@ export const PageEditor = memo(function PageEditor() {
   const editEditorKey = `${pageKeyBase}-edit`;
 
   const handleTitleChange = useCallback(
-    (value: string) => setPageTitle(value),
-    [setPageTitle]
+    (value: string) => setDraftTitle(value),
+    [setDraftTitle]
   );
 
   const handleEditorChange = useCallback(

@@ -19,10 +19,6 @@ export default function SpaceHeader() {
 
   const current = spaces.find((s) => s.id === currentId) ?? spaces[0];
 
-  const goHome = useCallback(() => {
-    router.push('/');
-  }, [router]);
-
   const handleSelectSpace = useCallback(
     (id?: string | null) => {
       if (!id) return;
@@ -36,10 +32,9 @@ export default function SpaceHeader() {
     <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
       <div className="flex items-center gap-3">
         <button
-          onClick={goHome}
           className="text-sm font-semibold text-foreground/90"
         >
-          个人知识库
+          {  }
         </button>
 
         <DropdownMenu>

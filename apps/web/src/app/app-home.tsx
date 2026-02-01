@@ -10,7 +10,7 @@ import { MainContent } from '@/features/home/components/main-content';
 import { useMeStore, useSpaceStore } from '@/stores';
 import { usePageSelectionStore } from '@/stores';
 
-import { useUrlSync } from '@/hooks';
+import { usePageStoreSync, useUrlSync } from '@/hooks';
 
 import type { ViewId } from '@/features/home/types';
 
@@ -46,6 +46,7 @@ export function HomeScreen(
   }, [props.initialSelectedPageId, props.initialSelectedViewId, setSelectedPage, setSelectedView]);
 
   useUrlSync();
+  usePageStoreSync();
   return (
     <HomeLayout sidebar={<HomeSidebar />}>
       <div className={cn('px-6 lg:px-11')}>

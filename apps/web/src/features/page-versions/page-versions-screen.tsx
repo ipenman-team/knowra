@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { pagesApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { PageVersionDetailDto, PageVersionDto } from "@/lib/api/pages/types";
+import { useCurrentSpaceId } from "@/stores";
 
 function formatTime(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -30,6 +31,7 @@ function formatYmd(value: string | Date) {
 
 export function PageVersionsScreen(props: { pageId: string }) {
   const pageId = props.pageId;
+  const spaceId = useCurrentSpaceId();
 
   const [versions, setVersions] = useState<PageVersionDto[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
@@ -46,7 +48,9 @@ export function PageVersionsScreen(props: { pageId: string }) {
 
     (async () => {
       try {
-        const list = await pagesApi.listVersions(pageId);
+        const list = spaceId
+          ? await pagesApi.listVersions(spaceId, pageId)
+          : await pagesApi.listVersions(pageId);
         if (cancelled) return;
         setVersions(list);
         setSelectedVersionId((prev) => prev ?? list[0]?.id ?? null);
@@ -59,7 +63,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [pageId]);
+  }, [pageId, spaceId]);
 
   useEffect(() => {
     if (!pageId || !selectedVersionId) {
@@ -72,7 +76,9 @@ export function PageVersionsScreen(props: { pageId: string }) {
 
     (async () => {
       try {
-        const res = await pagesApi.getVersion(pageId, selectedVersionId);
+        const res = spaceId
+          ? await pagesApi.getVersion(spaceId, pageId, selectedVersionId)
+          : await pagesApi.getVersion(pageId, selectedVersionId);
         if (cancelled) return;
         setDetail(res);
       } finally {
@@ -84,7 +90,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [pageId, selectedVersionId]);
+  }, [pageId, selectedVersionId, spaceId]);
 
   const editorValue = useMemo(() => {
     if (!detail) return parseContentToSlateValue("");

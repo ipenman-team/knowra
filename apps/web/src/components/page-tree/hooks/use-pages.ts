@@ -8,6 +8,7 @@ import {
   useCreatingPage,
   usePagesStore,
 } from '@/stores';
+import { usePageStore } from '@/stores/page-store';
 import { useRequiredSpaceId } from '@/hooks/use-required-space';
 
 export async function commitRenameFromState(args: {
@@ -35,6 +36,8 @@ export async function commitRenameFromState(args: {
     const { selected } = usePageSelectionStore.getState();
     if (selected.kind === 'page' && selected.id === page.id) {
       args.setSelectedPage(page.id, page.title);
+
+      usePageStore.getState().patchPage(page);
 
       const {
         activePage,

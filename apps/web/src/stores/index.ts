@@ -16,6 +16,14 @@ export {
   usePageSaveState,
 } from './page-content-store';
 
+// Page Store (page detail lifecycle)
+export {
+  usePageStore,
+  useActivePage,
+  useActivePageId,
+  useActivePageLoading,
+} from './page-store';
+
 // Page Tree Store
 export {
   usePageTreeStore,
