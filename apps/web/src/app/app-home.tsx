@@ -8,6 +8,7 @@ import { HomeSidebar } from '@/components/sidebar';
 import { MainContent } from '@/features/home/components/main-content';
 
 import { useMeStore, useSpaceStore } from '@/stores';
+import { usePageSelectionStore } from '@/stores';
 
 import { useUrlSync } from '@/hooks';
 
@@ -17,14 +18,32 @@ export function AppHome() {
   return <HomeScreen />;
 }
 
-export function HomeScreen(props: {} = {}) {
+export function HomeScreen(
+  props: {
+    initialSelectedViewId?: ViewId;
+    initialSelectedPageId?: string;
+  } = {},
+) {
   const ensureMeLoaded = useMeStore((s) => s.ensureLoaded);
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
+  const setSelectedView = usePageSelectionStore((s) => s.setSelectedView);
+  const setSelectedPage = usePageSelectionStore((s) => s.setSelectedPage);
 
   useEffect(() => {
     void ensureMeLoaded();
     void ensureSpacesLoaded();
   }, [ensureMeLoaded, ensureSpacesLoaded]);
+
+  useEffect(() => {
+    if (props.initialSelectedPageId) {
+      setSelectedPage(props.initialSelectedPageId, '');
+      return;
+    }
+
+    if (props.initialSelectedViewId) {
+      setSelectedView(props.initialSelectedViewId);
+    }
+  }, [props.initialSelectedPageId, props.initialSelectedViewId, setSelectedPage, setSelectedView]);
 
   useUrlSync();
   return (

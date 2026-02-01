@@ -13,7 +13,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarProvider,
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
@@ -40,8 +39,12 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
   const router = useRouter();
 
   const handleSelectView = useCallback(
-    (id: ViewId) => setSelectedView(id),
-    [setSelectedView],
+    (id: ViewId) => {
+      setSelectedView(id);
+      const target = id === 'dashboard' ? '/' : id === 'settings' ? '/settings' : '/contexta-ai';
+      router.push(target);
+    },
+    [router, setSelectedView],
   );
 
   useEffect(() => {
@@ -54,7 +57,7 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
   };
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader>
           <div className="flex justify-between p-3">
@@ -148,6 +151,6 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
           />
         )}
       </Sidebar>
-    </SidebarProvider>
+    </>
   );
 });

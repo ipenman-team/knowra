@@ -1,5 +1,7 @@
 import { memo } from 'react';
 
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+
 export const HomeLayout = memo(function HomeLayout({
   sidebar,
   children,
@@ -8,11 +10,11 @@ export const HomeLayout = memo(function HomeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+    <SidebarProvider className="h-dvh overflow-hidden bg-background text-foreground">
       {sidebar}
-      <main className="flex-1 min-h-0 overflow-auto" aria-live="polite">
+      <SidebarInset className="min-h-0 overflow-auto" aria-live="polite">
         {children}
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 });

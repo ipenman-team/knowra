@@ -4,12 +4,10 @@ import { memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSpaces, useCurrentSpaceId, useSpaceStore } from '@/stores';
 import {
-  Sidebar,
   SidebarHeader,
   SidebarContent,
   SidebarGroup,
   SidebarMenu,
-  SidebarProvider,
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarFooter,
@@ -56,82 +54,80 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
   );
 
   return (
-    <SidebarProvider>
-      <Sidebar className="h-full">
-        <SidebarHeader>
-          <div className="flex items-center justify-between p-3">
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-            >
-              <ChevronLeft />
-              <span>返回首页</span>
-            </button>
-          </div>
-        </SidebarHeader>
+    <aside className="flex h-full w-72 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+      <SidebarHeader>
+        <div className="flex items-center justify-between p-3">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <ChevronLeft />
+            <span>返回首页</span>
+          </button>
+        </div>
+      </SidebarHeader>
 
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <div className="p-3">
-                <div className="flex items-center gap-3">
-                  <BookMinus
-                    size={20}
-                    color={current?.color || 'currentColor'}
-                  />
-                  <div className="flex-1">
-                    <Select
-                      value={current?.id ?? ''}
-                      onValueChange={handleSelectSpace}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="选择空间" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {spaces.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+      <SidebarContent className="min-h-0 flex-1 overflow-auto">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <div className="p-3">
+              <div className="flex items-center gap-3">
+                <BookMinus
+                  size={20}
+                  color={current?.color || 'currentColor'}
+                />
+                <div className="flex-1">
+                  <Select
+                    value={current?.id ?? ''}
+                    onValueChange={handleSelectSpace}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="选择空间" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {spaces.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              <div className="flex justify-between flex-1">
-                页面
-                <CreatePageMenu />
-              </div>
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <PageTreeContainer />
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-        <SidebarFooter>
-          <Separator />
-          <div className="flex justify-between text-muted-foreground items-center h-6">
-            <Button variant="ghost" size='lg'>
-              <ListTreeIcon />
-            </Button>
-            <Separator orientation="vertical" />
-            <Button variant="ghost" size='lg'>
-              <RecycleIcon />
-            </Button>
-            <Separator orientation="vertical" />
-            <Button variant="ghost" size='lg'>
-              <BoltIcon />
-            </Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-    </SidebarProvider>
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <div className="flex justify-between flex-1">
+              页面
+              <CreatePageMenu />
+            </div>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <PageTreeContainer />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <Separator />
+        <div className="flex justify-between text-muted-foreground items-center h-6">
+          <Button variant="ghost" size='lg'>
+            <ListTreeIcon />
+          </Button>
+          <Separator orientation="vertical" />
+          <Button variant="ghost" size='lg'>
+            <RecycleIcon />
+          </Button>
+          <Separator orientation="vertical" />
+          <Button variant="ghost" size='lg'>
+            <BoltIcon />
+          </Button>
+        </div>
+      </SidebarFooter>
+    </aside>
   );
 });
