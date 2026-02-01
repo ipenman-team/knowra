@@ -11,10 +11,14 @@ import { PageVersionDto } from './dto/page-version.dto';
 import { SavePageDto } from './dto/save-page.dto';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
+import { PageVersionService } from './page-version.service';
 
 @Injectable()
 export class PageService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pageVersionService: PageVersionService,
+  ) {}
 
   private normalizePageContent(input: unknown): Prisma.InputJsonValue {
     const defaultDoc = () =>
@@ -191,20 +195,9 @@ export class PageService {
       },
     });
 
-    const latestPublished = await this.prisma.pageVersion.findFirst({
-      where: {
-        tenantId,
-        pageId: updated.id,
-        status: PageVersionStatus.PUBLISHED,
-        isDeleted: false,
-      },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
-    });
-
-    if (latestPublished) {
+    if (updated.latestPublishedVersionId) {
       await this.prisma.pageVersion.update({
-        where: { id: latestPublished.id },
+        where: { id: updated.latestPublishedVersionId },
         data: {
           title: updated.title,
           updatedBy: actor,
@@ -241,99 +234,26 @@ export class PageService {
       userId: actor,
     });
 
+    await this.prisma.page.update({
+      where: { id: page.id },
+      data: {
+        latestPublishedVersionId: version.id,
+        updatedBy: actor,
+      },
+    });
+
     return { ok: true, versionId: version.id };
-  }
-
-  async getLatestPublished(pageId: string, tenantId: string) {
-    if (!pageId) throw new BadRequestException('id is required');
-    if (!tenantId) throw new BadRequestException('tenantId is required');
-
-    const existing = await this.prisma.page.findFirst({
-      where: { id: pageId, tenantId },
-      select: { id: true },
-    });
-    if (!existing) throw new NotFoundException('page not found');
-
-    const latest = await this.prisma.pageVersion.findFirst({
-      where: {
-        tenantId,
-        pageId,
-        status: PageVersionStatus.PUBLISHED,
-        isDeleted: false,
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        pageId: true,
-        status: true,
-        title: true,
-        content: true,
-        updatedBy: true,
-        updatedAt: true,
-        createdAt: true,
-      },
-    });
-
-    if (!latest) throw new NotFoundException('published version not found');
-    return latest;
   }
 
   async listVersions(
     pageId: string,
     tenantId: string,
   ): Promise<PageVersionDto[]> {
-    if (!pageId) throw new BadRequestException('id is required');
-    if (!tenantId) throw new BadRequestException('tenantId is required');
-
-    const existing = await this.prisma.page.findFirst({
-      where: { id: pageId, tenantId },
-      select: { id: true },
-    });
-    if (!existing) throw new NotFoundException('page not found');
-
-    return this.prisma.pageVersion.findMany({
-      where: { tenantId, pageId, isDeleted: false },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        tenantId: true,
-        pageId: true,
-        status: true,
-        title: true,
-        updatedBy: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    return this.pageVersionService.listVersions(pageId, tenantId);
   }
 
   async getVersion(pageId: string, versionId: string, tenantId: string) {
-    if (!pageId) throw new BadRequestException('id is required');
-    if (!versionId) throw new BadRequestException('versionId is required');
-    if (!tenantId) throw new BadRequestException('tenantId is required');
-
-    const existing = await this.prisma.page.findFirst({
-      where: { id: pageId, tenantId },
-      select: { id: true },
-    });
-    if (!existing) throw new NotFoundException('page not found');
-
-    const version = await this.prisma.pageVersion.findFirst({
-      where: { id: versionId, pageId, tenantId, isDeleted: false },
-      select: {
-        id: true,
-        pageId: true,
-        status: true,
-        title: true,
-        content: true,
-        updatedBy: true,
-        updatedAt: true,
-        createdAt: true,
-      },
-    });
-
-    if (!version) throw new NotFoundException('version not found');
-    return version;
+    return this.pageVersionService.getVersion(pageId, versionId, tenantId);
   }
 
   async remove(id: string, tenantId: string): Promise<{ ok: true }> {
@@ -431,6 +351,7 @@ export class PageService {
         tenantId: true,
         spaceId: true,
         title: true,
+        latestPublishedVersionId: true,
         parentIds: true,
         createdAt: true,
         updatedAt: true,

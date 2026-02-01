@@ -37,7 +37,6 @@ function resetPageContentStores() {
   content.setLastSavedAt(null);
   content.setPageMode('preview');
   content.setPublishedSnapshot(null);
-  content.setPageVersions([]);
   content.setVersionsLoading(false);
   content.setActivePage(null);
   content.setPageTitle('');
@@ -133,6 +132,7 @@ export const usePageStore = create<PageStoreState>((set, get) => ({
     if (contentStore.activePage?.id === page.id) {
       contentStore.setActivePage(page);
       contentStore.setPageTitle(page.title ?? '');
+      contentStore.setEditorValue(parseContentToSlateValue(page.content));
     }
 
     const selection = usePageSelectionStore.getState();

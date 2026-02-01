@@ -1,5 +1,6 @@
 export { ApiError, apiClient } from './client';
 export { pagesApi } from './pages';
+export { pageVersionsApi } from './page-versions';
 export { importsApi } from './imports';
 export { tasksApi } from './tasks';
 export { spacesApi } from './spaces';

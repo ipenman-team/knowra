@@ -1,6 +1,14 @@
 'use client';
 
-import { useActivePage, usePageContentStore } from '@/stores';
+import { pageVersionsApi, pagesApi } from '@/lib/api';
+import type { PageDto } from '@/lib/api';
+import {
+  useActivePage,
+  usePageContentStore,
+  usePageStore,
+  usePagesStore,
+  usePageTreeStore,
+} from '@/stores';
 import {
   EllipsisIcon,
   PencilLineIcon,
@@ -15,6 +23,86 @@ export const PageHeader = () => {
   const activePage = useActivePage();
   const setPageMode = usePageContentStore((s) => s.setPageMode);
   const pageMode = usePageContentStore((s) => s.pageMode);
+  const pageTitle = usePageContentStore((s) => s.pageTitle);
+  const editorValue = usePageContentStore((s) => s.editorValue);
+  const pageSaving = usePageContentStore((s) => s.pageSaving);
+  const pagePublishing = usePageContentStore((s) => s.pagePublishing);
+
+  const handlePublish = async () => {
+    if (!activePage?.id || !activePage.spaceId) return;
+    if (pageSaving || pagePublishing) return;
+
+    const contentStore = usePageContentStore.getState();
+    const normalizedTitle = pageTitle.trim() || '无标题文档';
+
+    let saved: PageDto | null = null;
+
+    try {
+      contentStore.setPageSaving(true);
+      saved = await pagesApi.save(activePage.spaceId, activePage.id, {
+        title: normalizedTitle,
+        content: editorValue,
+      });
+
+      usePageStore.getState().patchPage(saved);
+      usePagesStore.getState().upsertPage(saved.spaceId, saved);
+      usePagesStore.getState().upsertTreePage(saved.spaceId, saved);
+      usePageTreeStore.getState().updateNode(saved.id, {
+        label: saved.title,
+        data: saved,
+      });
+
+      contentStore.setLastSavedAt(
+        new Date().toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
+    } finally {
+      contentStore.setPageSaving(false);
+    }
+
+    if (!saved) return;
+
+    try {
+      contentStore.setPagePublishing(true);
+      const publishedResult = await pagesApi.publish(activePage.spaceId, activePage.id);
+
+      const nextPage = {
+        ...saved,
+        latestPublishedVersionId: publishedResult.versionId,
+      };
+      usePageStore.getState().patchPage(nextPage);
+      usePagesStore.getState().upsertPage(saved.spaceId, nextPage);
+      usePagesStore.getState().upsertTreePage(saved.spaceId, nextPage);
+      usePageTreeStore.getState().updateNode(saved.id, {
+        data: nextPage,
+      });
+
+      try {
+        const published = await pageVersionsApi.getVersion(
+          activePage.id,
+          nextPage.latestPublishedVersionId,
+        );
+        contentStore.setPublishedSnapshot({
+          title: published.title,
+          content: published.content,
+          updatedBy: published.updatedBy,
+          updatedAt: published.updatedAt,
+        });
+
+        usePageTreeStore.getState().updateNode(activePage.id, {
+          label: published.title,
+        });
+      } catch {
+        // Ignore: publish succeeded, snapshot refresh is optional.
+      }
+    } finally {
+      contentStore.setPagePublishing(false);
+    }
+
+    contentStore.setPageMode('preview');
+  };
 
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
@@ -41,19 +129,24 @@ export const PageHeader = () => {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Button onClick={() => setPageMode('preview')} className="gap-1">
-              <SendIcon></SendIcon> 发布
+            <Button
+              onClick={handlePublish}
+              className="gap-1"
+              disabled={!activePage || pageSaving || pagePublishing}
+            >
+              <SendIcon /> 发布
             </Button>
             <Button variant="ghost">
-              <UserRoundPlusIcon></UserRoundPlusIcon>分享
+              <UserRoundPlusIcon />分享
             </Button>
             <Separator orientation="vertical" className="h-5" />
             <Button
               variant="ghost"
               onClick={() => setPageMode('preview')}
               size="icon"
+              disabled={pageSaving || pagePublishing}
             >
-              <XIcon></XIcon>
+              <XIcon />
             </Button>
           </div>
         )}

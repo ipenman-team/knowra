@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import {
   SlateEditor,
   parseContentToSlateValue,
@@ -14,12 +14,16 @@ import {
   useSelectedPageId,
   usePageStore,
 } from '@/stores';
+import { pageVersionsApi } from '@/lib/api';
 
 export const PageEditor = memo(function PageEditor() {
   const pageMode = usePageMode();
   const pageTitle = usePageTitle();
   const editorValue = useEditorValue();
   const selectedPageId = useSelectedPageId();
+  const latestPublishedVersionId = usePageContentStore(
+    (s) => s.activePage?.latestPublishedVersionId,
+  );
   const publishedSnapshot = usePageContentStore((s) => s.publishedSnapshot);
   const pageLoading = usePageContentStore((s) => s.pageLoading);
   const setDraftTitle = usePageStore((s) => s.setDraftTitle);
@@ -44,6 +48,35 @@ export const PageEditor = memo(function PageEditor() {
     (value: SlateValue) => setEditorValue(value),
     [setEditorValue]
   );
+
+  useEffect(() => {
+    if (!isPreview) return;
+    if (!selectedPageId) return;
+    if (!latestPublishedVersionId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const published = await pageVersionsApi.getVersion(
+          selectedPageId,
+          latestPublishedVersionId,
+        );
+        if (cancelled) return;
+        usePageContentStore.getState().setPublishedSnapshot({
+          title: published.title,
+          content: published.content,
+          updatedBy: published.updatedBy,
+          updatedAt: published.updatedAt,
+        });
+      } catch {
+        // Ignore: page may not be published yet.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPreview, selectedPageId, latestPublishedVersionId]);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 pt-6">

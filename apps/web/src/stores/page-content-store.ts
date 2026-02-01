@@ -45,7 +45,6 @@ interface PageContentState {
   setPublishedSnapshot: (
     snapshot: PageContentState['publishedSnapshot']
   ) => void;
-  setPageVersions: (versions: PageVersionDto[]) => void;
   setVersionsLoading: (loading: boolean) => void;
   resetPageContent: () => void;
 }
@@ -74,7 +73,6 @@ export const usePageContentStore = create<PageContentState>((set) => ({
   setPagePublishing: (pagePublishing) => set({ pagePublishing }),
   setLastSavedAt: (lastSavedAt) => set({ lastSavedAt }),
   setPublishedSnapshot: (publishedSnapshot) => set({ publishedSnapshot }),
-  setPageVersions: (pageVersions) => set({ pageVersions }),
   setVersionsLoading: (versionsLoading) => set({ versionsLoading }),
 
   resetPageContent: () =>
@@ -84,7 +82,6 @@ export const usePageContentStore = create<PageContentState>((set) => ({
       pageTitle: '',
       lastSavedAt: null,
       publishedSnapshot: null,
-      pageVersions: [],
     }),
 }));
 

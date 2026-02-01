@@ -2,20 +2,9 @@ import { apiClient } from '../client';
 import type {
   CreatePageInput,
   PageDto,
-  PageVersionDto,
-  PageVersionDetailDto,
-  PublishedPageDto,
   SavePageInput,
 } from './types';
 import _ from 'lodash';
-
-const inflightPublished = new Map<string, Promise<PublishedPageDto>>();
-const inflightVersions = new Map<string, Promise<PageVersionDto[]>>();
-const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
-
-function makeKey(parts: Array<string | null | undefined>) {
-  return parts.filter(Boolean).join(':');
-}
 
 export const pagesApi = {
   async list(
@@ -58,7 +47,9 @@ export const pagesApi = {
     }
 
     const id = args[0];
-    const res = await apiClient.get<PageDto>(`/pages/${encodeURIComponent(id)}`);
+    const res = await apiClient.get<PageDto>(
+      `/pages/${encodeURIComponent(id)}`,
+    );
     return res.data;
   },
 
@@ -88,109 +79,19 @@ export const pagesApi = {
     return res.data;
   },
 
-  async save(...args: [string, SavePageInput] | [string, string, SavePageInput]) {
-    if (args.length === 3) {
-      const spaceId = args[0];
-      const id = args[1];
-      const input = args[2];
-      const res = await apiClient.put<PageDto>(
-        `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(id)}`,
-        input,
-      );
-      return res.data;
-    }
-
-    const id = args[0];
-    const input = args[1];
-    const res = await apiClient.put<PageDto>(`/pages/${encodeURIComponent(id)}`, input);
-    return res.data;
-  },
-
-  async publish(...args: [string] | [string, string]) {
-    if (args.length === 2) {
-      const spaceId = args[0];
-      const id = args[1];
-      const res = await apiClient.post<{ ok: true; versionId: string }>(
-        `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(id)}/publish`,
-      );
-      return res.data;
-    }
-
-    const id = args[0];
-    const res = await apiClient.post<{ ok: true; versionId: string }>(
-      `/pages/${encodeURIComponent(id)}/publish`,
+  async save(spaceId: string, pageId: string, input: SavePageInput) {
+    const res = await apiClient.put<PageDto>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}`,
+      input,
     );
     return res.data;
   },
 
-  async listVersions(...args: [string] | [string, string]) {
-    const spaceId = args.length === 2 ? args[0] : undefined;
-    const id = args.length === 2 ? args[1] : args[0];
-
-    const key = makeKey([spaceId, id]);
-    const existing = inflightVersions.get(key);
-    if (existing) return existing;
-
-    const url = spaceId
-      ? `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(id)}/versions`
-      : `/pages/${encodeURIComponent(id)}/versions`;
-
-    const req = apiClient
-      .get<PageVersionDto[]>(url)
-      .then((res) => res.data)
-      .finally(() => {
-        inflightVersions.delete(key);
-      });
-
-    inflightVersions.set(key, req);
-    return req;
-  },
-
-  async getVersion(...args: [string, string] | [string, string, string]) {
-    const spaceId = args.length === 3 ? args[0] : undefined;
-    const pageId = args.length === 3 ? args[1] : args[0];
-    const versionId = args.length === 3 ? args[2] : args[1];
-
-    const key = makeKey([spaceId, pageId, versionId]);
-    const existing = inflightVersionDetail.get(key);
-    if (existing) return existing;
-
-    const url = spaceId
-      ? `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`
-      : `/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`;
-
-    const req = apiClient
-      .get<PageVersionDetailDto>(url)
-      .then((res) => res.data)
-      .finally(() => {
-        inflightVersionDetail.delete(key);
-      });
-
-    inflightVersionDetail.set(key, req);
-    return req;
-  },
-
-  async getLatestPublished(...args: [string] | [string, string]) {
-    const spaceId = args.length === 2 ? args[0] : undefined;
-    const id = args.length === 2 ? args[1] : args[0];
-
-    const key = makeKey([spaceId, id]);
-    const existing = inflightPublished.get(key);
-    if (existing) return existing;
-
-    const url = spaceId
-      ? `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(id)}/published`
-      : `/pages/${encodeURIComponent(id)}/published`;
-
-    const req = apiClient
-      .get<PublishedPageDto>(url)
-      .then((res) => res.data)
-      .finally(() => {
-        inflightPublished.delete(key);
-      });
-
-    inflightPublished.set(key, req);
-    return req;
+  async publish(spaceId: string, pageId: string) {
+    const res = await apiClient.post<{ ok: true; versionId: string }>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}/publish`,
+    );
+    return res.data;
   },
 
   async remove(...args: [string] | [string, string]) {
@@ -204,7 +105,9 @@ export const pagesApi = {
     }
 
     const id = args[0];
-    const res = await apiClient.delete<{ ok: true }>(`/pages/${encodeURIComponent(id)}`);
+    const res = await apiClient.delete<{ ok: true }>(
+      `/pages/${encodeURIComponent(id)}`,
+    );
     return res.data;
   },
 };

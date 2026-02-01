@@ -64,8 +64,6 @@ export class PageController {
     return (async () => {
       const published = await this.pageService.publish(tenantId, id, actor);
 
-      // Publish 后索引：后台 fire-and-forget
-      // 其他同步时机（保留思路）：启动时全量同步、定时任务每日同步、DB hook/CDC 等。
       this.ragIndexService.startIndexPublished({
         tenantId,
         pageId: id,
@@ -74,11 +72,6 @@ export class PageController {
 
       return published;
     })();
-  }
-
-  @Get(':id/published')
-  getLatestPublished(@TenantId() tenantId: string, @Param('id') id: string) {
-    return this.pageService.getLatestPublished(id, tenantId);
   }
 
   @Get(':id/versions')

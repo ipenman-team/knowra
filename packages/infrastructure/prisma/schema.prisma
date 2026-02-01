@@ -84,13 +84,16 @@ model Page {
 
   parentIds String[] @default([]) @map("parent_ids")
 
+  latestPublishedVersionId String? @unique @map("latest_published_version_id")
+  latestPublishedVersion   PageVersion? @relation("LatestPublishedVersion", fields: [latestPublishedVersionId], references: [id], onDelete: SetNull)
+
   createdBy String @map("created_by")
   updatedBy String @map("updated_by")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  versions PageVersion[]
+  versions PageVersion[] @relation("PageVersions")
 
   @@index([id])
   @@index([tenantId, spaceId])
@@ -116,7 +119,10 @@ model PageVersion {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page Page @relation("PageVersions", fields: [pageId], references: [id], onDelete: Cascade)
+
+  /// 反向关联：被 Page.latestPublishedVersion 指向的版本
+  latestPublishedFor Page? @relation("LatestPublishedVersion")
 
   @@index([id])
   @@index([tenantId, spaceId])

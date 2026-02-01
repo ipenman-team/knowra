@@ -5,10 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { parseContentToSlateValue, SlateEditor } from "@/components/shared/slate-editor";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { pagesApi } from "@/lib/api";
+import { pageVersionsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { PageVersionDetailDto, PageVersionDto } from "@/lib/api/pages/types";
-import { useCurrentSpaceId } from "@/stores";
 
 function formatTime(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -31,7 +30,6 @@ function formatYmd(value: string | Date) {
 
 export function PageVersionsScreen(props: { pageId: string }) {
   const pageId = props.pageId;
-  const spaceId = useCurrentSpaceId();
 
   const [versions, setVersions] = useState<PageVersionDto[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
@@ -48,9 +46,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
 
     (async () => {
       try {
-        const list = spaceId
-          ? await pagesApi.listVersions(spaceId, pageId)
-          : await pagesApi.listVersions(pageId);
+        const list = await pageVersionsApi.listVersions(pageId);
         if (cancelled) return;
         setVersions(list);
         setSelectedVersionId((prev) => prev ?? list[0]?.id ?? null);
@@ -63,7 +59,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [pageId, spaceId]);
+  }, [pageId]);
 
   useEffect(() => {
     if (!pageId || !selectedVersionId) {
@@ -76,9 +72,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
 
     (async () => {
       try {
-        const res = spaceId
-          ? await pagesApi.getVersion(spaceId, pageId, selectedVersionId)
-          : await pagesApi.getVersion(pageId, selectedVersionId);
+        const res = await pageVersionsApi.getVersion(pageId, selectedVersionId);
         if (cancelled) return;
         setDetail(res);
       } finally {
@@ -90,7 +84,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [pageId, selectedVersionId, spaceId]);
+  }, [pageId, selectedVersionId]);
 
   const editorValue = useMemo(() => {
     if (!detail) return parseContentToSlateValue("");

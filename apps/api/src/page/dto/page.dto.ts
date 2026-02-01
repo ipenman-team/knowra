@@ -7,6 +7,10 @@ export type PageDto = {
   title: string;
   content: Prisma.JsonValue;
   parentIds: string[];
+
+  // Pointer to latest published page version (nullable until first publish)
+  latestPublishedVersionId: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 };

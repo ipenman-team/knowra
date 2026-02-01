@@ -41,6 +41,7 @@ export type PageDto = {
   title: string;
   content?: PageContent;
   parentIds: string[];
+  latestPublishedVersionId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
