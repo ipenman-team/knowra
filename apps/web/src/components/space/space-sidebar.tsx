@@ -2,12 +2,19 @@
 
 import { memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSpaces, useCurrentSpaceId, useSpaceStore } from '@/stores';
+import {
+  useSpaces,
+  useCurrentSpaceId,
+  useSpaceStore,
+  useSpaceSectionStore,
+} from '@/stores';
 import {
   SidebarHeader,
   SidebarContent,
   SidebarGroup,
   SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarFooter,
@@ -16,9 +23,10 @@ import {
   BoltIcon,
   BookMinus,
   ChevronLeft,
+  FolderIcon,
   ListTreeIcon,
   RecycleIcon,
-  Trash2Icon,
+  FileTextIcon,
 } from 'lucide-react';
 import { PageTreeContainer } from '@/components/page-tree/components/tree-container';
 import { CreatePageMenu } from '../page-tree/components/create-page-menu';
@@ -31,12 +39,14 @@ import {
 } from '@/components/ui/select';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import DirectoryList from './directory-list';
 
 export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
   const router = useRouter();
   const spaces = useSpaces();
   const currentId = useCurrentSpaceId();
   const setCurrent = useSpaceStore((s) => s.setCurrentSpaceId);
+  const section = useSpaceSectionStore((s) => s.section);
 
   const current = spaces.find((s) => s.id === currentId) ?? spaces[0];
 
@@ -72,10 +82,7 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
           <SidebarGroupContent>
             <div className="p-3">
               <div className="flex items-center gap-3">
-                <BookMinus
-                  size={20}
-                  color={current?.color || 'currentColor'}
-                />
+                <BookMinus size={20} color={current?.color || 'currentColor'} />
                 <div className="flex-1">
                   <Select
                     value={current?.id ?? ''}
@@ -106,8 +113,9 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
             </div>
           </SidebarGroupLabel>
           <SidebarGroupContent>
+            <DirectoryList spaceId={current?.id ?? ''} />
             <SidebarMenu>
-              <PageTreeContainer />
+              {section === 'pages' ? <PageTreeContainer /> : null}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -115,15 +123,15 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
       <SidebarFooter>
         <Separator />
         <div className="flex justify-between text-muted-foreground items-center h-6">
-          <Button variant="ghost" size='lg'>
+          <Button variant="ghost" size="lg">
             <ListTreeIcon />
           </Button>
           <Separator orientation="vertical" />
-          <Button variant="ghost" size='lg'>
+          <Button variant="ghost" size="lg">
             <RecycleIcon />
           </Button>
           <Separator orientation="vertical" />
-          <Button variant="ghost" size='lg'>
+          <Button variant="ghost" size="lg">
             <BoltIcon />
           </Button>
         </div>

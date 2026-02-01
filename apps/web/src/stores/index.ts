@@ -72,3 +72,6 @@ export {
 
 // Space Store
 export { useSpaceStore, useSpaces, useSpacesLoaded, useSpacesLoading, useCurrentSpaceId } from './space-store';
+
+// Space Section Store (space sidebar -> main switch)
+export { useSpaceSectionStore, useSpaceSection, type SpaceSectionId } from './space-section-store';
