@@ -116,6 +116,7 @@ export const PageEditor = memo(function PageEditor() {
   useEffect(() => {
     if (!isPreview) return;
     if (!selectedPageId) return;
+    if (!activePageId || activePageId !== selectedPageId) return;
     if (!latestPublishedVersionId) return;
 
     let cancelled = false;

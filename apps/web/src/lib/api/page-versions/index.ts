@@ -25,11 +25,21 @@ export const pageVersionsApi = {
   },
 
   async getVersion(pageId: string, versionId: string) {
-    const res = await apiClient.get<PageVersionDetailDto>(
-      `/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`,
-    );
+    const inflightKey = `${pageId}:${versionId}`;
+    const existing = inflightVersionDetail.get(inflightKey);
+    if (existing) return existing;
 
-    return res.data;
+    const req = apiClient
+      .get<PageVersionDetailDto>(
+        `/pages/${encodeURIComponent(pageId)}/versions/${encodeURIComponent(versionId)}`,
+      )
+      .then((res) => res.data)
+      .finally(() => {
+        inflightVersionDetail.delete(inflightKey);
+      });
+
+    inflightVersionDetail.set(inflightKey, req);
+    return req;
   },
 };
 

@@ -53,6 +53,13 @@ export default function DirectoryList({
   const selectFirstNode = useCallback(
     (pages: PageDto[]) => {
       if (!autoSelectFirst) return;
+
+      const currentSelected = usePageSelectionStore.getState().selected;
+      if (currentSelected.kind === 'page') {
+        const stillExists = pages.some((p) => p.id === currentSelected.id);
+        if (stillExists) return;
+      }
+
       const nodes = buildPageTreeFromFlatPages(pages);
       const first = nodes[0];
       if (first?.id) {
