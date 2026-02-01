@@ -4,7 +4,8 @@ import { PageTreeItem } from './tree-item';
 import { usePageTreeNodes } from '@/stores';
 import { usePageTreeCRUD } from '../hooks/use-pages';
 import type { PageDto } from '@/lib/api';
-export const PageTreeContainer = memo(function PageTreeContainer(props: {}) {
+import { DeletePageAlertDialog } from './delete-page-alert-dialog';
+export const PageTreeContainer = memo(function PageTreeContainer() {
   const { commitRename } = usePageTreeCRUD();
   const nodes = usePageTreeNodes();
   return (
@@ -15,6 +16,7 @@ export const PageTreeContainer = memo(function PageTreeContainer(props: {}) {
           <PageTreeItem {...ctx} onCommitRename={commitRename} />
         )}
       />
+      <DeletePageAlertDialog />
     </>
   );
 });

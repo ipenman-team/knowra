@@ -1,9 +1,5 @@
 import { apiClient } from '../client';
-import type {
-  CreatePageInput,
-  PageDto,
-  SavePageInput,
-} from './types';
+import type { CreatePageInput, PageDto, SavePageInput } from './types';
 import _ from 'lodash';
 
 export const pagesApi = {
@@ -94,19 +90,9 @@ export const pagesApi = {
     return res.data;
   },
 
-  async remove(...args: [string] | [string, string]) {
-    if (args.length === 2) {
-      const spaceId = args[0];
-      const id = args[1];
-      const res = await apiClient.delete<{ ok: true }>(
-        `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(id)}`,
-      );
-      return res.data;
-    }
-
-    const id = args[0];
+  async remove(spaceId: string, pageId: string) {
     const res = await apiClient.delete<{ ok: true }>(
-      `/pages/${encodeURIComponent(id)}`,
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}`,
     );
     return res.data;
   },

@@ -29,6 +29,7 @@ interface PagesState {
   loadMoreTree: (spaceId: string) => Promise<void>;
   resetTree: (spaceId: string, filter?: Partial<TreeFilter>) => void;
   upsertTreePage: (spaceId: string, page: PageDto) => void;
+  removeTreeSubtree: (spaceId: string, pageId: string) => string[];
 }
 
 const inflight = new Map<string, Promise<void>>();
@@ -168,6 +169,26 @@ export const usePagesStore = create<PagesState>((set, get) => ({
         treeLoadedBySpaceId: { ...state.treeLoadedBySpaceId, [spaceId]: true },
       };
     }),
+
+  removeTreeSubtree: (spaceId, pageId) => {
+    const state = get();
+    const pages = state.treePagesBySpaceId[spaceId] ?? [];
+    if (!pages.length) return [];
+
+    const exists = pages.some((p) => p.id === pageId);
+    if (!exists) return [];
+
+    set((current) => ({
+      treePagesBySpaceId: {
+        ...current.treePagesBySpaceId,
+        [spaceId]: (current.treePagesBySpaceId[spaceId] ?? []).filter(
+          (p) => p.id !== pageId
+        ),
+      },
+    }));
+
+    return [pageId];
+  },
 
   ensureTreeLoaded: async (spaceId, options) => {
     if (!spaceId) return;
