@@ -13,18 +13,19 @@ import { useRequiredSpaceId } from '@/hooks/use-required-space';
 
 export async function commitRenameFromState(args: {
   setSelectedPage: (id: string, title: string) => void;
+  spaceId: string | null;
 }) {
   const { renamingTarget, renamingValue, setSavingRename, cancelRename } =
     useUIStateStore.getState();
-  const spaceId = useRequiredSpaceId();
   if (!renamingTarget) return;
+  if (!args.spaceId) return;
 
   const nextTitle = renamingValue.trim() || '无标题文档';
 
   try {
     setSavingRename(true);
     const page = await pagesApi.rename(renamingTarget.id, {
-      spaceId: spaceId!,
+      spaceId: args.spaceId,
       title: nextTitle,
     });
 
@@ -98,8 +99,9 @@ export function usePageTreeCRUD() {
     async () =>
       commitRenameFromState({
         setSelectedPage,
+        spaceId,
       }),
-    [setSelectedPage],
+    [setSelectedPage, spaceId],
   );
 
   // 初始加载页面树
