@@ -2,6 +2,7 @@
 
 import { pageVersionsApi, pagesApi } from '@/lib/api';
 import type { PageDto } from '@/lib/api';
+import { saveDraft } from '@/lib/page/save-draft';
 import {
   useActivePage,
   usePageContentStore,
@@ -39,25 +40,12 @@ export const PageHeader = () => {
 
     try {
       contentStore.setPageSaving(true);
-      saved = await pagesApi.save(activePage.spaceId, activePage.id, {
+      saved = await saveDraft({
+        spaceId: activePage.spaceId,
+        pageId: activePage.id,
         title: normalizedTitle,
         content: editorValue,
       });
-
-      usePageStore.getState().patchPage(saved);
-      usePagesStore.getState().upsertPage(saved.spaceId, saved);
-      usePagesStore.getState().upsertTreePage(saved.spaceId, saved);
-      usePageTreeStore.getState().updateNode(saved.id, {
-        label: saved.title,
-        data: saved,
-      });
-
-      contentStore.setLastSavedAt(
-        new Date().toLocaleTimeString('zh-CN', {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      );
     } finally {
       contentStore.setPageSaving(false);
     }
