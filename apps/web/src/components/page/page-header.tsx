@@ -17,8 +17,31 @@ import {
   UserRoundPlusIcon,
   XIcon,
 } from 'lucide-react';
+import {
+  differenceInCalendarDays,
+  format,
+  isToday,
+  isValid,
+  isYesterday,
+  parseISO,
+} from 'date-fns';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+
+function formatRelativeDateTime(timestamp: string | null): string | null {
+  if (!timestamp) return null;
+
+  const date = parseISO(timestamp);
+  if (!isValid(date)) return null;
+
+  if (isToday(date)) return format(date, 'HH:mm:ss');
+  if (isYesterday(date)) return `昨天 ${format(date, 'HH:mm:ss')}`;
+
+  const days = differenceInCalendarDays(new Date(), date);
+  if (days === 2) return `前天 ${format(date, 'HH:mm:ss')}`;
+
+  return format(date, 'yyyy-MM-dd HH:mm:ss');
+}
 
 export const PageHeader = () => {
   const activePage = useActivePage();
@@ -28,6 +51,13 @@ export const PageHeader = () => {
   const editorValue = usePageContentStore((s) => s.editorValue);
   const pageSaving = usePageContentStore((s) => s.pageSaving);
   const pagePublishing = usePageContentStore((s) => s.pagePublishing);
+  const lastSavedAt = activePage?.updatedAt ?? null;
+  const lastPublishedAt = usePageContentStore((s) => s.publishedSnapshot?.updatedAt ?? null);
+  const timeText =
+    pageMode === 'edit'
+      ? formatRelativeDateTime(lastSavedAt)
+      : formatRelativeDateTime(lastPublishedAt);
+  const timeTitle = pageMode === 'edit' ? '已保存' : '发布于';
 
   const handlePublish = async () => {
     if (!activePage?.id || !activePage.spaceId) return;
@@ -94,10 +124,18 @@ export const PageHeader = () => {
 
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
-      <div>
+      <div className="flex items-center">
         <Button variant="link">
           {activePage?.title?.trim() || '无标题文档'}
         </Button>
+        {timeText ? (
+          <span
+            className="text-xs text-muted-foreground tabular-nums"
+            title={timeTitle}
+          >
+            {timeTitle + ' ' + timeText}
+          </span>
+        ) : null}
       </div>
       <div>
         {pageMode === 'preview' ? (

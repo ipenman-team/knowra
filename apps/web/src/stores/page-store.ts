@@ -14,7 +14,10 @@ interface PageStoreState {
   loading: boolean;
   loaded: boolean;
 
-  ensureLoaded: (pageId: string, options?: { force?: boolean }) => Promise<PageDto | null>;
+  ensureLoaded: (
+    pageId: string,
+    options?: { force?: boolean },
+  ) => Promise<PageDto | null>;
   destroy: () => void;
 
   setDraftTitle: (title: string) => void;
@@ -75,11 +78,16 @@ export const usePageStore = create<PageStoreState>((set, get) => ({
     const spaceId = resolveSpaceIdForPage(pageId) ?? undefined;
     const inflightKey = spaceId ? `${spaceId}:${pageId}` : pageId;
     const existing = inflight.get(inflightKey);
-    const req = !force && existing
-      ? existing
-      : pagesApi.get(...(spaceId ? ([spaceId, pageId] as const) : ([pageId] as const))).finally(() => {
-          inflight.delete(inflightKey);
-        });
+    const req =
+      !force && existing
+        ? existing
+        : pagesApi
+            .get(
+              ...(spaceId ? ([spaceId, pageId] as const) : ([pageId] as const)),
+            )
+            .finally(() => {
+              inflight.delete(inflightKey);
+            });
 
     inflight.set(inflightKey, req);
 
@@ -96,6 +104,8 @@ export const usePageStore = create<PageStoreState>((set, get) => ({
       contentStore.setPageTitle(page.title ?? '');
       contentStore.setEditorValue(parseContentToSlateValue(page.content));
       contentStore.setPublishedSnapshot(null);
+      contentStore.setLastSavedAt(null);
+      contentStore.setPageMode('preview');
       contentStore.setPageLoading(false);
 
       return page;
