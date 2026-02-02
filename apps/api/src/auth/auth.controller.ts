@@ -38,6 +38,8 @@ type ResetPasswordBody = {
   newPassword: string;
 };
 
+const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -62,7 +64,7 @@ export class AuthController {
       httpOnly: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      maxAge: /* seconds */ 30 * 24 * 3600,
+      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
       secure: process.env.NODE_ENV === 'production',
     });
     return data;
@@ -80,7 +82,7 @@ export class AuthController {
       httpOnly: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      maxAge: /* seconds */ 30 * 24 * 3600,
+      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
       secure: process.env.NODE_ENV === 'production',
     });
     return data;
@@ -124,7 +126,7 @@ export class AuthController {
             httpOnly: true,
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
-            maxAge: /* seconds */ 30 * 24 * 3600,
+            maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
             secure: process.env.NODE_ENV === 'production',
           });
         }

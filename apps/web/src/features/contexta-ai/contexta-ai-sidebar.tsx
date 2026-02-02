@@ -9,7 +9,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -28,25 +27,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { format } from 'date-fns';
 import {
   Search,
   Plus,
   EllipsisIcon,
-  MessageSquareDiffIcon,
   Pin,
 } from 'lucide-react';
 
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { Separator } from '@/components/ui/separator';
-
-function formatTime(ts: number): string {
-  try {
-    return format(new Date(ts), 'MM-dd');
-  } catch {
-    return '';
-  }
-}
 
 export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   conversations: ContextaAiConversation[];
