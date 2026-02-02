@@ -1,16 +1,42 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupText,
+  InputGroupTextarea,
+} from '@/components/ui/input-group';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Markdown } from '@/components/shared/markdown';
 import { cn } from '@/lib/utils';
 import { answerQuestion } from '@/lib/api/rag';
 
 import type { ContextaAiMessage } from '@/features/contexta-ai/types';
-import { BotIcon, LoaderIcon, SendHorizonalIcon, SendIcon } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  ArrowUpIcon,
+  Bot,
+  Loader2,
+  Plus,
+  Share2,
+  X,
+} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 function hasAbortName(e: unknown): e is { name: string } {
   return (
@@ -43,6 +69,21 @@ function formatZhDate(d: Date): string {
   }).format(d);
 }
 
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'] as const;
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  const nf = new Intl.NumberFormat('zh-CN', {
+    maximumFractionDigits: unitIndex === 0 ? 0 : 1,
+  });
+  return `${nf.format(size)} ${units[unitIndex]}`;
+}
+
 export function ContextaAiContent(props: {
   conversationId: string;
   title: string;
@@ -55,17 +96,27 @@ export function ContextaAiContent(props: {
   const [submittedQuestion, setSubmittedQuestion] = useState<string | null>(
     null,
   );
-  const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   const answerRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const copiedTimerRef = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
       abortRef.current = null;
+
+      if (copiedTimerRef.current) {
+        window.clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -79,10 +130,30 @@ export function ContextaAiContent(props: {
     abortRef.current?.abort();
     abortRef.current = null;
     setSubmittedQuestion(null);
-    setAnswer(null);
     setError(null);
     setLoading(false);
+    setAttachments([]);
+    setCopied(false);
   }, [props.conversationId]);
+
+  useEffect(() => {
+    // Best-effort scroll to bottom when messages update.
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }, [props.messages.length, loading]);
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const maxHeight = 180;
+    const next = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [props.draft, props.conversationId]);
 
   function handleStop() {
     if (!loading) return;
@@ -111,9 +182,9 @@ export function ContextaAiContent(props: {
 
     setSubmittedQuestion(question);
     if (options?.updateInput !== false) props.onDraftChange('');
-    setAnswer('');
     setError(null);
     setLoading(true);
+    answerRef.current = '';
 
     const shouldSetTitle =
       props.messages.length === 0 || props.title === '新对话';
@@ -127,14 +198,14 @@ export function ContextaAiContent(props: {
       ...props.messages,
       { role: 'user', content: question },
     ];
-    props.onSetMessages([...baseMessages, { role: 'assistant', content: '' }]);
+    // Do not pre-insert an empty assistant message; only show a bubble when data arrives.
+    props.onSetMessages(baseMessages);
 
     try {
       await answerQuestion(
         question,
         {
           onDelta: (delta) => {
-            setAnswer((prev) => (prev ?? '') + delta);
             props.onSetMessages(
               upsertAssistant(baseMessages, (answerRef.current ?? '') + delta),
             );
@@ -168,6 +239,7 @@ export function ContextaAiContent(props: {
     if (!q || loading) return;
 
     await sendQuestion(q, { updateInput: true });
+    setAttachments([]);
   }
 
   async function handleRetry() {
@@ -191,180 +263,287 @@ export function ContextaAiContent(props: {
     await sendQuestion(lastUser, { updateInput: false });
   }
 
+  function handlePickFiles() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFilesSelected(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const next = Array.from(fileList);
+    setAttachments((prev) => {
+      const merged = [...prev];
+      for (const f of next) {
+        if (!merged.some((x) => x.name === f.name && x.size === f.size)) {
+          merged.push(f);
+        }
+      }
+      return merged;
+    });
+  }
+
+  function handleRemoveAttachment(index: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleShare() {
+    if (typeof window === 'undefined') return;
+    const url = window.location.href;
+    try {
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        await (
+          navigator as unknown as {
+            share: (d: { title?: string; url?: string }) => Promise<void>;
+          }
+        ).share({
+          title: props.title,
+          url,
+        });
+        return;
+      }
+    } catch {
+      // Ignore and fallback to copy.
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = window.setTimeout(() => {
+        setCopied(false);
+        copiedTimerRef.current = null;
+      }, 1500);
+    } catch {
+      // If clipboard fails, do nothing.
+    }
+  }
+
   const inAnswerMode = props.messages.length > 0 || submittedQuestion !== null;
 
+  const showRegenerate =
+    !loading &&
+    props.messages.some(
+      (m) => m.role === 'assistant' && m.content.trim().length > 0,
+    );
+
   return (
-    <div className="flex h-full min-h-0 w-full flex-col px-4 pt-6">
-      {!inAnswerMode ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <div className="flex flex-col items-center gap-6">
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="shrink-0 border-b bg-background/80 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{props.title}</div>
+          </div>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="分享"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{copied ? '已复制链接' : '分享'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+
+      <div
+        ref={scrollAreaRef}
+        className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
+      >
+        {inAnswerMode ? (
+          <>
+            <div className="flex items-center justify-center text-xs text-muted-foreground">
+              {formatZhDate(new Date())} · Contexta AI
+            </div>
+
+            {loading ? (
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>汲取中</span>
+              </div>
+            ) : null}
+
+            <div className="mt-3 space-y-4">
+              {props.messages.map((m, idx) =>
+                m.role === 'assistant' && m.content.trim().length === 0 ? null :
+                m.role === 'user' ? (
+                  <div key={idx} className="flex justify-end">
+                    <div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2 text-sm">
+                      {m.content}
+                    </div>
+                  </div>
+                ) : (
+                  <div key={idx} className="flex gap-3">
+                    <Avatar className="mt-0.5 h-7 w-7 shrink-0">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-background">
+                        <Bot className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="rounded-xl border bg-background p-3">
+                        <Markdown content={m.content} />
+                      </div>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+
+            {error ? (
+              <div className="mt-4 flex items-center gap-3">
+                <div className="text-sm text-destructive">{error}</div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleRetry}
+                  disabled={loading}
+                >
+                  重试
+                </Button>
+              </div>
+            ) : null}
+
+            {showRegenerate ? (
+              <div className="mt-4 flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleRegenerate}
+                >
+                  重新生成
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
             <Avatar className="h-16 w-16">
               <AvatarImage src="" />
-              <AvatarFallback><BotIcon></BotIcon></AvatarFallback>
+              <AvatarFallback>
+                <Bot className="h-7 w-7" />
+              </AvatarFallback>
             </Avatar>
             <div className="text-xl font-bold tracking-tight">
               Hi，有什么可以帮助你的？
             </div>
           </div>
+        )}
+      </div>
 
-          <Card className="w-full max-w-3xl">
-            <CardContent className="relative p-4">
-              <textarea
-                className={cn(
-                  'min-h-28 w-full resize-none rounded-lg border bg-transparent px-4 py-3 pr-14',
-                  'text-base placeholder:text-muted-foreground/60',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  'ring-offset-background',
-                )}
-                placeholder="你可以问我关于知识库中的任何问题..."
-                value={props.draft}
-                onChange={(e) => props.onDraftChange(e.target.value)}
+      <div className="shrink-0 border-t bg-background/80 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto w-4/5 max-w-4xl">
+          {attachments.length > 0 ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {attachments.map((f, idx) => (
+                <div
+                  key={`${f.name}-${f.size}-${f.lastModified}`}
+                  className="group inline-flex max-w-full items-center gap-2 rounded-full border bg-muted/40 px-3 py-1 text-xs"
+                >
+                  <span className="max-w-[240px] truncate">{f.name}</span>
+                  <span className="text-muted-foreground">
+                    {formatFileSize(f.size)}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`移除附件 ${f.name}`}
+                    className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+                    onClick={() => handleRemoveAttachment(idx)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <InputGroup>
+            <InputGroupTextarea
+              ref={textareaRef}
+              placeholder="你可以问我关于知识库中的任何问题..."
+              value={props.draft}
+              onChange={(e) => props.onDraftChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              className={cn('min-h-14 pr-2', 'text-base md:text-sm')}
+            />
+            <InputGroupAddon align="block-end">
+              <InputGroupButton
+                size="icon-xs"
+                variant="outline"
+                className="rounded-full"
+                aria-label="上传文件"
+                onClick={handlePickFiles}
+              >
+                <Plus className="h-4 w-4" />
+              </InputGroupButton>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                multiple
+                onChange={(e) => {
+                  handleFilesSelected(e.target.files);
+                  e.currentTarget.value = '';
+                }}
               />
 
-              <div className="absolute bottom-6 right-6">
-                {loading ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    aria-label="停止"
-                    onClick={handleStop}
-                  >
-                    <StopIcon className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant={canSend ? 'default' : 'secondary'}
-                    disabled={!canSend}
-                    aria-label="发送"
-                    onClick={handleSend}
-                  >
-                    <SendHorizonalIcon className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <InputGroupButton variant="ghost">自动</InputGroupButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  className="[--radius:0.95rem]"
+                >
+                  <DropdownMenuItem>自动</DropdownMenuItem>
+                  <DropdownMenuItem>Agent</DropdownMenuItem>
+                  <DropdownMenuItem>Manual</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <InputGroupText className="ml-auto hidden sm:flex text-xs">
+                发送
+              </InputGroupText>
+              <Separator orientation="vertical" className="!h-4" />
+              {loading ? (
+                <InputGroupButton
+                  size="icon-sm"
+                  variant="secondary"
+                  aria-label="停止"
+                  onClick={handleStop}
+                >
+                  <StopIcon className="h-4 w-4" />
+                </InputGroupButton>
+              ) : (
+                <InputGroupButton
+                  variant={canSend ? 'default' : 'secondary'}
+                  className="rounded-full"
+                  aria-label="发送"
+                  size="icon-xs"
+                  disabled={!canSend}
+                  onClick={() => void handleSend()}
+                >
+                  <ArrowUpIcon />
+                  <span className="sr-only">发送</span>
+                </InputGroupButton>
+              )}
+            </InputGroupAddon>
+          </InputGroup>
         </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="flex items-center justify-center text-sm text-muted-foreground">
-            {formatZhDate(new Date())} · Contexta AI
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <div className="flex h-full min-h-0 flex-col">
-              <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-                {loading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <LoaderIcon className="h-4 w-4" />
-                    <span>汲取中</span>
-                  </div>
-                ) : null}
-
-                <div className="mt-3 space-y-4">
-                  {props.messages.map((m, idx) =>
-                    m.role === 'user' ? (
-                      <div key={idx} className="flex justify-end">
-                        <div className="max-w-[85%] rounded-full bg-muted px-4 py-2 text-sm">
-                          {m.content}
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={idx} className="flex gap-3">
-                        <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-semibold">
-                          C2
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="rounded-lg border bg-background p-3">
-                            <Markdown content={m.content} />
-                          </div>
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-
-                {error ? (
-                  <div className="mt-4 flex items-center gap-3">
-                    <div className="text-sm text-destructive">{error}</div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleRetry}
-                      disabled={loading}
-                    >
-                      重试
-                    </Button>
-                  </div>
-                ) : null}
-
-                {!loading &&
-                props.messages.some(
-                  (m) => m.role === 'assistant' && m.content.trim().length > 0,
-                ) ? (
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleRegenerate}
-                    >
-                      重新生成
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="pb-6">
-            <Card className="mx-auto w-full max-w-4xl">
-              <CardContent className="relative p-4">
-                <textarea
-                  className={cn(
-                    'min-h-20 w-full resize-none rounded-lg border bg-transparent px-4 py-3 pr-14',
-                    'text-base placeholder:text-muted-foreground/60',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    'ring-offset-background',
-                  )}
-                  placeholder="你可以问我关于知识库中的任何问题..."
-                  value={props.draft}
-                  onChange={(e) => props.onDraftChange(e.target.value)}
-                />
-
-                <div className="absolute bottom-6 right-6">
-                  {loading ? (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="secondary"
-                      aria-label="停止"
-                      onClick={handleStop}
-                    >
-                      <StopIcon className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant={canSend ? 'default' : 'secondary'}
-                      disabled={!canSend}
-                      aria-label="发送"
-                      onClick={handleSend}
-                    >
-                      <SendIcon className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
