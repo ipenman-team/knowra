@@ -13,6 +13,8 @@ import {
   AI_MESSAGE_REPOSITORY,
 } from './ai-chat.tokens';
 import { ConversationsController } from './conversations.controller';
+import { ConversationService } from './conversation.service';
+import { MessageService } from './message.service';
 
 @Module({
   controllers: [ConversationsController],
@@ -42,6 +44,8 @@ import { ConversationsController } from './conversations.controller';
       ) => new AiMessageUseCase(conversationRepo, messageRepo),
       inject: [AI_CONVERSATION_REPOSITORY, AI_MESSAGE_REPOSITORY],
     },
+    ConversationService,
+    MessageService,
   ],
 })
 export class AiChatModule {}

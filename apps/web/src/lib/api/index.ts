@@ -1,4 +1,5 @@
 export { ApiError, apiClient } from './client';
+export { contextaAiApi } from './contexta-ai';
 export { pagesApi } from './pages';
 export { pageVersionsApi } from './page-versions';
 export { importsApi } from './imports';

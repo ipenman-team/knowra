@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { HomeLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';
@@ -11,22 +11,17 @@ import { ContextaAiSidebar } from '@/features/contexta-ai/contexta-ai-sidebar';
 import { ContextaAiContent } from '@/features/contexta-ai/contexta-ai-content';
 
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
+import { contextaAiApi } from '@/lib/api';
 
-function newConversation(): ContextaAiConversation {
-  const id =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : String(Date.now());
-  const now = Date.now();
-  return {
-    id,
-    title: '未命名对话',
-    pinned: false,
-    createdAt: now,
-    updatedAt: now,
-    draft: '',
-    messages: [],
-  };
+type UiConversation = ContextaAiConversation & {
+  messagesLoaded?: boolean;
+  messagesLoading?: boolean;
+};
+
+function toEpochMs(x: unknown): number {
+  const d = typeof x === 'string' || x instanceof Date ? new Date(x) : null;
+  const ms = d ? d.getTime() : NaN;
+  return Number.isFinite(ms) ? ms : Date.now();
 }
 
 export default function ContextaAiContainer() {
@@ -38,12 +33,9 @@ export default function ContextaAiContainer() {
     setSelectedView('contexta-ai');
   }, [setSelectedView]);
 
-  const [conversations, setConversations] = useState<ContextaAiConversation[]>(
-    () => [newConversation()],
-  );
-  const [activeId, setActiveId] = useState<string>(
-    () => conversations[0]?.id ?? '',
-  );
+  const [conversations, setConversations] = useState<UiConversation[]>([]);
+  const [activeId, setActiveId] = useState<string>('');
+  const bootstrapRef = useRef(false);
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? conversations[0],
@@ -54,9 +46,116 @@ export default function ContextaAiContainer() {
     if (!active && conversations.length > 0) setActiveId(conversations[0]!.id);
   }, [active, conversations]);
 
-  function handleNewConversation() {
-    const created = newConversation();
-    setConversations((prev) => [created, ...prev]);
+  useEffect(() => {
+    if (bootstrapRef.current) return;
+    bootstrapRef.current = true;
+
+    let cancelled = false;
+
+    (async () => {
+      const list = await contextaAiApi.listConversations({ limit: 50 });
+      if (cancelled) return;
+
+      setConversations((prev) => {
+        const byId = new Map(prev.map((c) => [c.id, c] as const));
+        return list.map((c) => {
+          const existed = byId.get(c.id);
+          return {
+            id: c.id,
+            title: c.title,
+            pinned: existed?.pinned ?? false,
+            draft: existed?.draft ?? '',
+            messages: existed?.messages ?? [],
+            messagesLoaded: existed?.messagesLoaded ?? false,
+            messagesLoading: false,
+            createdAt: toEpochMs(c.createdAt),
+            updatedAt: toEpochMs(c.updatedAt),
+          } satisfies UiConversation;
+        });
+      });
+
+      setActiveId((prev) => prev || list[0]?.id || '');
+    })().catch(() => {
+      // Keep empty state; errors are handled by global API client.
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = active?.id;
+    if (!id) return;
+    const found = conversations.find((c) => c.id === id);
+    if (!found || found.messagesLoading || found.messagesLoaded) return;
+
+    let cancelled = false;
+
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, messagesLoading: true } : c)),
+    );
+
+    (async () => {
+      const messages = await contextaAiApi.listMessages(id, { limit: 200 });
+      if (cancelled) return;
+
+      const mapped = messages
+        .map((m) => {
+          const role =
+            m.role === 'ASSISTANT'
+              ? 'assistant'
+              : m.role === 'USER'
+                ? 'user'
+                : null;
+          if (!role) return null;
+          return { role, content: m.content } as const;
+        })
+        .filter(Boolean);
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                messages: mapped as UiConversation['messages'],
+                messagesLoaded: true,
+                messagesLoading: false,
+              }
+            : c,
+        ),
+      );
+    })().catch(() => {
+      if (cancelled) return;
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === id
+            ? { ...c, messagesLoaded: false, messagesLoading: false }
+            : c,
+        ),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [active?.id, conversations]);
+
+  async function handleNewConversation() {
+    const created = await contextaAiApi.createConversation();
+    const next: UiConversation = {
+      id: created.id,
+      title: created.title,
+      pinned: false,
+      draft: '',
+      messages: [],
+      messagesLoaded: true,
+      messagesLoading: false,
+      createdAt: toEpochMs(created.createdAt),
+      updatedAt: toEpochMs(created.updatedAt),
+    };
+
+    setConversations((prev) => [next, ...prev]);
     setActiveId(created.id);
   }
 
@@ -121,7 +220,11 @@ export default function ContextaAiContainer() {
                 }))
               }
             />
-          ) : null}
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+              暂无对话，请先新建一个对话。
+            </div>
+          )}
         </div>
       </div>
     </HomeLayout>

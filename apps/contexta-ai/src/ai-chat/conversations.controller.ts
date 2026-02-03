@@ -10,10 +10,10 @@ import {
 } from '@nestjs/common';
 import {
   AiConversationNotFoundError,
-  AiConversationUseCase,
-  AiMessageUseCase,
 } from '@contexta/application';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
+import { ConversationService } from './conversation.service';
+import { MessageService } from './message.service';
 import type { AiConversation, AiMessage } from '@contexta/domain';
 
 type CreateConversationBody = {
@@ -23,8 +23,8 @@ type CreateConversationBody = {
 @Controller('api/conversations')
 export class ConversationsController {
   constructor(
-    private readonly conversationUseCase: AiConversationUseCase,
-    private readonly messageUseCase: AiMessageUseCase,
+    private readonly conversationService: ConversationService,
+    private readonly messageService: MessageService,
   ) {}
 
   @Post()
@@ -36,7 +36,7 @@ export class ConversationsController {
     if (!userId) throw new UnauthorizedException('unauthorized');
 
     const title = typeof body?.title === 'string' ? body.title : undefined;
-    return await this.conversationUseCase.create({
+    return await this.conversationService.create({
       tenantId,
       title,
       actorUserId: userId,
@@ -49,7 +49,7 @@ export class ConversationsController {
     @Query('limit') limit: string | undefined,
   ): Promise<AiConversation[]> {
     const parsedLimit = limit ? Number(limit) : undefined;
-    return await this.conversationUseCase.list({
+    return await this.conversationService.list({
       tenantId,
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     });
@@ -63,7 +63,7 @@ export class ConversationsController {
   ): Promise<AiMessage[]> {
     const parsedLimit = limit ? Number(limit) : undefined;
     try {
-      return await this.messageUseCase.listByConversation({
+      return await this.messageService.listByConversation({
         tenantId,
         conversationId,
         limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,

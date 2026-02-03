@@ -1,17 +1,5 @@
-/*
-  Warnings:
-
-  - A unique constraint covering the columns `[latest_published_version_id]` on the table `pages` will be added. If there are existing duplicate values, this will fail.
-
-*/
 -- CreateEnum
 CREATE TYPE "AiMessageRole" AS ENUM ('SYSTEM', 'USER', 'ASSISTANT');
-
--- DropIndex
-DROP INDEX "page_versions_tenant_id_idx";
-
--- DropIndex
-DROP INDEX "pages_tenant_id_idx";
 
 -- CreateTable
 CREATE TABLE "ai_conversations" (
