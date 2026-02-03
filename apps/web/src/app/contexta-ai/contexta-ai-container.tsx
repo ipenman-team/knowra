@@ -37,16 +37,14 @@ export default function ContextaAiContainer() {
   const [activeId, setActiveId] = useState<string>('');
   const messageReqSeqRef = useRef(0);
   const messageReqByConversationRef = useRef(new Map<string, number>());
+  const loadedConversationsRef = useRef(new Set<string>());
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? conversations[0],
     [activeId, conversations],
   );
 
-  useEffect(() => {
-    if (!active && conversations.length > 0) setActiveId(conversations[0]!.id);
-  }, [active, conversations]);
-
+  // Load conversations list on mount
   useEffect(() => {
     let cancelled = false;
 
@@ -82,22 +80,32 @@ export default function ContextaAiContainer() {
     };
   }, []);
 
+  // Load messages for active conversation
   useEffect(() => {
     const id = active?.id;
     if (!id) return;
-    const found = conversations.find((c) => c.id === id);
-    if (!found || found.messagesLoading || found.messagesLoaded) return;
+
+    // Check if already loaded/loading using ref to avoid re-renders
+    if (loadedConversationsRef.current.has(id)) return;
+
+    // Mark as loading in ref to prevent duplicate requests
+    loadedConversationsRef.current.add(id);
 
     let cancelled = false;
 
     const reqId = ++messageReqSeqRef.current;
     messageReqByConversationRef.current.set(id, reqId);
 
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, messagesLoading: true } : c)),
-    );
-
     (async () => {
+      // Set loading state in async context
+      setConversations((prev) => {
+        const found = prev.find((c) => c.id === id);
+        if (!found || found.messagesLoading || found.messagesLoaded) {
+          return prev;
+        }
+        return prev.map((c) => (c.id === id ? { ...c, messagesLoading: true } : c));
+      });
+
       const messages = await contextaAiApi.listMessages(id, { limit: 200 });
       if (cancelled) return;
       if (messageReqByConversationRef.current.get(id) !== reqId) return;
@@ -130,6 +138,8 @@ export default function ContextaAiContainer() {
     })().catch(() => {
       if (cancelled) return;
       if (messageReqByConversationRef.current.get(id) !== reqId) return;
+      // Remove from loaded set on error so it can be retried
+      loadedConversationsRef.current.delete(id);
       setConversations((prev) =>
         prev.map((c) =>
           c.id === id
@@ -151,7 +161,7 @@ export default function ContextaAiContainer() {
         );
       }
     };
-  }, [active?.id, conversations]);
+  }, [active?.id]);
 
   async function handleNewConversation() {
     const created = await contextaAiApi.createConversation();

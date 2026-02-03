@@ -329,11 +329,10 @@ export function ContextaAiContent(props: {
             <div className="truncate text-sm font-semibold">{props.title}</div>
           </div>
 
-          {/* <TooltipProvider>
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  asChild
                   type="button"
                   size="icon"
                   variant="ghost"
@@ -345,7 +344,7 @@ export function ContextaAiContent(props: {
               </TooltipTrigger>
               <TooltipContent>{copied ? '已复制链接' : '分享'}</TooltipContent>
             </Tooltip>
-          </TooltipProvider> */}
+          </TooltipProvider> 
         </div>
       </div>
 
