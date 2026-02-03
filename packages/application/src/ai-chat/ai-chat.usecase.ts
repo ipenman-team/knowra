@@ -5,6 +5,8 @@ import type {
 } from '@contexta/domain';
 import { AiConversationNotFoundError } from './errors';
 import type { AiChatMessage, AiChatProvider } from './ports/ai-chat-provider';
+import type { PromptConfigProvider } from './ports/prompt-config';
+import { DefaultPromptConfigProvider } from './ports/default-prompt-config';
 
 function toChatRole(role: AiMessageRole): AiChatMessage['role'] | null {
   if (role === 'USER') return 'user';
@@ -14,19 +16,19 @@ function toChatRole(role: AiMessageRole): AiChatMessage['role'] | null {
 }
 
 export class AiChatUseCase {
+  private promptConfigProvider: PromptConfigProvider;
+
   constructor(
     private readonly conversationRepo: AiConversationRepository,
     private readonly messageRepo: AiMessageRepository,
     private readonly chatProvider: AiChatProvider,
-  ) {}
+    promptConfigProvider?: PromptConfigProvider,
+  ) {
+    this.promptConfigProvider = promptConfigProvider ?? new DefaultPromptConfigProvider();
+  }
 
   private buildSystemPrompt(): string {
-    return [
-      '你是一个专业的 AI 助手：',
-      '1. 回答简洁',
-      '2. 使用结构化表达',
-      '3. 给出必要示例',
-    ].join('\n');
+    return this.promptConfigProvider.getSystemPrompt();
   }
 
   private async ensureConversation(params: {
@@ -44,12 +46,15 @@ export class AiChatUseCase {
   private async listRecentMessages(params: {
     tenantId: string;
     conversationId: string;
-    limit: number;
+    limit?: number;
   }): Promise<AiMessage[]> {
+    const config = this.promptConfigProvider.getConfig();
+    const messageLimit = params.limit ?? config.contextWindowSize;
+    
     return await this.messageRepo.listByConversation({
       tenantId: params.tenantId,
       conversationId: params.conversationId,
-      limit: params.limit,
+      limit: messageLimit,
     });
   }
 
@@ -57,6 +62,7 @@ export class AiChatUseCase {
     history: AiMessage[];
     userInput: string;
   }): AiChatMessage[] {
+    const config = this.promptConfigProvider.getConfig();
     const messages: AiChatMessage[] = [
       { role: 'system', content: this.buildSystemPrompt() },
     ];
@@ -64,7 +70,8 @@ export class AiChatUseCase {
     for (const m of params.history) {
       const role = toChatRole(m.role);
       if (!role) continue;
-      if (role === 'system') continue;
+      // 过滤系统消息（根据配置）
+      if (role === 'system' && config.filterSystemMessages) continue;
       const content = (m.content ?? '').trim();
       if (!content) continue;
       messages.push({ role, content });
@@ -95,7 +102,6 @@ export class AiChatUseCase {
     const history = await this.listRecentMessages({
       tenantId: params.tenantId,
       conversationId: params.conversationId,
-      limit: 50,
     });
 
     await this.messageRepo.create({
@@ -160,7 +166,6 @@ export class AiChatUseCase {
       const history = await self.listRecentMessages({
         tenantId: params.tenantId,
         conversationId: params.conversationId,
-        limit: 50,
       });
 
       await self.messageRepo.create({

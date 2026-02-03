@@ -3,6 +3,7 @@ import {
   AiChatUseCase,
   AiConversationUseCase,
   AiMessageUseCase,
+  DefaultPromptConfigProvider,
 } from '@contexta/application';
 import {
   PrismaAiConversationRepository,
@@ -14,6 +15,7 @@ import {
   AI_CHAT_PROVIDER,
   AI_CONVERSATION_REPOSITORY,
   AI_MESSAGE_REPOSITORY,
+  AI_PROMPT_CONFIG_PROVIDER,
 } from './ai-chat.tokens';
 import { ConversationsController } from './conversations.controller';
 import { ConversationService } from './conversation.service';
@@ -50,6 +52,26 @@ import { ChatService } from './chat.service';
       },
     },
     {
+      provide: AI_PROMPT_CONFIG_PROVIDER,
+      useFactory: () => {
+        const rawPrompt = process.env.CONTEXTA_AI_SYSTEM_PROMPT;
+        const prompt = typeof rawPrompt === 'string' && rawPrompt.trim()
+          ? rawPrompt.replace(/\\n/g, '\n').trim()
+          : undefined;
+
+        const rawWindow = process.env.CONTEXTA_AI_CONTEXT_WINDOW_SIZE;
+        const windowSize = rawWindow ? Number(rawWindow) : undefined;
+        const contextWindowSize = Number.isFinite(windowSize)
+          ? Math.max(1, Math.floor(windowSize as number))
+          : undefined;
+
+        return new DefaultPromptConfigProvider({
+          systemPrompt: prompt,
+          contextWindowSize,
+        });
+      },
+    },
+    {
       provide: AiConversationUseCase,
       useFactory: (repo: PrismaAiConversationRepository) =>
         new AiConversationUseCase(repo),
@@ -69,8 +91,20 @@ import { ChatService } from './chat.service';
         conversationRepo: PrismaAiConversationRepository,
         messageRepo: PrismaAiMessageRepository,
         chatProvider: OpenAICompatibleChatProvider,
-      ) => new AiChatUseCase(conversationRepo, messageRepo, chatProvider),
-      inject: [AI_CONVERSATION_REPOSITORY, AI_MESSAGE_REPOSITORY, AI_CHAT_PROVIDER],
+        promptConfigProvider: DefaultPromptConfigProvider,
+      ) =>
+        new AiChatUseCase(
+          conversationRepo,
+          messageRepo,
+          chatProvider,
+          promptConfigProvider,
+        ),
+      inject: [
+        AI_CONVERSATION_REPOSITORY,
+        AI_MESSAGE_REPOSITORY,
+        AI_CHAT_PROVIDER,
+        AI_PROMPT_CONFIG_PROVIDER,
+      ],
     },
     ConversationService,
     MessageService,
