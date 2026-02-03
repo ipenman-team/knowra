@@ -1,0 +1,1 @@
+export const AI_KNOWLEDGE_SEARCHER = Symbol('AI_KNOWLEDGE_SEARCHER');

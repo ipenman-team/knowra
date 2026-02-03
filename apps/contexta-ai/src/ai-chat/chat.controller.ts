@@ -15,7 +15,29 @@ import { ChatService } from './chat.service';
 type ChatBody = {
   conversationId?: unknown;
   message?: unknown;
+  dataSource?: {
+    spaceEnabled?: boolean;
+    internetEnabled?: boolean;
+    spaceIds?: string[];
+  };
+  // Backward compatible
+  knowledge?: {
+    enabled?: unknown;
+    spaceId?: unknown;
+  };
 };
+
+function normalizeSpaceIds(spaceIds: unknown): string[] {
+  if (!Array.isArray(spaceIds)) return [];
+  const uniq = new Set<string>();
+  for (const raw of spaceIds) {
+    if (typeof raw !== 'string') continue;
+    const v = raw.trim();
+    if (!v) continue;
+    uniq.add(v);
+  }
+  return Array.from(uniq);
+}
 
 @Controller('api/chat')
 export class ChatController {
@@ -26,7 +48,7 @@ export class ChatController {
     @TenantId() tenantId: string,
     @UserId() userId: string | undefined,
     @Body() body: ChatBody,
-  ): Promise<{ content: string; model: string }>{
+  ): Promise<{ content: string; model: string }> {
     if (!userId) throw new UnauthorizedException('unauthorized');
 
     const conversationId =
@@ -46,6 +68,13 @@ export class ChatController {
         conversationId,
         message,
         actorUserId: userId,
+        dataSource: body?.dataSource
+          ? {
+              internetEnabled: Boolean(body.dataSource.internetEnabled),
+              spaceEnabled: Boolean(body.dataSource.spaceEnabled),
+              spaceIds: normalizeSpaceIds(body.dataSource.spaceIds),
+            }
+          : undefined,
       });
     } catch (err) {
       if (err instanceof AiConversationNotFoundError) {
@@ -99,6 +128,7 @@ export class ChatController {
         message,
         actorUserId: userId,
         signal: controller.signal,
+        dataSource: body.dataSource,
       });
 
       for await (const delta of stream) {

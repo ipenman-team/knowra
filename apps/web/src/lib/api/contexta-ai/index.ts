@@ -35,7 +35,19 @@ export const contextaAiApi = {
     return res.data;
   },
 
-  async chat(input: { conversationId: string; message: string }) {
+  async chat(input: {
+    conversationId: string;
+    message: string;
+    dataSource?: {
+      // New: 信息源设置
+      internetEnabled?: boolean;
+      spaceEnabled?: boolean;
+      spaceIds?: string[];
+      // Backward compatible
+      enabled?: boolean;
+      spaceId?: string | null;
+    };
+  }) {
     const res = await contextaAiClient.post<{ content: string; model: string }>(
       '/api/chat',
       input,
@@ -44,7 +56,19 @@ export const contextaAiApi = {
   },
 
   async chatStream(
-    input: { conversationId: string; message: string },
+    input: {
+      conversationId: string;
+      message: string;
+      dataSource?: {
+        // New: 信息源设置
+        internetEnabled?: boolean;
+        spaceEnabled?: boolean;
+        spaceIds?: string[];
+        // Backward compatible
+        enabled?: boolean;
+        spaceId?: string | null;
+      };
+    },
     handlers: { onDelta: (delta: string) => void },
     options?: { signal?: AbortSignal },
   ): Promise<void> {

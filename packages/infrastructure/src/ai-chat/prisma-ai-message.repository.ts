@@ -30,7 +30,6 @@ export class PrismaAiMessageRepository implements AiMessageRepository {
     conversationId: string;
     limit: number;
   }) {
-    console.log(5555);
     const rows = await this.prisma.aiMessage.findMany({
       where: {
         tenantId: params.tenantId,

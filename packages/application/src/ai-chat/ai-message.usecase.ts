@@ -50,7 +50,6 @@ export class AiMessageUseCase {
     conversationId: string;
     limit?: number | null;
   }): Promise<AiMessage[]> {
-    console.log(999, 444);
     if (!params.tenantId) throw new Error('tenantId is required');
     if (!params.conversationId) throw new Error('conversationId is required');
 
@@ -61,7 +60,6 @@ export class AiMessageUseCase {
     if (!conversation) throw new AiConversationNotFoundError(params.conversationId);
 
     const limit = Math.min(Math.max(Number(params.limit ?? 200), 1), 500);
-    console.log(params, 222);
     return await this.messageRepo.listByConversation({
       tenantId: params.tenantId,
       conversationId: params.conversationId,

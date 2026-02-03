@@ -76,6 +76,21 @@ export class PrismaPgVectorVectorStore implements VectorStore {
     const q = toVectorLiteral(queryEmbedding);
     const sourceId = input.filter.sourceId ?? null;
 
+    const rawSpaceIds = input.filter.metadata?.spaceIds;
+    const spaceIds = Array.isArray(rawSpaceIds)
+      ? rawSpaceIds
+          .filter((x) => typeof x === 'string')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : null;
+
+    const rawSpaceId = input.filter.metadata?.spaceId;
+    const spaceId = typeof rawSpaceId === 'string' && rawSpaceId.trim()
+      ? rawSpaceId.trim()
+      : null;
+
+    const effectiveSpaceIds = spaceIds && spaceIds.length > 0 ? spaceIds : null;
+
     const rows = await this.prisma.$queryRaw<Array<{
       id: string;
       page_id: string;
@@ -85,15 +100,28 @@ export class PrismaPgVectorVectorStore implements VectorStore {
       distance: number;
     }>>`
       SELECT
-        "id",
-        "page_id",
-        "page_version_id",
-        "chunk_index",
-        "content",
-        ("embedding" <-> ${q}::vector) AS distance
-      FROM "rag_chunks"
-      WHERE "tenant_id" = ${input.filter.tenantId}
-        AND (${sourceId}::text IS NULL OR "page_id" = ${sourceId}::text)
+        rc."id",
+        rc."page_id",
+        rc."page_version_id",
+        rc."chunk_index",
+        rc."content",
+        (rc."embedding" <-> ${q}::vector) AS distance
+      FROM "rag_chunks" rc
+      LEFT JOIN "pages" p
+        ON p."id" = rc."page_id"
+       AND p."tenant_id" = rc."tenant_id"
+      WHERE rc."tenant_id" = ${input.filter.tenantId}
+        AND (${sourceId}::text IS NULL OR rc."page_id" = ${sourceId}::text)
+        AND (
+          (
+            ${effectiveSpaceIds}::text[] IS NOT NULL
+            AND p."space_id" = ANY(${effectiveSpaceIds}::text[])
+          )
+          OR (
+            ${effectiveSpaceIds}::text[] IS NULL
+            AND (${spaceId}::text IS NULL OR p."space_id" = ${spaceId}::text)
+          )
+        )
       ORDER BY distance ASC
       LIMIT ${topK};
     `;

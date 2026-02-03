@@ -17,6 +17,9 @@ import {
   AI_MESSAGE_REPOSITORY,
   AI_PROMPT_CONFIG_PROVIDER,
 } from './ai-chat.tokens';
+import { KnowledgeModule } from '../knowledge/knowledge.module';
+import { AI_KNOWLEDGE_SEARCHER } from '../knowledge/knowledge.tokens';
+import type { AiKnowledgeSearcher } from '@contexta/application';
 import { ConversationsController } from './conversations.controller';
 import { ConversationService } from './conversation.service';
 import { MessageService } from './message.service';
@@ -24,6 +27,7 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 
 @Module({
+  imports: [KnowledgeModule],
   controllers: [ConversationsController, ChatController],
   providers: [
     {
@@ -92,18 +96,21 @@ import { ChatService } from './chat.service';
         messageRepo: PrismaAiMessageRepository,
         chatProvider: OpenAICompatibleChatProvider,
         promptConfigProvider: DefaultPromptConfigProvider,
+        knowledgeSearcher: AiKnowledgeSearcher,
       ) =>
         new AiChatUseCase(
           conversationRepo,
           messageRepo,
           chatProvider,
           promptConfigProvider,
+          knowledgeSearcher,
         ),
       inject: [
         AI_CONVERSATION_REPOSITORY,
         AI_MESSAGE_REPOSITORY,
         AI_CHAT_PROVIDER,
         AI_PROMPT_CONFIG_PROVIDER,
+        AI_KNOWLEDGE_SEARCHER,
       ],
     },
     ConversationService,
