@@ -1,0 +1,2 @@
+-- This migration directory was missing its SQL file.
+-- No-op migration to satisfy Prisma migrate file expectations.

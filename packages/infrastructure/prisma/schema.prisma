@@ -49,6 +49,12 @@ enum SpaceMemberRole {
   MEMBER
 }
 
+enum AiMessageRole {
+  SYSTEM
+  USER
+  ASSISTANT
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -406,4 +412,48 @@ model AuthSession {
   @@index([tenantId])
   @@index([expiresAt])
   @@map("auth_sessions")
+}
+
+model AiConversation {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+
+  title String
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  messages AiMessage[]
+
+  @@index([tenantId])
+  @@index([tenantId, updatedAt])
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+
+  conversationId String @map("conversation_id")
+
+  role    AiMessageRole
+  content String
+  model   String?
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, conversationId, createdAt])
+  @@map("ai_messages")
 }
