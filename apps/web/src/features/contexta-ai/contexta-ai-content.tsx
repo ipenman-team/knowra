@@ -19,17 +19,10 @@ import {
 } from '@/components/ui/tooltip';
 import { Markdown } from '@/components/shared/markdown';
 import { cn } from '@/lib/utils';
-import { answerQuestion } from '@/lib/api/rag';
+import { contextaAiApi } from '@/lib/api';
 
 import type { ContextaAiMessage } from '@/features/contexta-ai/types';
-import {
-  ArrowUpIcon,
-  Bot,
-  Loader2,
-  Plus,
-  Share2,
-  X,
-} from 'lucide-react';
+import { ArrowUpIcon, Bot, Loader2, Plus, Share2, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
@@ -202,8 +195,11 @@ export function ContextaAiContent(props: {
     props.onSetMessages(baseMessages);
 
     try {
-      await answerQuestion(
-        question,
+      await contextaAiApi.chatStream(
+        {
+          conversationId: props.conversationId,
+          message: question,
+        },
         {
           onDelta: (delta) => {
             props.onSetMessages(
@@ -333,10 +329,11 @@ export function ContextaAiContent(props: {
             <div className="truncate text-sm font-semibold">{props.title}</div>
           </div>
 
-          <TooltipProvider>
+          {/* <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  asChild
                   type="button"
                   size="icon"
                   variant="ghost"
@@ -348,7 +345,7 @@ export function ContextaAiContent(props: {
               </TooltipTrigger>
               <TooltipContent>{copied ? '已复制链接' : '分享'}</TooltipContent>
             </Tooltip>
-          </TooltipProvider>
+          </TooltipProvider> */}
         </div>
       </div>
 
@@ -371,8 +368,8 @@ export function ContextaAiContent(props: {
 
             <div className="mt-3 space-y-4">
               {props.messages.map((m, idx) =>
-                m.role === 'assistant' && m.content.trim().length === 0 ? null :
-                m.role === 'user' ? (
+                m.role === 'assistant' &&
+                m.content.trim().length === 0 ? null : m.role === 'user' ? (
                   <div key={idx} className="flex justify-end">
                     <div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2 text-sm">
                       {m.content}

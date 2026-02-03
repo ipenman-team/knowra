@@ -35,7 +35,8 @@ export default function ContextaAiContainer() {
 
   const [conversations, setConversations] = useState<UiConversation[]>([]);
   const [activeId, setActiveId] = useState<string>('');
-  const bootstrapRef = useRef(false);
+  const messageReqSeqRef = useRef(0);
+  const messageReqByConversationRef = useRef(new Map<string, number>());
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? conversations[0],
@@ -47,9 +48,6 @@ export default function ContextaAiContainer() {
   }, [active, conversations]);
 
   useEffect(() => {
-    if (bootstrapRef.current) return;
-    bootstrapRef.current = true;
-
     let cancelled = false;
 
     (async () => {
@@ -92,6 +90,9 @@ export default function ContextaAiContainer() {
 
     let cancelled = false;
 
+    const reqId = ++messageReqSeqRef.current;
+    messageReqByConversationRef.current.set(id, reqId);
+
     setConversations((prev) =>
       prev.map((c) => (c.id === id ? { ...c, messagesLoading: true } : c)),
     );
@@ -99,6 +100,7 @@ export default function ContextaAiContainer() {
     (async () => {
       const messages = await contextaAiApi.listMessages(id, { limit: 200 });
       if (cancelled) return;
+      if (messageReqByConversationRef.current.get(id) !== reqId) return;
 
       const mapped = messages
         .map((m) => {
@@ -127,6 +129,7 @@ export default function ContextaAiContainer() {
       );
     })().catch(() => {
       if (cancelled) return;
+      if (messageReqByConversationRef.current.get(id) !== reqId) return;
       setConversations((prev) =>
         prev.map((c) =>
           c.id === id
@@ -138,6 +141,15 @@ export default function ContextaAiContainer() {
 
     return () => {
       cancelled = true;
+
+      // If this request is still the latest for the conversation, unblock UI.
+      if (messageReqByConversationRef.current.get(id) === reqId) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === id ? { ...c, messagesLoading: false } : c,
+          ),
+        );
+      }
     };
   }, [active?.id, conversations]);
 

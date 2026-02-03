@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import {
+  AiChatUseCase,
   AiConversationUseCase,
   AiMessageUseCase,
 } from '@contexta/application';
@@ -7,17 +8,21 @@ import {
   PrismaAiConversationRepository,
   PrismaAiMessageRepository,
 } from '@contexta/infrastructure';
+import { OpenAICompatibleChatProvider } from '@contexta/rag';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  AI_CHAT_PROVIDER,
   AI_CONVERSATION_REPOSITORY,
   AI_MESSAGE_REPOSITORY,
 } from './ai-chat.tokens';
 import { ConversationsController } from './conversations.controller';
 import { ConversationService } from './conversation.service';
 import { MessageService } from './message.service';
+import { ChatController } from './chat.controller';
+import { ChatService } from './chat.service';
 
 @Module({
-  controllers: [ConversationsController],
+  controllers: [ConversationsController, ChatController],
   providers: [
     {
       provide: AI_CONVERSATION_REPOSITORY,
@@ -29,6 +34,20 @@ import { MessageService } from './message.service';
       provide: AI_MESSAGE_REPOSITORY,
       useFactory: (prisma: PrismaService) => new PrismaAiMessageRepository(prisma),
       inject: [PrismaService],
+    },
+    {
+      provide: AI_CHAT_PROVIDER,
+      useFactory: () => {
+        const apiKey = process.env.VOLCENGINE_API_KEY || '';
+        const baseUrl = process.env.VOLC_BASE_URL || '';
+        const model = process.env.VOLC_CHAT_MODEL || '';
+
+        if (!apiKey) throw new Error('VOLCENGINE_API_KEY is required');
+        if (!baseUrl) throw new Error('VOLC_BASE_URL is required');
+        if (!model) throw new Error('VOLC_CHAT_MODEL is required');
+
+        return new OpenAICompatibleChatProvider({ apiKey, baseUrl, model });
+      },
     },
     {
       provide: AiConversationUseCase,
@@ -44,8 +63,18 @@ import { MessageService } from './message.service';
       ) => new AiMessageUseCase(conversationRepo, messageRepo),
       inject: [AI_CONVERSATION_REPOSITORY, AI_MESSAGE_REPOSITORY],
     },
+    {
+      provide: AiChatUseCase,
+      useFactory: (
+        conversationRepo: PrismaAiConversationRepository,
+        messageRepo: PrismaAiMessageRepository,
+        chatProvider: OpenAICompatibleChatProvider,
+      ) => new AiChatUseCase(conversationRepo, messageRepo, chatProvider),
+      inject: [AI_CONVERSATION_REPOSITORY, AI_MESSAGE_REPOSITORY, AI_CHAT_PROVIDER],
+    },
     ConversationService,
     MessageService,
+    ChatService,
   ],
 })
 export class AiChatModule {}

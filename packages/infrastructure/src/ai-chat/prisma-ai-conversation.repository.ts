@@ -39,4 +39,22 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
       },
     });
   }
+
+  async touch(params: {
+    tenantId: string;
+    conversationId: string;
+    actorUserId: string;
+  }): Promise<void> {
+    await this.prisma.aiConversation.updateMany({
+      where: {
+        id: params.conversationId,
+        tenantId: params.tenantId,
+        isDeleted: false,
+      },
+      data: {
+        updatedBy: params.actorUserId,
+        updatedAt: new Date(),
+      },
+    });
+  }
 }
