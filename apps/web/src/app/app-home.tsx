@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
-import { HomeLayout } from '@/components/layout';
+import { ContainerLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';
 import { MainContent } from '@/features/home/components/main-content';
 
@@ -48,10 +48,10 @@ export function HomeScreen(
   useUrlSync();
   usePageStoreSync();
   return (
-    <HomeLayout sidebar={<HomeSidebar />}>
+    <ContainerLayout isRoot sidebar={<HomeSidebar />}>
       <div className={cn('px-6 lg:px-11')}>
         <MainContent />
       </div>
-    </HomeLayout>
+    </ContainerLayout>
   );
 }

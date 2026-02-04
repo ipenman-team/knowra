@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { usePageStoreSync } from '@/hooks';
 
-import { HomeLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';
+import { ContainerLayout } from '@/components/layout/container-layout';
 
 import SpaceMain from '@/components/space/space-main';
 import { useSpaceStore } from '@/stores';
@@ -21,13 +21,18 @@ export default function SpaceInfo({ spaceId }: { spaceId: string }) {
   }, [spaceId, setCurrent]);
 
   return (
-    <HomeLayout sidebar={<HomeSidebar />}>
-      <div className="flex h-full min-h-0 overflow-hidden">
-        <SpaceSidebar />
+    <ContainerLayout sidebar={<HomeSidebar />}>
+      <ContainerLayout
+        stateId="space"
+        defaultWidthRem={18}
+        className="h-full min-h-0 overflow-hidden bg-transparent"
+        insetClassName="min-h-0 overflow-hidden"
+        sidebar={<SpaceSidebar />}
+      >
         <div className="flex-1 min-h-0 overflow-auto">
           <SpaceMain spaceId={spaceId} />
         </div>
-      </div>
-    </HomeLayout>
+      </ContainerLayout>
+    </ContainerLayout>
   );
 }

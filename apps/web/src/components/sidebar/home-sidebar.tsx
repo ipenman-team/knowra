@@ -1,11 +1,10 @@
-"use client";
+'use client';
 
 import { memo, useCallback, useEffect, useState } from 'react';
 import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
 import { AccountMenu } from '../account-menu';
 import {
-  Sidebar,
   SidebarHeader,
   SidebarContent,
   SidebarGroup,
@@ -15,6 +14,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
+import { SidebarContainer } from '@/components/sidebar/sidebar-container';
 import type { SpaceDto } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
@@ -39,7 +39,12 @@ export const HomeSidebar = memo(function HomeSidebar() {
   const handleSelectView = useCallback(
     (id: ViewId) => {
       setSelectedView(id);
-      const target = id === 'dashboard' ? '/' : id === 'settings' ? '/settings' : '/contexta-ai';
+      const target =
+        id === 'dashboard'
+          ? '/'
+          : id === 'settings'
+            ? '/settings'
+            : '/contexta-ai';
       router.push(target);
     },
     [router, setSelectedView],
@@ -56,10 +61,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
   return (
     <>
-      <Sidebar resizable collapsible="icon">
+      <SidebarContainer>
         <SidebarHeader>
           <div className="flex justify-between p-3">
-            <div></div>
+            <div>{/* flex 占位 */}</div>
             <div>
               <AccountMenu />
             </div>
@@ -148,7 +153,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
             onCreated={handleCreated}
           />
         )}
-      </Sidebar>
+      </SidebarContainer>
     </>
   );
 });

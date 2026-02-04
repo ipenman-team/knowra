@@ -17,14 +17,13 @@ import {
   SidebarGroupContent,
   SidebarFooter,
 } from '@/components/ui/sidebar';
+import { SidebarContainer } from '@/components/sidebar/sidebar-container';
 import {
   BoltIcon,
   BookMinus,
   ChevronLeft,
-  FolderIcon,
   ListTreeIcon,
   RecycleIcon,
-  FileTextIcon,
 } from 'lucide-react';
 import { PageTreeContainer } from '@/components/page-tree/components/tree-container';
 import { CreatePageMenu } from '../page-tree/components/create-page-menu';
@@ -39,7 +38,7 @@ import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import DirectoryList from './directory-list';
 
-export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
+export const SpaceSidebar = memo(function SpaceSidebar() {
   const router = useRouter();
   const spaces = useSpaces();
   const currentId = useCurrentSpaceId();
@@ -62,7 +61,10 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
   );
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <SidebarContainer
+      position="relative"
+      className="flex h-full shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground"
+    >
       <SidebarHeader>
         <div className="flex items-center justify-between p-3">
           <button
@@ -134,6 +136,6 @@ export const SpaceSidebar = memo(function SpaceSidebar(props: {}) {
           </Button>
         </div>
       </SidebarFooter>
-    </aside>
+    </SidebarContainer>
   );
 });

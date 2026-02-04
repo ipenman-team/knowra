@@ -58,6 +58,7 @@ const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     defaultOpen?: boolean
+    defaultWidthRem?: number
     open?: boolean
     onOpenChange?: (open: boolean) => void
     stateId?: string
@@ -66,6 +67,7 @@ const SidebarProvider = React.forwardRef<
   (
     {
       defaultOpen = true,
+      defaultWidthRem: defaultWidthRemProp,
       open: openProp,
       onOpenChange: setOpenProp,
       stateId,
@@ -79,10 +81,12 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    const initialWidthRem = React.useMemo(
-      () => Number.parseFloat(SIDEBAR_WIDTH),
-      []
-    )
+    const initialWidthRem = React.useMemo(() => {
+      if (typeof defaultWidthRemProp === "number" && Number.isFinite(defaultWidthRemProp) && defaultWidthRemProp > 0) {
+        return defaultWidthRemProp
+      }
+      return Number.parseFloat(SIDEBAR_WIDTH)
+    }, [defaultWidthRemProp])
 
     const storeSnapshot = useSidebarUiSnapshot(stateId)
 
@@ -220,6 +224,7 @@ const Sidebar = React.forwardRef<
     resizable?: boolean
     minWidth?: number
     maxWidth?: number
+    position?: "fixed" | "relative"
   }
 >(
   (
@@ -230,6 +235,7 @@ const Sidebar = React.forwardRef<
       resizable = false,
       minWidth = 12,
       maxWidth = 28,
+      position = "fixed",
       className,
       children,
       ...props
@@ -388,6 +394,88 @@ const Sidebar = React.forwardRef<
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
+      )
+    }
+
+    if (position === "relative") {
+      return (
+        <div
+          ref={ref}
+          className="group peer hidden text-sidebar-foreground md:block"
+          data-state={state}
+          data-collapsible={state === "collapsed" ? collapsible : ""}
+          data-variant={variant}
+          data-side={side}
+          data-resizing={isResizing ? "true" : "false"}
+        >
+          <div
+            className={cn(
+              "relative flex h-full w-[--sidebar-width] overflow-hidden bg-transparent transition-[width] duration-200 ease-linear group-data-[resizing=true]:transition-none",
+              "group-data-[collapsible=offcanvas]:w-0",
+              side === "right" ? "ml-auto" : "",
+              // Adjust the padding for floating and inset variants.
+              variant === "floating" || variant === "inset"
+                ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
+                : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+              className
+            )}
+            {...props}
+          >
+            <div
+              data-sidebar="sidebar"
+              className="relative flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+            >
+              {children}
+
+              {resizable && (
+                <button
+                  type="button"
+                  aria-label="Resize Sidebar"
+                  onPointerDown={handleResizePointerDown}
+                  className={cn(
+                    "absolute inset-y-0 z-20 hidden w-4 bg-transparent md:block",
+                    state === "expanded" ? "cursor-col-resize" : "cursor-default",
+                    "group/resize outline-none",
+                    side === "left" ? "-right-2" : "-left-2"
+                  )}
+                >
+                  <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-sidebar-border/60" />
+                  <span
+                    data-sidebar="resize-toggle"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={state === "expanded" ? "Collapse Sidebar" : "Expand Sidebar"}
+                    className={cn(
+                      "absolute top-1/2 left-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-background/80 text-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition-opacity group-hover/resize:opacity-100",
+                      "cursor-pointer"
+                    )}
+                    onPointerDown={(e) => {
+                      // Icon is a click affordance; don't start resizing from it.
+                      e.stopPropagation()
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      toggleSidebar()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return
+                      e.preventDefault()
+                      e.stopPropagation()
+                      toggleSidebar()
+                    }}
+                  >
+                    {state === "expanded" ? (
+                      <ChevronsLeft className="size-4" />
+                    ) : (
+                      <ChevronsRight className="size-4" />
+                    )}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )
     }
 

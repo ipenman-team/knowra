@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { HomeLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';
 import { usePageStoreSync } from '@/hooks';
 import { usePageSelectionStore } from '@/stores';
@@ -12,6 +11,7 @@ import { ContextaAiContent } from '@/features/contexta-ai/contexta-ai-content';
 
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { contextaAiApi } from '@/lib/api';
+import { ContainerLayout } from '@/components/layout/container-layout';
 
 type UiConversation = ContextaAiConversation & {
   messagesLoaded?: boolean;
@@ -237,47 +237,55 @@ export default function ContextaAiContainer() {
   }
 
   return (
-    <HomeLayout sidebar={<HomeSidebar />}>
+    <ContainerLayout sidebar={<HomeSidebar />}>
       <div className="flex h-full min-h-0 overflow-hidden">
-        <ContextaAiSidebar
-          conversations={conversations}
-          activeId={active?.id ?? ''}
-          onNewConversation={handleNewConversation}
-          onSelectConversation={handleSelectConversation}
-          onRenameConversation={handleRenameConversation}
-          onTogglePinConversation={handleTogglePinConversation}
-        />
-
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {active ? (
-            <ContextaAiContent
-              key={active.id}
-              conversationId={active.id}
-              title={active.title}
-              messages={active.messages}
-              draft={active.draft}
-              onDraftChange={(draft) =>
-                updateConversation(active.id, (c) => ({ ...c, draft }))
-              }
-              onSetTitle={(title) => {
-                updateConversation(active.id, (c) => ({ ...c, title }));
-                handleRenameConversation(active.id, title);
-              }}
-              onSetMessages={(messages) =>
-                updateConversation(active.id, (c) => ({
-                  ...c,
-                  messages,
-                  updatedAt: Date.now(),
-                }))
-              }
+        <ContainerLayout
+          stateId="contexta-ai"
+          defaultWidthRem={18}
+          className="h-full min-h-0 overflow-hidden bg-transparent"
+          insetClassName="min-h-0 overflow-hidden"
+          sidebar={
+            <ContextaAiSidebar
+              conversations={conversations}
+              activeId={active?.id ?? ''}
+              onNewConversation={handleNewConversation}
+              onSelectConversation={handleSelectConversation}
+              onRenameConversation={handleRenameConversation}
+              onTogglePinConversation={handleTogglePinConversation}
             />
-          ) : (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              暂无对话，请先新建一个对话。
-            </div>
-          )}
-        </div>
+          }
+        >
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {active ? (
+              <ContextaAiContent
+                key={active.id}
+                conversationId={active.id}
+                title={active.title}
+                messages={active.messages}
+                draft={active.draft}
+                onDraftChange={(draft) =>
+                  updateConversation(active.id, (c) => ({ ...c, draft }))
+                }
+                onSetTitle={(title) => {
+                  updateConversation(active.id, (c) => ({ ...c, title }));
+                  handleRenameConversation(active.id, title);
+                }}
+                onSetMessages={(messages) =>
+                  updateConversation(active.id, (c) => ({
+                    ...c,
+                    messages,
+                    updatedAt: Date.now(),
+                  }))
+                }
+              />
+            ) : (
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                暂无对话，请先新建一个对话。
+              </div>
+            )}
+          </div>
+        </ContainerLayout>
       </div>
-    </HomeLayout>
+    </ContainerLayout>
   );
 }
