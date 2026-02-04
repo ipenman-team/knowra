@@ -410,7 +410,7 @@ const Sidebar = React.forwardRef<
         >
           <div
             className={cn(
-              "relative flex h-full w-[--sidebar-width] overflow-hidden bg-transparent transition-[width] duration-200 ease-linear group-data-[resizing=true]:transition-none",
+              "relative flex h-full w-[--sidebar-width] bg-transparent transition-[width] duration-200 ease-linear group-data-[resizing=true]:transition-none",
               "group-data-[collapsible=offcanvas]:w-0",
               side === "right" ? "ml-auto" : "",
               // Adjust the padding for floating and inset variants.
