@@ -186,11 +186,39 @@ export default function ContextaAiContainer() {
   }
 
   function handleRenameConversation(id: string, title: string) {
+    const nextTitle = title.trim() || '未命名对话';
+    const existed = conversations.find((c) => c.id === id);
+    const prevTitle = existed?.title ?? '';
+    const prevUpdatedAt = existed?.updatedAt ?? Date.now();
+
+    if (prevTitle === nextTitle) return;
+
+    // Optimistic update
     updateConversation(id, (c) => ({
       ...c,
-      title: title.trim(),
+      title: nextTitle,
       updatedAt: Date.now(),
     }));
+
+    void (async () => {
+      try {
+        const updated = await contextaAiApi.renameConversation(id, {
+          title: nextTitle,
+        });
+        updateConversation(id, (c) => ({
+          ...c,
+          title: updated.title,
+          updatedAt: toEpochMs(updated.updatedAt),
+        }));
+      } catch {
+        // Rollback on error; global API client handles user-facing errors.
+        updateConversation(id, (c) => ({
+          ...c,
+          title: prevTitle,
+          updatedAt: prevUpdatedAt,
+        }));
+      }
+    })();
   }
 
   function handleTogglePinConversation(id: string) {

@@ -17,6 +17,13 @@ export interface AiConversationRepository {
     conversationId: string;
   }): Promise<AiConversation | null>;
 
+  renameTitle(params: {
+    tenantId: string;
+    conversationId: string;
+    title: string;
+    actorUserId: string;
+  }): Promise<AiConversation>;
+
   touch(params: {
     tenantId: string;
     conversationId: string;

@@ -109,11 +109,28 @@ async function main() {
   const messages = (await messagesRes.json()) as unknown[];
   if (!Array.isArray(messages)) throw new Error('messages is not array');
 
+  const renameRes = await fetch(
+    `${baseUrl}/api/conversations/${created.id}/rename`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ title: '重命名-测试对话' }),
+    },
+  );
+  if (!renameRes.ok) {
+    throw new Error(`rename conversation failed: ${renameRes.status}`);
+  }
+  const renamed = (await renameRes.json()) as { id: string; title: string };
+  if (renamed?.id !== created.id) throw new Error('rename response id mismatch');
+  if (renamed?.title !== '重命名-测试对话') {
+    throw new Error(`rename response title mismatch: ${renamed?.title}`);
+  }
+
   await app.close();
   await prisma.$disconnect();
 
   process.stdout.write(
-    `OK stage2: conversation=${created.id} title=${created.title} messages=${messages.length}\n`,
+    `OK stage2: conversation=${created.id} title=${renamed.title} messages=${messages.length}\n`,
   );
 }
 

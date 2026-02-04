@@ -2,6 +2,7 @@ import type {
   AiConversation,
   AiConversationRepository,
 } from '@contexta/domain';
+import { AiConversationNotFoundError } from './errors';
 
 export class AiConversationUseCase {
   constructor(private readonly repo: AiConversationRepository) {}
@@ -40,6 +41,32 @@ export class AiConversationUseCase {
     return await this.repo.getById({
       tenantId: params.tenantId,
       conversationId: params.conversationId,
+    });
+  }
+
+  async renameTitle(params: {
+    tenantId: string;
+    conversationId: string;
+    title?: string | null;
+    actorUserId: string;
+  }): Promise<AiConversation> {
+    if (!params.tenantId) throw new Error('tenantId is required');
+    if (!params.conversationId) throw new Error('conversationId is required');
+    if (!params.actorUserId) throw new Error('actorUserId is required');
+
+    const title = (params.title ?? '').trim() || '未命名对话';
+
+    const existed = await this.repo.getById({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+    });
+    if (!existed) throw new AiConversationNotFoundError(params.conversationId);
+
+    return await this.repo.renameTitle({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+      title,
+      actorUserId: params.actorUserId,
     });
   }
 }

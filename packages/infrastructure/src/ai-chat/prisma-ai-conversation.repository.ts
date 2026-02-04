@@ -40,6 +40,23 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
     });
   }
 
+  async renameTitle(params: {
+    tenantId: string;
+    conversationId: string;
+    title: string;
+    actorUserId: string;
+  }) {
+    // NOTE: tenant isolation is ensured by an existence check in application layer.
+    return await this.prisma.aiConversation.update({
+      where: { id: params.conversationId },
+      data: {
+        title: params.title,
+        updatedBy: params.actorUserId,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   async touch(params: {
     tenantId: string;
     conversationId: string;

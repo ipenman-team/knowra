@@ -16,4 +16,13 @@ export class ConversationService {
   list(params: { tenantId: string; limit?: number | null }) {
     return this.useCase.list(params);
   }
+
+  renameTitle(params: {
+    tenantId: string;
+    conversationId: string;
+    title?: string | null;
+    actorUserId: string;
+  }) {
+    return this.useCase.renameTitle(params);
+  }
 }

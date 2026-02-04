@@ -20,6 +20,10 @@ type CreateConversationBody = {
   title?: string;
 };
 
+type RenameConversationBody = {
+  title?: unknown;
+};
+
 @Controller('api/conversations')
 export class ConversationsController {
   constructor(
@@ -67,6 +71,31 @@ export class ConversationsController {
         tenantId,
         conversationId,
         limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      });
+    } catch (err) {
+      if (err instanceof AiConversationNotFoundError) {
+        throw new NotFoundException('conversation not found');
+      }
+      throw err;
+    }
+  }
+
+  @Post(':id/rename')
+  async rename(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('id') conversationId: string,
+    @Body() body: RenameConversationBody,
+  ): Promise<AiConversation> {
+    if (!userId) throw new UnauthorizedException('unauthorized');
+
+    const title = typeof body?.title === 'string' ? body.title : '';
+    try {
+      return await this.conversationService.renameTitle({
+        tenantId,
+        conversationId,
+        title,
+        actorUserId: userId,
       });
     } catch (err) {
       if (err instanceof AiConversationNotFoundError) {

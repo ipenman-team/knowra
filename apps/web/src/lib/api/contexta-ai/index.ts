@@ -35,6 +35,14 @@ export const contextaAiApi = {
     return res.data;
   },
 
+  async renameConversation(conversationId: string, input: { title: string }) {
+    const res = await contextaAiClient.post<AiConversationDto>(
+      `/api/conversations/${encodeURIComponent(conversationId)}/rename`,
+      { title: input.title },
+    );
+    return res.data;
+  },
+
   async chat(input: {
     conversationId: string;
     message: string;
