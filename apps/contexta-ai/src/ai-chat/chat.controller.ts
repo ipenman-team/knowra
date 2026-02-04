@@ -128,7 +128,6 @@ export class ChatController {
         message,
         actorUserId: userId,
         signal: controller.signal,
-        dataSource: body.dataSource,
       });
 
       for await (const delta of stream) {

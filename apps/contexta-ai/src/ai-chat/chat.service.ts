@@ -25,11 +25,6 @@ export class ChatService {
     message: string;
     actorUserId: string;
     signal?: AbortSignal;
-    dataSource?: {
-      internetEnabled?: boolean;
-      spaceEnabled?: boolean;
-      spaceIds?: string[];
-    };
   }) {
     return this.useCase.answerStream(params);
   }

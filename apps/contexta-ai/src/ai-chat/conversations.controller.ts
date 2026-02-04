@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -23,6 +24,24 @@ type CreateConversationBody = {
 type RenameConversationBody = {
   title?: unknown;
 };
+
+type ConversationSourcesBody = {
+  internetEnabled?: unknown;
+  spaceEnabled?: unknown;
+  spaceIds?: unknown;
+};
+
+function normalizeSpaceIds(spaceIds: unknown): string[] {
+  if (!Array.isArray(spaceIds)) return [];
+  const uniq = new Set<string>();
+  for (const raw of spaceIds) {
+    if (typeof raw !== 'string') continue;
+    const v = raw.trim();
+    if (!v) continue;
+    uniq.add(v);
+  }
+  return Array.from(uniq);
+}
 
 @Controller('api/conversations')
 export class ConversationsController {
@@ -95,6 +114,59 @@ export class ConversationsController {
         tenantId,
         conversationId,
         title,
+        actorUserId: userId,
+      });
+    } catch (err) {
+      if (err instanceof AiConversationNotFoundError) {
+        throw new NotFoundException('conversation not found');
+      }
+      throw err;
+    }
+  }
+
+  @Get(':id/sources')
+  async getSources(
+    @TenantId() tenantId: string,
+    @Param('id') conversationId: string,
+  ): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+    try {
+      return await this.conversationService.getSources({
+        tenantId,
+        conversationId,
+      });
+    } catch (err) {
+      if (err instanceof AiConversationNotFoundError) {
+        throw new NotFoundException('conversation not found');
+      }
+      throw err;
+    }
+  }
+
+  @Post(':id/sources')
+  async updateSources(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('id') conversationId: string,
+    @Body() body: ConversationSourcesBody,
+  ): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+    if (!userId) throw new UnauthorizedException('unauthorized');
+
+    if (typeof body?.internetEnabled !== 'boolean') {
+      throw new BadRequestException('internetEnabled must be boolean');
+    }
+    if (typeof body?.spaceEnabled !== 'boolean') {
+      throw new BadRequestException('spaceEnabled must be boolean');
+    }
+
+    const spaceIds = normalizeSpaceIds(body?.spaceIds);
+
+    try {
+      return await this.conversationService.updateSources({
+        tenantId,
+        conversationId,
+        internetEnabled: body.internetEnabled,
+        spaceEnabled: body.spaceEnabled,
+        spaceIds,
         actorUserId: userId,
       });
     } catch (err) {

@@ -25,4 +25,19 @@ export class ConversationService {
   }) {
     return this.useCase.renameTitle(params);
   }
+
+  getSources(params: { tenantId: string; conversationId: string }) {
+    return this.useCase.getSources(params);
+  }
+
+  updateSources(params: {
+    tenantId: string;
+    conversationId: string;
+    internetEnabled: boolean;
+    spaceEnabled: boolean;
+    spaceIds: string[];
+    actorUserId: string;
+  }) {
+    return this.useCase.updateSources(params);
+  }
 }

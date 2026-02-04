@@ -69,4 +69,62 @@ export class AiConversationUseCase {
       actorUserId: params.actorUserId,
     });
   }
+
+  async getSources(params: {
+    tenantId: string;
+    conversationId: string;
+  }): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+    if (!params.tenantId) throw new Error('tenantId is required');
+    if (!params.conversationId) throw new Error('conversationId is required');
+
+    const existed = await this.repo.getById({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+    });
+    if (!existed) throw new AiConversationNotFoundError(params.conversationId);
+
+    return {
+      internetEnabled: Boolean(existed.internetEnabled),
+      spaceEnabled: Boolean(existed.spaceEnabled),
+      spaceIds: Array.isArray(existed.spaceIds) ? existed.spaceIds : [],
+    };
+  }
+
+  async updateSources(params: {
+    tenantId: string;
+    conversationId: string;
+    internetEnabled: boolean;
+    spaceEnabled: boolean;
+    spaceIds: string[];
+    actorUserId: string;
+  }): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+    if (!params.tenantId) throw new Error('tenantId is required');
+    if (!params.conversationId) throw new Error('conversationId is required');
+    if (!params.actorUserId) throw new Error('actorUserId is required');
+
+    const existed = await this.repo.getById({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+    });
+    if (!existed) throw new AiConversationNotFoundError(params.conversationId);
+
+    const internetEnabled = Boolean(params.internetEnabled);
+    const spaceEnabled = Boolean(params.spaceEnabled);
+    const spaceIds = Array.isArray(params.spaceIds) ? params.spaceIds : [];
+
+    const updated = await this.repo.updateSources({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+      internetEnabled,
+      spaceEnabled,
+      spaceIds,
+      actorUserId: params.actorUserId,
+    });
+
+    return {
+      internetEnabled: Boolean(updated.internetEnabled),
+      spaceEnabled: Boolean(updated.spaceEnabled),
+      spaceIds: Array.isArray(updated.spaceIds) ? updated.spaceIds : [],
+    };
+  }
 }

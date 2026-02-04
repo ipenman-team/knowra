@@ -57,6 +57,39 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
     });
   }
 
+  async updateSources(params: {
+    tenantId: string;
+    conversationId: string;
+    internetEnabled: boolean;
+    spaceEnabled: boolean;
+    spaceIds: string[];
+    actorUserId: string;
+  }) {
+    await this.prisma.aiConversation.updateMany({
+      where: {
+        id: params.conversationId,
+        tenantId: params.tenantId,
+        isDeleted: false,
+      },
+      data: {
+        internetEnabled: params.internetEnabled,
+        spaceEnabled: params.spaceEnabled,
+        spaceIds: params.spaceIds,
+        updatedBy: params.actorUserId,
+        updatedAt: new Date(),
+      },
+    });
+
+    const updated = await this.getById({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+    });
+    if (!updated) {
+      throw new Error('conversation not found');
+    }
+    return updated;
+  }
+
   async touch(params: {
     tenantId: string;
     conversationId: string;

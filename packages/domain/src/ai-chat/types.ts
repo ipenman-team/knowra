@@ -4,6 +4,14 @@ export type AiConversation = {
   id: string;
   tenantId: string;
   title: string;
+
+  internetEnabled: boolean;
+  spaceEnabled: boolean;
+  /**
+   * Empty array means search all spaces.
+   */
+  spaceIds: string[];
+
   createdBy: string;
   updatedBy: string;
   isDeleted: boolean;

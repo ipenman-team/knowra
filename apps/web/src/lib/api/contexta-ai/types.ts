@@ -11,3 +11,9 @@ export type AiMessageDto = {
   content: string;
   createdAt: string;
 };
+
+export type AiConversationSourcesDto = {
+  internetEnabled: boolean;
+  spaceEnabled: boolean;
+  spaceIds: string[];
+};

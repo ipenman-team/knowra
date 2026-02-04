@@ -13,6 +13,18 @@ import { ContextaAiMessageList } from '@/features/contexta-ai/components/context
 import { ContextaAiComposer } from '@/features/contexta-ai/components/contexta-ai-composer';
 import { hasAbortName } from '@/features/contexta-ai/components/utils';
 
+function normalizeSpaceIds(spaceIds: unknown): string[] {
+  if (!Array.isArray(spaceIds)) return [];
+  const uniq = new Set<string>();
+  for (const raw of spaceIds) {
+    if (typeof raw !== 'string') continue;
+    const v = raw.trim();
+    if (!v) continue;
+    uniq.add(v);
+  }
+  return Array.from(uniq);
+}
+
 export function ContextaAiContent(props: {
   conversationId: string;
   title: string;
@@ -29,61 +41,119 @@ export function ContextaAiContent(props: {
   const [spaceEnabled, setSpaceEnabled] = useState(false);
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
 
+  const sourcesLoadedRef = useRef(false);
+  const sourcesSaveTimerRef = useRef<number | null>(null);
+  const lastSavedSourcesRef = useRef<string>('');
+
   useEffect(() => {
     void ensureSpacesLoaded();
   }, [ensureSpacesLoaded]);
 
   useEffect(() => {
-    try {
-      // New schema: contexta-ai.sources
-      const raw = localStorage.getItem('contexta-ai.sources');
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (typeof parsed === 'object' && parsed !== null) {
-          const obj = parsed as Record<string, unknown>;
-          if (typeof obj.internetEnabled === 'boolean')
-            setInternetEnabled(obj.internetEnabled);
-          if (typeof obj.spaceEnabled === 'boolean') setSpaceEnabled(obj.spaceEnabled);
-          if (Array.isArray(obj.selectedSpaceIds)) {
-            setSelectedSpaceIds(
-              obj.selectedSpaceIds
-                .map((x) => (typeof x === 'string' ? x.trim() : ''))
-                .filter(Boolean),
-            );
-          }
-        }
-        return;
-      }
-
-      // Backward compatible schema: contexta-ai.knowledge
-      const legacyRaw = localStorage.getItem('contexta-ai.knowledge');
-      if (!legacyRaw) return;
-      const legacyParsed: unknown = JSON.parse(legacyRaw);
-      if (typeof legacyParsed !== 'object' || legacyParsed === null) return;
-      const obj = legacyParsed as Record<string, unknown>;
-      const enabled = typeof obj.enabled === 'boolean' ? obj.enabled : false;
-      const spaceId = typeof obj.spaceId === 'string' ? obj.spaceId.trim() : '';
-      setSpaceEnabled(enabled);
-      setSelectedSpaceIds(spaceId ? [spaceId] : []);
-    } catch {
-      // ignore
+    sourcesLoadedRef.current = false;
+    if (sourcesSaveTimerRef.current) {
+      window.clearTimeout(sourcesSaveTimerRef.current);
+      sourcesSaveTimerRef.current = null;
     }
-  }, []);
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const cfg = await contextaAiApi.getConversationSources(
+          props.conversationId,
+        );
+        if (cancelled) return;
+
+        const next = {
+          internetEnabled: Boolean(cfg.internetEnabled),
+          spaceEnabled: Boolean(cfg.spaceEnabled),
+          spaceIds: normalizeSpaceIds(cfg.spaceIds),
+        };
+
+        setInternetEnabled(next.internetEnabled);
+        setSpaceEnabled(next.spaceEnabled);
+        setSelectedSpaceIds(next.spaceIds);
+
+        lastSavedSourcesRef.current = JSON.stringify(next);
+      } catch {
+        if (cancelled) return;
+
+        const fallback = {
+          internetEnabled: true,
+          spaceEnabled: false,
+          spaceIds: [],
+        };
+        setInternetEnabled(fallback.internetEnabled);
+        setSpaceEnabled(fallback.spaceEnabled);
+        setSelectedSpaceIds(fallback.spaceIds);
+        lastSavedSourcesRef.current = JSON.stringify(fallback);
+      } finally {
+        if (!cancelled) sourcesLoadedRef.current = true;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (sourcesSaveTimerRef.current) {
+        window.clearTimeout(sourcesSaveTimerRef.current);
+        sourcesSaveTimerRef.current = null;
+      }
+    };
+  }, [props.conversationId]);
+
+  async function persistSourcesNow(): Promise<void> {
+    if (!sourcesLoadedRef.current) return;
+    if (sourcesSaveTimerRef.current) {
+      window.clearTimeout(sourcesSaveTimerRef.current);
+      sourcesSaveTimerRef.current = null;
+    }
+
+    const payload = {
+      internetEnabled,
+      spaceEnabled,
+      spaceIds: normalizeSpaceIds(selectedSpaceIds),
+    };
+    const key = JSON.stringify(payload);
+    if (key === lastSavedSourcesRef.current) return;
+
+    const saved = await contextaAiApi.updateConversationSources(
+      props.conversationId,
+      payload,
+    );
+    lastSavedSourcesRef.current = JSON.stringify({
+      internetEnabled: Boolean(saved.internetEnabled),
+      spaceEnabled: Boolean(saved.spaceEnabled),
+      spaceIds: normalizeSpaceIds(saved.spaceIds),
+    });
+  }
 
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        'contexta-ai.sources',
-        JSON.stringify({
-          internetEnabled,
-          spaceEnabled,
-          selectedSpaceIds,
-        }),
-      );
-    } catch {
-      // ignore
+    if (!sourcesLoadedRef.current) return;
+
+    const payload = {
+      internetEnabled,
+      spaceEnabled,
+      spaceIds: normalizeSpaceIds(selectedSpaceIds),
+    };
+    const key = JSON.stringify(payload);
+    if (key === lastSavedSourcesRef.current) return;
+
+    if (sourcesSaveTimerRef.current) {
+      window.clearTimeout(sourcesSaveTimerRef.current);
     }
-  }, [internetEnabled, spaceEnabled, selectedSpaceIds]);
+    sourcesSaveTimerRef.current = window.setTimeout(() => {
+      void persistSourcesNow().catch(() => {
+        // Best-effort; ignore persistence errors here.
+      });
+    }, 300);
+
+    return () => {
+      if (sourcesSaveTimerRef.current) {
+        window.clearTimeout(sourcesSaveTimerRef.current);
+        sourcesSaveTimerRef.current = null;
+      }
+    };
+  }, [internetEnabled, spaceEnabled, selectedSpaceIds, props.conversationId]);
   const [submittedQuestion, setSubmittedQuestion] = useState<string | null>(
     null,
   );
@@ -155,6 +225,14 @@ export function ContextaAiContent(props: {
     const question = q.trim();
     if (!question || loading) return;
 
+    try {
+      await persistSourcesNow();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '保存信息源设置失败';
+      setError(message);
+      return;
+    }
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -185,11 +263,6 @@ export function ContextaAiContent(props: {
         {
           conversationId: props.conversationId,
           message: question,
-          dataSource: {
-            internetEnabled,
-            spaceEnabled,
-            spaceIds: selectedSpaceIds,
-          },
         },
         {
           onDelta: (delta) => {

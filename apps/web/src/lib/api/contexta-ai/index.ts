@@ -1,5 +1,5 @@
 import { contextaAiClient, getContextaAiBaseUrl } from './client';
-import type { AiConversationDto, AiMessageDto } from './types';
+import type { AiConversationDto, AiConversationSourcesDto, AiMessageDto } from './types';
 import { ApiError, handleUnauthorized } from '../client';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -43,6 +43,24 @@ export const contextaAiApi = {
     return res.data;
   },
 
+  async getConversationSources(conversationId: string) {
+    const res = await contextaAiClient.get<AiConversationSourcesDto>(
+      `/api/conversations/${encodeURIComponent(conversationId)}/sources`,
+    );
+    return res.data;
+  },
+
+  async updateConversationSources(
+    conversationId: string,
+    input: AiConversationSourcesDto,
+  ) {
+    const res = await contextaAiClient.post<AiConversationSourcesDto>(
+      `/api/conversations/${encodeURIComponent(conversationId)}/sources`,
+      input,
+    );
+    return res.data;
+  },
+
   async chat(input: {
     conversationId: string;
     message: string;
@@ -67,15 +85,6 @@ export const contextaAiApi = {
     input: {
       conversationId: string;
       message: string;
-      dataSource?: {
-        // New: 信息源设置
-        internetEnabled?: boolean;
-        spaceEnabled?: boolean;
-        spaceIds?: string[];
-        // Backward compatible
-        enabled?: boolean;
-        spaceId?: string | null;
-      };
     },
     handlers: { onDelta: (delta: string) => void },
     options?: { signal?: AbortSignal },
@@ -174,5 +183,5 @@ export const contextaAiApi = {
   },
 };
 
-export type { AiConversationDto, AiMessageDto } from './types';
+export type { AiConversationDto, AiConversationSourcesDto, AiMessageDto } from './types';
 export { getContextaAiBaseUrl } from './client';

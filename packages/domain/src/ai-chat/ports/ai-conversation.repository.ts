@@ -24,6 +24,15 @@ export interface AiConversationRepository {
     actorUserId: string;
   }): Promise<AiConversation>;
 
+  updateSources(params: {
+    tenantId: string;
+    conversationId: string;
+    internetEnabled: boolean;
+    spaceEnabled: boolean;
+    spaceIds: string[];
+    actorUserId: string;
+  }): Promise<AiConversation>;
+
   touch(params: {
     tenantId: string;
     conversationId: string;

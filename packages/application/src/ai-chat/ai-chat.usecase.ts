@@ -119,8 +119,14 @@ export class AiChatUseCase {
     spaceEnabled: boolean;
     spaceIds: string[];
   } {
-    const internetEnabled = Boolean(params.dataSource?.internetEnabled);
-    const spaceEnabled = Boolean(params.dataSource?.spaceEnabled);
+    const internetEnabled =
+      params.dataSource?.internetEnabled === undefined
+        ? true
+        : Boolean(params.dataSource.internetEnabled);
+    const spaceEnabled =
+      params.dataSource?.spaceEnabled === undefined
+        ? false
+        : Boolean(params.dataSource.spaceEnabled);
 
     return {
       internetEnabled,
@@ -194,7 +200,7 @@ export class AiChatUseCase {
     const input = (params.message ?? '').trim();
     if (!input) throw new Error('message is required');
 
-    await this.ensureConversation({
+    const conversation = await this.ensureConversation({
       tenantId: params.tenantId,
       conversationId: params.conversationId,
     });
@@ -205,7 +211,13 @@ export class AiChatUseCase {
     });
 
     const dataSource = this.resolveDataSource({
-      dataSource: params.dataSource,
+      dataSource:
+        params.dataSource ??
+        ({
+          internetEnabled: conversation.internetEnabled,
+          spaceEnabled: conversation.spaceEnabled,
+          spaceIds: conversation.spaceIds,
+        } satisfies AiChatDataSource),
     });
 
     const knowledge = await this.buildKnowledgeContext({
@@ -370,8 +382,6 @@ export class AiChatUseCase {
     message: string;
     actorUserId: string;
     signal?: AbortSignal;
-    dataSource?: AiChatDataSource;
-    knowledge?: { enabled?: boolean; spaceId?: string | null };
   }): AsyncIterable<string> {
     const self = this;
 
@@ -383,7 +393,7 @@ export class AiChatUseCase {
       const input = (params.message ?? '').trim();
       if (!input) throw new Error('message is required');
 
-      await self.ensureConversation({
+      const conversation = await self.ensureConversation({
         tenantId: params.tenantId,
         conversationId: params.conversationId,
       });
@@ -394,7 +404,11 @@ export class AiChatUseCase {
       });
 
       const dataSource = self.resolveDataSource({
-        dataSource: params.dataSource,
+        dataSource: {
+          internetEnabled: conversation.internetEnabled,
+          spaceEnabled: conversation.spaceEnabled,
+          spaceIds: conversation.spaceIds,
+        },
       });
 
       const knowledge = await self.buildKnowledgeContext({
