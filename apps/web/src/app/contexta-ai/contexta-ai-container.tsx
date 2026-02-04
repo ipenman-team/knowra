@@ -103,7 +103,9 @@ export default function ContextaAiContainer() {
         if (!found || found.messagesLoading || found.messagesLoaded) {
           return prev;
         }
-        return prev.map((c) => (c.id === id ? { ...c, messagesLoading: true } : c));
+        return prev.map((c) =>
+          c.id === id ? { ...c, messagesLoading: true } : c,
+        );
       });
 
       const messages = await contextaAiApi.listMessages(id, { limit: 200 });
@@ -155,9 +157,7 @@ export default function ContextaAiContainer() {
       // If this request is still the latest for the conversation, unblock UI.
       if (messageReqByConversationRef.current.get(id) === reqId) {
         setConversations((prev) =>
-          prev.map((c) =>
-            c.id === id ? { ...c, messagesLoading: false } : c,
-          ),
+          prev.map((c) => (c.id === id ? { ...c, messagesLoading: false } : c)),
         );
       }
     };
@@ -259,9 +259,10 @@ export default function ContextaAiContainer() {
               onDraftChange={(draft) =>
                 updateConversation(active.id, (c) => ({ ...c, draft }))
               }
-              onSetTitle={(title) =>
-                updateConversation(active.id, (c) => ({ ...c, title }))
-              }
+              onSetTitle={(title) => {
+                updateConversation(active.id, (c) => ({ ...c, title }));
+                handleRenameConversation(active.id, title);
+              }}
               onSetMessages={(messages) =>
                 updateConversation(active.id, (c) => ({
                   ...c,
