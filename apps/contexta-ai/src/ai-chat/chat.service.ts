@@ -10,11 +10,6 @@ export class ChatService {
     conversationId: string;
     message: string;
     actorUserId: string;
-    dataSource?: {
-      internetEnabled?: boolean;
-      spaceEnabled?: boolean;
-      spaceIds?: string[];
-    };
   }) {
     return this.useCase.answer(params);
   }

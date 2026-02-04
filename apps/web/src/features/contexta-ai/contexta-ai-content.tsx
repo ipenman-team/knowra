@@ -40,6 +40,7 @@ export function ContextaAiContent(props: {
   const [internetEnabled, setInternetEnabled] = useState(true);
   const [spaceEnabled, setSpaceEnabled] = useState(false);
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
+  const [carryContext, setCarryContext] = useState(true);
 
   const sourcesLoadedRef = useRef(false);
   const sourcesSaveTimerRef = useRef<number | null>(null);
@@ -68,11 +69,14 @@ export function ContextaAiContent(props: {
           internetEnabled: Boolean(cfg.internetEnabled),
           spaceEnabled: Boolean(cfg.spaceEnabled),
           spaceIds: normalizeSpaceIds(cfg.spaceIds),
+          carryContext:
+            cfg.carryContext === undefined ? true : Boolean(cfg.carryContext),
         };
 
         setInternetEnabled(next.internetEnabled);
         setSpaceEnabled(next.spaceEnabled);
         setSelectedSpaceIds(next.spaceIds);
+        setCarryContext(next.carryContext);
 
         lastSavedSourcesRef.current = JSON.stringify(next);
       } catch {
@@ -82,10 +86,12 @@ export function ContextaAiContent(props: {
           internetEnabled: true,
           spaceEnabled: false,
           spaceIds: [],
+          carryContext: true,
         };
         setInternetEnabled(fallback.internetEnabled);
         setSpaceEnabled(fallback.spaceEnabled);
         setSelectedSpaceIds(fallback.spaceIds);
+        setCarryContext(fallback.carryContext);
         lastSavedSourcesRef.current = JSON.stringify(fallback);
       } finally {
         if (!cancelled) sourcesLoadedRef.current = true;
@@ -112,6 +118,7 @@ export function ContextaAiContent(props: {
       internetEnabled,
       spaceEnabled,
       spaceIds: normalizeSpaceIds(selectedSpaceIds),
+      carryContext,
     };
     const key = JSON.stringify(payload);
     if (key === lastSavedSourcesRef.current) return;
@@ -124,6 +131,7 @@ export function ContextaAiContent(props: {
       internetEnabled: Boolean(saved.internetEnabled),
       spaceEnabled: Boolean(saved.spaceEnabled),
       spaceIds: normalizeSpaceIds(saved.spaceIds),
+      carryContext: Boolean(saved.carryContext),
     });
   }
 
@@ -134,6 +142,7 @@ export function ContextaAiContent(props: {
       internetEnabled,
       spaceEnabled,
       spaceIds: normalizeSpaceIds(selectedSpaceIds),
+      carryContext,
     };
     const key = JSON.stringify(payload);
     if (key === lastSavedSourcesRef.current) return;
@@ -153,7 +162,7 @@ export function ContextaAiContent(props: {
         sourcesSaveTimerRef.current = null;
       }
     };
-  }, [internetEnabled, spaceEnabled, selectedSpaceIds, props.conversationId]);
+  }, [internetEnabled, spaceEnabled, selectedSpaceIds, carryContext, props.conversationId]);
   const [submittedQuestion, setSubmittedQuestion] = useState<string | null>(
     null,
   );
@@ -418,9 +427,11 @@ export function ContextaAiContent(props: {
         internetEnabled={internetEnabled}
         spaceEnabled={spaceEnabled}
         selectedSpaceIds={selectedSpaceIds}
+        carryContext={carryContext}
         onInternetEnabledChange={setInternetEnabled}
         onSpaceEnabledChange={setSpaceEnabled}
         onSelectedSpaceIdsChange={setSelectedSpaceIds}
+        onCarryContextChange={setCarryContext}
       />
     </div>
   );

@@ -31,9 +31,11 @@ export function ContextaAiComposer(props: {
   internetEnabled: boolean;
   spaceEnabled: boolean;
   selectedSpaceIds: string[];
+  carryContext: boolean;
   onInternetEnabledChange: (enabled: boolean) => void;
   onSpaceEnabledChange: (enabled: boolean) => void;
   onSelectedSpaceIdsChange: (spaceIds: string[]) => void;
+  onCarryContextChange: (enabled: boolean) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -86,9 +88,11 @@ export function ContextaAiComposer(props: {
               internetEnabled={props.internetEnabled}
               spaceEnabled={props.spaceEnabled}
               selectedSpaceIds={props.selectedSpaceIds}
+              carryContext={props.carryContext}
               onInternetEnabledChange={props.onInternetEnabledChange}
               onSpaceEnabledChange={props.onSpaceEnabledChange}
               onSelectedSpaceIdsChange={props.onSelectedSpaceIdsChange}
+              onCarryContextChange={props.onCarryContextChange}
             />
 
             <InputGroupText className="ml-auto hidden sm:flex text-xs">发送</InputGroupText>

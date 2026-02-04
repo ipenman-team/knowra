@@ -1,8 +1,43 @@
 import type {
   AiConversation,
+  AiConversationDataSource,
   AiConversationRepository,
 } from '@contexta/domain';
 import { AiConversationNotFoundError } from './errors';
+
+function normalizeSpaceIds(spaceIds: unknown): string[] {
+  if (!Array.isArray(spaceIds)) return [];
+  const uniq = new Set<string>();
+  for (const raw of spaceIds) {
+    if (typeof raw !== 'string') continue;
+    const v = raw.trim();
+    if (!v) continue;
+    uniq.add(v);
+  }
+  return Array.from(uniq);
+}
+
+function normalizeDataSource(raw: unknown): AiConversationDataSource {
+  const obj =
+    typeof raw === 'object' && raw !== null
+      ? (raw as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
+
+  const internetEnabled =
+    obj.internetEnabled === undefined ? true : Boolean(obj.internetEnabled);
+  const spaceEnabled =
+    obj.spaceEnabled === undefined ? false : Boolean(obj.spaceEnabled);
+  const carryContext =
+    obj.carryContext === undefined ? true : Boolean(obj.carryContext);
+
+  return {
+    ...obj,
+    internetEnabled,
+    spaceEnabled,
+    spaceIds: spaceEnabled ? normalizeSpaceIds(obj.spaceIds) : [],
+    carryContext,
+  };
+}
 
 export class AiConversationUseCase {
   constructor(private readonly repo: AiConversationRepository) {}
@@ -73,7 +108,12 @@ export class AiConversationUseCase {
   async getSources(params: {
     tenantId: string;
     conversationId: string;
-  }): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+  }): Promise<{
+    internetEnabled: boolean;
+    spaceEnabled: boolean;
+    spaceIds: string[];
+    carryContext: boolean;
+  }> {
     if (!params.tenantId) throw new Error('tenantId is required');
     if (!params.conversationId) throw new Error('conversationId is required');
 
@@ -83,10 +123,13 @@ export class AiConversationUseCase {
     });
     if (!existed) throw new AiConversationNotFoundError(params.conversationId);
 
+    const ds = normalizeDataSource(existed.dataSource);
+
     return {
-      internetEnabled: Boolean(existed.internetEnabled),
-      spaceEnabled: Boolean(existed.spaceEnabled),
-      spaceIds: Array.isArray(existed.spaceIds) ? existed.spaceIds : [],
+      internetEnabled: ds.internetEnabled,
+      spaceEnabled: ds.spaceEnabled,
+      spaceIds: ds.spaceIds,
+      carryContext: ds.carryContext,
     };
   }
 
@@ -96,8 +139,14 @@ export class AiConversationUseCase {
     internetEnabled: boolean;
     spaceEnabled: boolean;
     spaceIds: string[];
+    carryContext?: boolean;
     actorUserId: string;
-  }): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+  }): Promise<{
+    internetEnabled: boolean;
+    spaceEnabled: boolean;
+    spaceIds: string[];
+    carryContext: boolean;
+  }> {
     if (!params.tenantId) throw new Error('tenantId is required');
     if (!params.conversationId) throw new Error('conversationId is required');
     if (!params.actorUserId) throw new Error('actorUserId is required');
@@ -108,23 +157,37 @@ export class AiConversationUseCase {
     });
     if (!existed) throw new AiConversationNotFoundError(params.conversationId);
 
+    const prev = normalizeDataSource(existed.dataSource);
+
     const internetEnabled = Boolean(params.internetEnabled);
     const spaceEnabled = Boolean(params.spaceEnabled);
-    const spaceIds = Array.isArray(params.spaceIds) ? params.spaceIds : [];
+    const spaceIds = spaceEnabled ? normalizeSpaceIds(params.spaceIds) : [];
+    const carryContext =
+      params.carryContext === undefined
+        ? prev.carryContext
+        : Boolean(params.carryContext);
+
+    const next: AiConversationDataSource = {
+      ...prev,
+      internetEnabled,
+      spaceEnabled,
+      spaceIds,
+      carryContext,
+    };
 
     const updated = await this.repo.updateSources({
       tenantId: params.tenantId,
       conversationId: params.conversationId,
-      internetEnabled,
-      spaceEnabled,
-      spaceIds,
+      dataSource: next,
       actorUserId: params.actorUserId,
     });
 
+    const ds = normalizeDataSource(updated.dataSource);
     return {
-      internetEnabled: Boolean(updated.internetEnabled),
-      spaceEnabled: Boolean(updated.spaceEnabled),
-      spaceIds: Array.isArray(updated.spaceIds) ? updated.spaceIds : [],
+      internetEnabled: ds.internetEnabled,
+      spaceEnabled: ds.spaceEnabled,
+      spaceIds: ds.spaceIds,
+      carryContext: ds.carryContext,
     };
   }
 }

@@ -420,9 +420,8 @@ model AiConversation {
 
   title String
 
-  internetEnabled Boolean  @default(true) @map("internet_enabled")
-  spaceEnabled    Boolean  @default(false) @map("space_enabled")
-  spaceIds        String[] @default([]) @map("space_ids")
+  /// 信息源配置（可扩展），例如：internetEnabled/spaceEnabled/spaceIds/carryContext 等
+  dataSource Json? @db.JsonB @map("data_source")
 
   createdBy String @map("created_by")
   updatedBy String @map("updated_by")

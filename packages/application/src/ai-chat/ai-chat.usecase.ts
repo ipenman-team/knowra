@@ -16,6 +16,10 @@ type AiChatDataSource = {
    * Empty array means search all spaces.
    */
   spaceIds?: string[];
+  /**
+   * When disabled, prompt context only includes the current query.
+   */
+  carryContext?: boolean;
 };
 
 function normalizeSpaceIds(spaceIds: unknown): string[] {
@@ -118,6 +122,7 @@ export class AiChatUseCase {
     internetEnabled: boolean;
     spaceEnabled: boolean;
     spaceIds: string[];
+    carryContext: boolean;
   } {
     const internetEnabled =
       params.dataSource?.internetEnabled === undefined
@@ -128,12 +133,18 @@ export class AiChatUseCase {
         ? false
         : Boolean(params.dataSource.spaceEnabled);
 
+    const carryContext =
+      params.dataSource?.carryContext === undefined
+        ? true
+        : Boolean(params.dataSource.carryContext);
+
     return {
       internetEnabled,
       spaceEnabled,
       spaceIds: spaceEnabled
         ? normalizeSpaceIds(params.dataSource?.spaceIds)
         : [],
+      carryContext,
     };
   }
 
@@ -191,7 +202,6 @@ export class AiChatUseCase {
     conversationId: string;
     message: string;
     actorUserId: string;
-    dataSource?: AiChatDataSource;
   }): Promise<{ content: string; model: string }> {
     if (!params.tenantId) throw new Error('tenantId is required');
     if (!params.conversationId) throw new Error('conversationId is required');
@@ -205,20 +215,14 @@ export class AiChatUseCase {
       conversationId: params.conversationId,
     });
 
-    const history = await this.listRecentMessages({
-      tenantId: params.tenantId,
-      conversationId: params.conversationId,
-    });
+    const dataSource = this.resolveDataSource({ dataSource: conversation.dataSource });
 
-    const dataSource = this.resolveDataSource({
-      dataSource:
-        params.dataSource ??
-        ({
-          internetEnabled: conversation.internetEnabled,
-          spaceEnabled: conversation.spaceEnabled,
-          spaceIds: conversation.spaceIds,
-        } satisfies AiChatDataSource),
-    });
+    const history = dataSource.carryContext
+      ? await this.listRecentMessages({
+          tenantId: params.tenantId,
+          conversationId: params.conversationId,
+        })
+      : [];
 
     const knowledge = await this.buildKnowledgeContext({
       tenantId: params.tenantId,
@@ -398,18 +402,16 @@ export class AiChatUseCase {
         conversationId: params.conversationId,
       });
 
-      const history = await self.listRecentMessages({
-        tenantId: params.tenantId,
-        conversationId: params.conversationId,
+      const dataSource = self.resolveDataSource({
+        dataSource: conversation.dataSource,
       });
 
-      const dataSource = self.resolveDataSource({
-        dataSource: {
-          internetEnabled: conversation.internetEnabled,
-          spaceEnabled: conversation.spaceEnabled,
-          spaceIds: conversation.spaceIds,
-        },
-      });
+      const history = dataSource.carryContext
+        ? await self.listRecentMessages({
+            tenantId: params.tenantId,
+            conversationId: params.conversationId,
+          })
+        : [];
 
       const knowledge = await self.buildKnowledgeContext({
         tenantId: params.tenantId,

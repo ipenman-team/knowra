@@ -29,6 +29,7 @@ type ConversationSourcesBody = {
   internetEnabled?: unknown;
   spaceEnabled?: unknown;
   spaceIds?: unknown;
+  carryContext?: unknown;
 };
 
 function normalizeSpaceIds(spaceIds: unknown): string[] {
@@ -128,7 +129,7 @@ export class ConversationsController {
   async getSources(
     @TenantId() tenantId: string,
     @Param('id') conversationId: string,
-  ): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+  ): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[]; carryContext: boolean }> {
     try {
       return await this.conversationService.getSources({
         tenantId,
@@ -148,7 +149,7 @@ export class ConversationsController {
     @UserId() userId: string | undefined,
     @Param('id') conversationId: string,
     @Body() body: ConversationSourcesBody,
-  ): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[] }> {
+  ): Promise<{ internetEnabled: boolean; spaceEnabled: boolean; spaceIds: string[]; carryContext: boolean }> {
     if (!userId) throw new UnauthorizedException('unauthorized');
 
     if (typeof body?.internetEnabled !== 'boolean') {
@@ -158,7 +159,13 @@ export class ConversationsController {
       throw new BadRequestException('spaceEnabled must be boolean');
     }
 
+    if (body?.carryContext !== undefined && typeof body?.carryContext !== 'boolean') {
+      throw new BadRequestException('carryContext must be boolean');
+    }
+
     const spaceIds = normalizeSpaceIds(body?.spaceIds);
+    const carryContext =
+      typeof body?.carryContext === 'boolean' ? body.carryContext : undefined;
 
     try {
       return await this.conversationService.updateSources({
@@ -167,6 +174,7 @@ export class ConversationsController {
         internetEnabled: body.internetEnabled,
         spaceEnabled: body.spaceEnabled,
         spaceIds,
+        carryContext,
         actorUserId: userId,
       });
     } catch (err) {

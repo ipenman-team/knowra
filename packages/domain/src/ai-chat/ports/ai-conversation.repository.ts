@@ -1,4 +1,4 @@
-import type { AiConversation } from '../types';
+import type { AiConversation, AiConversationDataSource } from '../types';
 
 export interface AiConversationRepository {
   create(params: {
@@ -27,9 +27,7 @@ export interface AiConversationRepository {
   updateSources(params: {
     tenantId: string;
     conversationId: string;
-    internetEnabled: boolean;
-    spaceEnabled: boolean;
-    spaceIds: string[];
+    dataSource: AiConversationDataSource;
     actorUserId: string;
   }): Promise<AiConversation>;
 

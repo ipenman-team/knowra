@@ -36,6 +36,7 @@ export class ConversationService {
     internetEnabled: boolean;
     spaceEnabled: boolean;
     spaceIds: string[];
+    carryContext?: boolean;
     actorUserId: string;
   }) {
     return this.useCase.updateSources(params);

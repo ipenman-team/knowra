@@ -1,5 +1,68 @@
-import type { PrismaClient } from '@prisma/client';
-import type { AiConversationRepository } from '@contexta/domain';
+import type { Prisma, PrismaClient } from '@prisma/client';
+import type {
+  AiConversation,
+  AiConversationDataSource,
+  AiConversationRepository,
+} from '@contexta/domain';
+import { InputJsonValue } from '@prisma/client/runtime/library';
+
+function normalizeSpaceIds(spaceIds: unknown): string[] {
+  if (!Array.isArray(spaceIds)) return [];
+  const uniq = new Set<string>();
+  for (const raw of spaceIds) {
+    if (typeof raw !== 'string') continue;
+    const v = raw.trim();
+    if (!v) continue;
+    uniq.add(v);
+  }
+  return Array.from(uniq);
+}
+
+function normalizeDataSource(raw: unknown): AiConversationDataSource {
+  const obj =
+    typeof raw === 'object' && raw !== null
+      ? (raw as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
+
+  const internetEnabled =
+    obj.internetEnabled === undefined ? true : Boolean(obj.internetEnabled);
+  const spaceEnabled =
+    obj.spaceEnabled === undefined ? false : Boolean(obj.spaceEnabled);
+  const carryContext =
+    obj.carryContext === undefined ? true : Boolean(obj.carryContext);
+
+  return {
+    ...obj,
+    internetEnabled,
+    spaceEnabled,
+    spaceIds: spaceEnabled ? normalizeSpaceIds(obj.spaceIds) : [],
+    carryContext,
+  };
+}
+
+function toDomain(row: {
+  id: string;
+  tenantId: string;
+  title: string;
+  dataSource: Prisma.JsonValue | null;
+  createdBy: string;
+  updatedBy: string;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}): AiConversation {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    title: row.title,
+    dataSource: normalizeDataSource(row.dataSource),
+    createdBy: row.createdBy,
+    updatedBy: row.updatedBy,
+    isDeleted: row.isDeleted,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export class PrismaAiConversationRepository implements AiConversationRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -9,18 +72,26 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
     title: string;
     actorUserId: string;
   }) {
-    return await this.prisma.aiConversation.create({
+    const created = await this.prisma.aiConversation.create({
       data: {
         tenantId: params.tenantId,
         title: params.title,
+        dataSource: {
+          internetEnabled: true,
+          spaceEnabled: false,
+          spaceIds: [],
+          carryContext: true,
+        },
         createdBy: params.actorUserId,
         updatedBy: params.actorUserId,
       },
     });
+
+    return toDomain(created);
   }
 
   async list(params: { tenantId: string; limit: number }) {
-    return await this.prisma.aiConversation.findMany({
+    const rows = await this.prisma.aiConversation.findMany({
       where: {
         tenantId: params.tenantId,
         isDeleted: false,
@@ -28,16 +99,20 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
       orderBy: { updatedAt: 'desc' },
       take: params.limit,
     });
+
+    return rows.map(toDomain);
   }
 
   async getById(params: { tenantId: string; conversationId: string }) {
-    return await this.prisma.aiConversation.findFirst({
+    const row = await this.prisma.aiConversation.findFirst({
       where: {
         id: params.conversationId,
         tenantId: params.tenantId,
         isDeleted: false,
       },
     });
+
+    return row ? toDomain(row) : null;
   }
 
   async renameTitle(params: {
@@ -47,7 +122,7 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
     actorUserId: string;
   }) {
     // NOTE: tenant isolation is ensured by an existence check in application layer.
-    return await this.prisma.aiConversation.update({
+    const updated = await this.prisma.aiConversation.update({
       where: { id: params.conversationId },
       data: {
         title: params.title,
@@ -55,14 +130,14 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
         updatedAt: new Date(),
       },
     });
+
+    return toDomain(updated);
   }
 
   async updateSources(params: {
     tenantId: string;
     conversationId: string;
-    internetEnabled: boolean;
-    spaceEnabled: boolean;
-    spaceIds: string[];
+    dataSource: AiConversationDataSource;
     actorUserId: string;
   }) {
     await this.prisma.aiConversation.updateMany({
@@ -72,9 +147,7 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
         isDeleted: false,
       },
       data: {
-        internetEnabled: params.internetEnabled,
-        spaceEnabled: params.spaceEnabled,
-        spaceIds: params.spaceIds,
+        dataSource: params.dataSource as InputJsonValue,
         updatedBy: params.actorUserId,
         updatedAt: new Date(),
       },

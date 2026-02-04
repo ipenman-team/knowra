@@ -29,10 +29,12 @@ export function ContextaAiSourcesMenu(props: {
   internetEnabled: boolean;
   spaceEnabled: boolean;
   selectedSpaceIds: string[];
+  carryContext: boolean;
 
   onInternetEnabledChange: (enabled: boolean) => void;
   onSpaceEnabledChange: (enabled: boolean) => void;
   onSelectedSpaceIdsChange: (spaceIds: string[]) => void;
+  onCarryContextChange: (enabled: boolean) => void;
 }) {
   const selectedSpaceIds = normalizeSpaceIds(props.selectedSpaceIds);
 
@@ -62,6 +64,23 @@ export function ContextaAiSourcesMenu(props: {
         align="start"
         className="[--radius:0.95rem]"
       >
+        <DropdownMenuItem
+          className="flex items-center justify-between gap-3"
+          onSelect={(e) => {
+            // Keep menu open while toggling.
+            e.preventDefault();
+            props.onCarryContextChange(!props.carryContext);
+          }}
+        >
+          <span>携带上下文</span>
+          <Switch
+            checked={props.carryContext}
+            onCheckedChange={(v) => props.onCarryContextChange(Boolean(v))}
+          />
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
         <DropdownMenuItem
           className="flex items-center justify-between gap-3"
           onSelect={(e) => {
