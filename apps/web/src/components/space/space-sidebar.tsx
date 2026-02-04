@@ -62,6 +62,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
 
   return (
     <SidebarContainer
+      resizable
       position="relative"
       className="flex h-full shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground"
     >

@@ -237,7 +237,6 @@ export default function ContextaAiContainer() {
   }
 
   return (
-    <ContainerLayout sidebar={<HomeSidebar />}>
       <div className="flex h-full min-h-0 overflow-hidden">
         <ContainerLayout
           stateId="contexta-ai"
@@ -286,6 +285,5 @@ export default function ContextaAiContainer() {
           </div>
         </ContainerLayout>
       </div>
-    </ContainerLayout>
   );
 }

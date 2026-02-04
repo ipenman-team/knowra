@@ -62,6 +62,7 @@ const SidebarProvider = React.forwardRef<
     open?: boolean
     onOpenChange?: (open: boolean) => void
     stateId?: string
+    keyboardShortcut?: string | null
   }
 >(
   (
