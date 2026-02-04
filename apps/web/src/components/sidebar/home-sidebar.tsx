@@ -5,6 +5,7 @@ import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
 import { AccountMenu } from '../account-menu';
 import {
+  Sidebar,
   SidebarHeader,
   SidebarContent,
   SidebarGroup,
@@ -14,7 +15,6 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
-import { SidebarContainer } from '@/components/sidebar/sidebar-container';
 import type { SpaceDto } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
@@ -61,7 +61,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
   return (
     <>
-      <SidebarContainer>
+      <Sidebar collapsible="icon" variant="sidebar" className="h-full">
         <SidebarHeader>
           <div className="flex justify-between p-3">
             <div>{/* flex 占位 */}</div>
@@ -153,7 +153,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
             onCreated={handleCreated}
           />
         )}
-      </SidebarContainer>
+      </Sidebar>
     </>
   );
 });

@@ -25,18 +25,42 @@ export const ContainerLayout = memo(function ContainerLayout({
     'className' | 'children'
   >;
 }) {
+  const fallbackStateId = isRoot ? 'home' : stateId;
+
   if (isRoot) {
-    stateId = 'home';
     className = 'h-dvh overflow-hidden bg-background text-foreground';
     insetProps = { 'aria-live': 'polite' };
   }
-  if (!stateId) {
-    throw new Error('ContainerLayout requires a stateId prop.');
-  }
+
+  const cookieName = fallbackStateId
+    ? `sidebar_state_${fallbackStateId}`
+    : undefined;
+
+  const remToPx = (rem: number) => Math.round(rem * 16);
+
+  const resizable = isRoot
+    ? {
+        unit: 'px' as const,
+        defaultSize: 260,
+        minSize: 200,
+        maxSize: 320,
+        collapsedSize: 56,
+      }
+    : typeof defaultWidthRem === 'number'
+      ? {
+          unit: 'px' as const,
+          defaultSize: remToPx(defaultWidthRem),
+          minSize: 200,
+          maxSize: 520,
+          collapsedSize: 56,
+        }
+      : true;
+
   return (
     <SidebarProvider
-      stateId={stateId}
-      defaultWidthRem={defaultWidthRem}
+      cookieName={cookieName}
+      defaultOpen
+      resizable={resizable}
       className={cn('overflow-hidden bg-background text-foreground', className)}
     >
       {sidebar}

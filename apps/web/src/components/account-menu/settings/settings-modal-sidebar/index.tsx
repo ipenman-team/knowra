@@ -24,7 +24,7 @@ export const SettingsModalSidebar = memo(function SettingsModalSidebar({
   onSelect: (id: SettingsSectionId) => void;
 }) {
   return (
-    <SidebarProvider className="min-h-0 w-56 flex-none">
+    <SidebarProvider defaultOpen className="min-h-0 w-56 flex-none">
       <Sidebar collapsible="none" className="h-full border-r bg-muted/20">
         <SidebarContent>
           <SidebarGroup>

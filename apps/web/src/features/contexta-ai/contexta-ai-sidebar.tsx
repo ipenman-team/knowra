@@ -36,7 +36,6 @@ import {
 
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { Separator } from '@/components/ui/separator';
-import { SidebarContainer } from '@/components/sidebar/sidebar-container';
 
 export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   conversations: ContextaAiConversation[];
@@ -83,7 +82,7 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   }
 
   return (
-    <SidebarContainer position="relative" className="h-full">
+    <Sidebar collapsible="icon" variant="sidebar" className="h-full">
       <SidebarHeader className="p-4">
         <InputGroup>
           <InputGroupInput
@@ -189,6 +188,6 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-    </SidebarContainer>
+    </Sidebar>
   );
 });

@@ -16,8 +16,8 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarFooter,
+  Sidebar,
 } from '@/components/ui/sidebar';
-import { SidebarContainer } from '@/components/sidebar/sidebar-container';
 import {
   BoltIcon,
   BookMinus,
@@ -61,11 +61,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   );
 
   return (
-    <SidebarContainer
-      resizable
-      position="relative"
-      className="flex h-full shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground"
-    >
+    <Sidebar collapsible="icon" variant="sidebar" className="h-full">
       <SidebarHeader>
         <div className="flex items-center justify-between p-3">
           <button
@@ -137,6 +133,6 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
           </Button>
         </div>
       </SidebarFooter>
-    </SidebarContainer>
+    </Sidebar>
   );
 });
