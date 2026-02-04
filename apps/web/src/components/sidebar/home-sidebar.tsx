@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
 import { AccountMenu } from '../account-menu';
@@ -8,7 +8,6 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarMenu,
   SidebarMenuItem,
@@ -16,8 +15,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
-import { spacesApi, type SpaceDto } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import type { SpaceDto } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 
@@ -29,7 +27,7 @@ import {
 } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
 
-export const HomeSidebar = memo(function HomeSidebar(...props: any) {
+export const HomeSidebar = memo(function HomeSidebar() {
   const { setSelectedView } = usePageSelectionStore();
   const spaces = useSpaces();
   const loading = useSpacesLoading();
@@ -58,7 +56,7 @@ export const HomeSidebar = memo(function HomeSidebar(...props: any) {
 
   return (
     <>
-      <Sidebar>
+      <Sidebar resizable collapsible="icon">
         <SidebarHeader>
           <div className="flex justify-between p-3">
             <div></div>
