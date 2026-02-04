@@ -10,7 +10,10 @@ export const HomeLayout = memo(function HomeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider className="h-dvh overflow-hidden bg-background text-foreground">
+    <SidebarProvider
+      stateId="home"
+      className="h-dvh overflow-hidden bg-background text-foreground"
+    >
       {sidebar}
       <SidebarInset className="min-h-0 overflow-auto" aria-live="polite">
         {children}

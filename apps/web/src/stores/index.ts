@@ -53,6 +53,13 @@ export {
   useNodeMenuState,
 } from './ui-state-store';
 
+// Sidebar UI Store (in-memory only)
+export {
+  useSidebarUiStore,
+  useSidebarUiSnapshot,
+  type SidebarUiSnapshot,
+} from './sidebar-ui-store';
+
 // Task Store
 export { useTaskStore, useTasks, useTaskById } from './task-store';
 

@@ -7,8 +7,7 @@ import { ChevronsLeft, ChevronsRight, PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
-import { readSidebarPrefs, writeSidebarPrefs } from "@/lib/sidebar-prefs"
-import { useMeStore } from "@/stores"
+import { useSidebarUiSnapshot, useSidebarUiStore } from "@/stores"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
@@ -42,7 +41,6 @@ type SidebarContextProps = {
   toggleSidebar: () => void
   sidebarWidth: number
   setSidebarWidth: (sidebarWidth: number) => void
-  hydrated: boolean
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -62,6 +60,7 @@ const SidebarProvider = React.forwardRef<
     defaultOpen?: boolean
     open?: boolean
     onOpenChange?: (open: boolean) => void
+    stateId?: string
   }
 >(
   (
@@ -69,6 +68,7 @@ const SidebarProvider = React.forwardRef<
       defaultOpen = true,
       open: openProp,
       onOpenChange: setOpenProp,
+      stateId,
       className,
       style,
       children,
@@ -77,70 +77,60 @@ const SidebarProvider = React.forwardRef<
     ref
   ) => {
     const isMobile = useIsMobile()
-    const userId = useMeStore((s) => s.user?.id)
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    const loadedForUserRef = React.useRef<string | null>(null)
-    const [hydrated, setHydrated] = React.useState(false)
+    const initialWidthRem = React.useMemo(
+      () => Number.parseFloat(SIDEBAR_WIDTH),
+      []
+    )
 
-    const [sidebarWidth, _setSidebarWidth] = React.useState(() => {
+    const storeSnapshot = useSidebarUiSnapshot(stateId)
+
+    React.useEffect(() => {
+      if (!stateId) return
+      useSidebarUiStore
+        .getState()
+        .ensure(stateId, { open: defaultOpen, widthRem: initialWidthRem })
+    }, [defaultOpen, initialWidthRem, stateId])
+
+    const [localSidebarWidth, _setLocalSidebarWidth] = React.useState(() => {
       // Keep it in rem so it matches Tailwind's rem-based layout.
       // Default is 16rem.
-      return Number.parseFloat(SIDEBAR_WIDTH)
+      return initialWidthRem
     })
 
     const setSidebarWidth = React.useCallback((value: number) => {
       if (!Number.isFinite(value) || value <= 0) return
-      _setSidebarWidth(value)
-    }, [])
+      if (stateId) {
+        useSidebarUiStore.getState().setWidthRem(stateId, value)
+        return
+      }
+      _setLocalSidebarWidth(value)
+    }, [stateId])
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
-    const open = openProp ?? _open
+    const [localOpen, setLocalOpen] = React.useState(defaultOpen)
+    const open = openProp ?? (stateId ? storeSnapshot?.open ?? defaultOpen : localOpen)
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
         if (setOpenProp) {
           setOpenProp(openState)
         } else {
-          _setOpen(openState)
+          if (stateId) {
+            useSidebarUiStore.getState().setOpen(stateId, openState)
+          } else {
+            setLocalOpen(openState)
+          }
         }
       },
-      [setOpenProp, open]
+      [setOpenProp, open, stateId]
     )
 
-    React.useEffect(() => {
-      // Load persisted preferences for this user without animating width.
-      // Also handles remounts on route changes.
-      if (!userId) {
-        loadedForUserRef.current = null
-        setHydrated(true)
-        return
-      }
-      if (loadedForUserRef.current === userId) return
-      loadedForUserRef.current = userId
-
-      setHydrated(false)
-      const prefs = readSidebarPrefs(userId)
-      if (prefs) {
-        _setSidebarWidth(prefs.widthRem)
-        // Only apply open state when uncontrolled.
-        if (openProp === undefined) {
-          _setOpen(prefs.open)
-        }
-      }
-      setHydrated(true)
-    }, [userId, openProp])
-
-    React.useEffect(() => {
-      if (!hydrated) return
-      if (!userId) return
-      const id = window.setTimeout(() => {
-        writeSidebarPrefs(userId, { open, widthRem: sidebarWidth })
-      }, 150)
-      return () => window.clearTimeout(id)
-    }, [hydrated, open, sidebarWidth, userId])
+    const sidebarWidth = stateId
+      ? storeSnapshot?.widthRem ?? initialWidthRem
+      : localSidebarWidth
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
@@ -180,7 +170,6 @@ const SidebarProvider = React.forwardRef<
         toggleSidebar,
         sidebarWidth,
         setSidebarWidth,
-        hydrated,
       }),
       [
         state,
@@ -192,7 +181,6 @@ const SidebarProvider = React.forwardRef<
         toggleSidebar,
         sidebarWidth,
         setSidebarWidth,
-        hydrated,
       ]
     )
 
@@ -256,7 +244,6 @@ const Sidebar = React.forwardRef<
       setOpenMobile,
       sidebarWidth,
       setSidebarWidth,
-      hydrated,
     } = useSidebar()
 
     const dragStartRef = React.useRef<{
@@ -413,12 +400,11 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
         data-resizing={isResizing ? "true" : "false"}
-        data-hydrated={hydrated ? "true" : "false"}
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            "relative w-[--sidebar-width] bg-transparent transition-[width] duration-200 ease-linear group-data-[resizing=true]:transition-none group-data-[hydrated=false]:transition-none",
+            "relative w-[--sidebar-width] bg-transparent transition-[width] duration-200 ease-linear group-data-[resizing=true]:transition-none",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -428,7 +414,7 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear group-data-[resizing=true]:transition-none group-data-[hydrated=false]:transition-none md:flex",
+            "fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear group-data-[resizing=true]:transition-none md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -449,27 +435,21 @@ const Sidebar = React.forwardRef<
             {resizable && (
               <button
                 type="button"
-                aria-label={state === "expanded" ? "Collapse Sidebar" : "Expand Sidebar"}
+                aria-label="Resize Sidebar"
                 onPointerDown={handleResizePointerDown}
                 className={cn(
                   "absolute inset-y-0 z-20 hidden w-4 bg-transparent md:block",
-                  "cursor-col-resize",
+                  state === "expanded" ? "cursor-col-resize" : "cursor-default",
                   "group/resize outline-none",
                   side === "left" ? "-right-2" : "-left-2"
                 )}
-                onClick={(e) => {
-                  // Avoid toggling when this interaction was a drag-resize.
-                  if (dragMovedRef.current) {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    dragMovedRef.current = false
-                    return
-                  }
-                  toggleSidebar()
-                }}
               >
                 <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-sidebar-border/60" />
                 <span
+                  data-sidebar="resize-toggle"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={state === "expanded" ? "Collapse Sidebar" : "Expand Sidebar"}
                   className={cn(
                     "absolute top-1/2 left-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-background/80 text-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition-opacity group-hover/resize:opacity-100",
                     "cursor-pointer"
@@ -477,6 +457,17 @@ const Sidebar = React.forwardRef<
                   onPointerDown={(e) => {
                     // Icon is a click affordance; don't start resizing from it.
                     e.stopPropagation()
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    toggleSidebar()
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return
+                    e.preventDefault()
+                    e.stopPropagation()
+                    toggleSidebar()
                   }}
                 >
                   {state === "expanded" ? (
@@ -525,20 +516,15 @@ const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
-
   return (
     <button
       ref={ref}
       data-sidebar="rail"
-      aria-label="Toggle Sidebar"
+      aria-hidden="true"
       tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      type="button"
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
-        "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
-        "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
+        "pointer-events-none absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 cursor-default transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
         "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",

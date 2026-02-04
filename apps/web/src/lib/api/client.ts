@@ -1,6 +1,5 @@
 import axios, { AxiosError } from 'axios';
 import { useMeStore } from '@/stores';
-import { clearSidebarPrefs } from '@/lib/sidebar-prefs';
 
 export class ApiError extends Error {
   readonly status?: number;
@@ -33,14 +32,9 @@ export async function handleUnauthorized(): Promise<void> {
   if (unauthorizedHandling) return;
   unauthorizedHandling = true;
 
-  const prevUserId = useMeStore.getState().user?.id;
-
   try {
     await apiClient.post('/auth/logout').catch(() => null);
   } finally {
-    if (prevUserId) {
-      clearSidebarPrefs(prevUserId);
-    }
     useMeStore.setState({
       user: null,
       profile: null,

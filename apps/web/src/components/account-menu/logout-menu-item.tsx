@@ -3,8 +3,6 @@
 import { memo, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
-import { clearAllSidebarPrefs, clearSidebarPrefs } from "@/lib/sidebar-prefs";
-import { useMeStore } from "@/stores";
 import {
   DropdownMenuItem,
   DropdownMenuShortcut,
@@ -12,7 +10,6 @@ import {
 
 export const LogoutMenuItem = memo(function LogoutMenuItem() {
   const router = useRouter();
-  const userId = useMeStore((s) => s.user?.id);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = useCallback(async () => {
@@ -21,16 +18,11 @@ export const LogoutMenuItem = memo(function LogoutMenuItem() {
     try {
       await apiClient.post("/auth/logout").catch(() => null);
     } finally {
-      if (userId) {
-        clearSidebarPrefs(userId);
-      } else {
-        clearAllSidebarPrefs();
-      }
       setLoggingOut(false);
       router.replace("/login");
       router.refresh();
     }
-  }, [loggingOut, router, userId]);
+  }, [loggingOut, router]);
 
   const handleSelect = useCallback(
     () => {
