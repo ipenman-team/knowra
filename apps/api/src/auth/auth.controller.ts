@@ -1,11 +1,14 @@
-import { Body, Controller, Post, Get, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import {
   SessionId,
-  TenantId,
   UserId,
 } from '../common/tenant/tenant-id.decorator';
+import {
+  ACCESS_TOKEN_COOKIE_NAME,
+  buildAccessTokenCookieOptions,
+} from '../common/http/access-token-cookie';
 import { AuthService } from './auth.service';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 type SendVerificationCodeBody = {
   channel: string;
@@ -56,17 +59,16 @@ export class AuthController {
   async loginOrRegisterByCode(
     @UserId() userId: string | undefined,
     @Body() body: LoginOrRegisterByCodeBody,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const data = await this.authService.loginOrRegisterByCode(body, { userId });
     const accessToken = String(data?.token?.accessToken ?? '');
-    res.cookie('ctxa_access_token', accessToken, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.cookie(
+      ACCESS_TOKEN_COOKIE_NAME,
+      accessToken,
+      buildAccessTokenCookieOptions(req, ACCESS_TOKEN_COOKIE_MAX_AGE_MS),
+    );
     return data;
   }
 
@@ -74,17 +76,16 @@ export class AuthController {
   async loginByPassword(
     @UserId() userId: string | undefined,
     @Body() body: LoginByPasswordBody,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const data = await this.authService.loginByPassword(body, { userId });
     const accessToken = String(data?.token?.accessToken ?? '');
-    res.cookie('ctxa_access_token', accessToken, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.cookie(
+      ACCESS_TOKEN_COOKIE_NAME,
+      accessToken,
+      buildAccessTokenCookieOptions(req, ACCESS_TOKEN_COOKIE_MAX_AGE_MS),
+    );
     return data;
   }
 
@@ -92,16 +93,11 @@ export class AuthController {
   logout(
     @SessionId() sessionId: string | undefined,
     @UserId() userId: string | undefined,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     // clear cookie
-    res.cookie('ctxa_access_token', '', {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      maxAge: 0,
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.cookie(ACCESS_TOKEN_COOKIE_NAME, '', buildAccessTokenCookieOptions(req, 0));
     return this.authService.logout({ sessionId, userId });
   }
 
@@ -110,6 +106,7 @@ export class AuthController {
     @UserId() userId: string | undefined,
     @SessionId() sessionId: string | undefined,
     @Body() body: SwitchTenantBody,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService
@@ -122,13 +119,11 @@ export class AuthController {
       .then((result) => {
         const accessToken = String(result?.token?.accessToken ?? '');
         if (accessToken) {
-          res.cookie('ctxa_access_token', accessToken, {
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/',
-            maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
-            secure: process.env.NODE_ENV === 'production',
-          });
+          res.cookie(
+            ACCESS_TOKEN_COOKIE_NAME,
+            accessToken,
+            buildAccessTokenCookieOptions(req, ACCESS_TOKEN_COOKIE_MAX_AGE_MS),
+          );
         }
         return result;
       });
