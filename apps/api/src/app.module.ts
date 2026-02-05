@@ -12,6 +12,7 @@ import { ImportsModule } from './imports/imports.module';
 import { AuthModule } from './auth/auth.module';
 import { FilesModule } from './files/files.module';
 import { UserModule } from './user/user.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { UserModule } from './user/user.module';
     ImportsModule,
     AuthModule,
     UserModule,
-    FilesModule
+    FilesModule,
+    ActivityModule
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],
@@ -43,3 +45,4 @@ export class AppModule implements NestModule {
     consumer.apply(TenantMiddleware).forRoutes('*');
   }
 }
+

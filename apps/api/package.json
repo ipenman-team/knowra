@@ -24,6 +24,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --selectProjects unit --runInBand"
   },
   "dependencies": {
+    "@contexta/application": "workspace:*",
+    "@contexta/domain": "workspace:*",
     "@contexta/infrastructure": "workspace:*",
     "@contexta/rag": "workspace:*",
     "@contexta/slate-converters": "workspace:*",

@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/tenant/tenant.middleware';
 import { AiChatModule } from './ai-chat/ai-chat.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AiChatModule } from './ai-chat/ai-chat.module';
     }),
     PrismaModule,
     AiChatModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],
@@ -31,3 +33,4 @@ export class AppModule implements NestModule {
     consumer.apply(TenantMiddleware).forRoutes('*');
   }
 }
+

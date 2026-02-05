@@ -169,6 +169,35 @@ model Task {
   @@map("tasks")
 }
 
+model Activity {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+
+  action      String
+  subjectType String @map("subject_type")
+  subjectId   String @map("subject_id")
+  actorUserId String @map("actor_user_id")
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  traceId    String?  @map("trace_id")
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  metadata   Json?    @db.JsonB
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, isDeleted, createdAt], map: "act_tenant_del_created_idx")
+  @@index([tenantId, actorUserId, isDeleted, createdAt], map: "act_tenant_actor_del_created_idx")
+  @@index([tenantId, subjectType, subjectId, isDeleted, createdAt], map: "act_tenant_subject_del_created_idx")
+  @@index([tenantId, action, isDeleted, createdAt], map: "act_tenant_action_del_created_idx")
+  @@map("activities")
+}
+
 model VerificationCode {
   id       String @id @default(cuid())
 
