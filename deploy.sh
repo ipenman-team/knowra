@@ -57,6 +57,9 @@ echo "🏷️  当前运行版本..."
 if ! $COMPOSE -f docker-compose.prod.yml exec -T api bash -lc 'echo "api:${CONTEXTA_GIT_COMMIT:-unknown}"'; then
   echo "⚠️  无法读取 API 版本"
 fi
+if ! $COMPOSE -f docker-compose.prod.yml exec -T contexta-ai bash -lc 'echo "contexta-ai:${CONTEXTA_GIT_COMMIT:-unknown}"'; then
+  echo "⚠️  无法读取 Contexta-AI 版本"
+fi
 if ! $COMPOSE -f docker-compose.prod.yml exec -T web bash -lc 'echo "web:${CONTEXTA_GIT_COMMIT:-unknown}"'; then
   echo "⚠️  无法读取 Web 版本"
 fi
@@ -91,6 +94,12 @@ if curl -s -f http://localhost/api/ping > /dev/null 2>&1; then
   echo "✅ API: /api/ping 正常"
 else
   echo "⚠️  API: /api/ping 异常"
+fi
+
+if curl -s -f http://localhost/contexta-ai/ping > /dev/null 2>&1; then
+  echo "✅ Contexta-AI: /contexta-ai/ping 正常"
+else
+  echo "⚠️  Contexta-AI: /contexta-ai/ping 异常"
 fi
 
 if curl -s -f http://localhost > /dev/null 2>&1; then

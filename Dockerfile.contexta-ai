@@ -1,0 +1,32 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+ARG GIT_COMMIT=unknown
+ARG COREPACK_NPM_REGISTRY=https://registry.npmjs.org
+ARG NPM_REGISTRY=https://registry.npmjs.org
+
+ENV CONTEXTA_GIT_COMMIT=${GIT_COMMIT}
+
+LABEL org.opencontainers.image.revision=${GIT_COMMIT}
+
+ENV COREPACK_NPM_REGISTRY=${COREPACK_NPM_REGISTRY}
+ENV npm_config_registry=${NPM_REGISTRY}
+
+RUN corepack enable
+
+COPY . .
+
+RUN pnpm -w --filter @contexta/contexta-ai... install --frozen-lockfile --prod=false --config.node-linker=isolated --prefer-offline
+RUN pnpm --dir packages/infrastructure prisma:generate
+RUN pnpm -r --filter "./packages/**" build
+RUN pnpm --dir apps/contexta-ai build
+
+ENV NODE_ENV=production
+ENV PORT=3002
+
+WORKDIR /app/apps/contexta-ai
+
+EXPOSE 3002
+
+CMD ["node", "dist/main"]
