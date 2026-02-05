@@ -13,7 +13,7 @@ interface PageSelectionState {
 }
 
 export const usePageSelectionStore = create<PageSelectionState>((set) => ({
-  selected: { kind: 'view', id: 'dashboard' },
+  selected: { kind: 'view', id: 'workbench' },
 
   setSelected: (selected) => set({ selected }),
 

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 export function LandingHome() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-  const [activeShot, setActiveShot] = useState<'dashboard' | 'editor' | 'ai'>('dashboard');
+  const [activeShot, setActiveShot] = useState<'workbench' | 'editor' | 'ai'>('workbench');
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -37,7 +37,7 @@ export function LandingHome() {
       };
     }
     return {
-      src: 'https://placehold.co/1400x800/png?text=Workspace+Dashboard+Preview',
+      src: 'https://placehold.co/1400x800/png?text=Workspace+Workbench+Preview',
       alt: '工作台预览（占位图）',
     };
   }, [activeShot]);
@@ -131,8 +131,8 @@ export function LandingHome() {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={activeShot === 'dashboard' ? 'default' : 'outline'}
-                onClick={() => setActiveShot('dashboard')}
+                variant={activeShot === 'workbench' ? 'default' : 'outline'}
+                onClick={() => setActiveShot('workbench')}
               >
                 工作台
               </Button>

@@ -22,7 +22,7 @@ import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import {
   BookMinus,
   BotIcon,
-  LayoutDashboardIcon,
+  HomeIcon,
   PlusCircleIcon,
 } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
@@ -40,8 +40,8 @@ export const HomeSidebar = memo(function HomeSidebar() {
     (id: ViewId) => {
       setSelectedView(id);
       const target =
-        id === 'dashboard'
-          ? '/'
+        id === 'workbench'
+          ? '/workbench'
           : id === 'settings'
             ? '/settings'
             : '/contexta-ai';
@@ -76,13 +76,13 @@ export const HomeSidebar = memo(function HomeSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem
-                  key="dashboard"
-                  onClick={() => handleSelectView('dashboard')}
+                  key="workbench"
+                  onClick={() => handleSelectView('workbench')}
                 >
                   <SidebarMenuButton asChild>
                     <div className="flex items-center gap-2 cursor-pointer text-muted-foreground">
-                      <LayoutDashboardIcon />
-                      <span className="font-bold">仪表盘</span>
+                      <HomeIcon />
+                      <span className="font-bold">工作台</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

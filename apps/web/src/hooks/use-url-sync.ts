@@ -12,7 +12,7 @@ export function useUrlSync() {
   const selected = usePageSelectionStore((s) => s.selected);
 
   useEffect(() => {
-    let target = '/';
+    let target = '/workbench';
     if (selected.id === 'settings') {
       target = '/settings';
     } else if (selected.id === 'contexta-ai') {

@@ -123,7 +123,7 @@ export function EmailCodeLoginForm() {
         return;
       }
 
-      router.replace('/');
+      router.replace('/workbench');
       router.refresh();
     } finally {
       setSubmitting(false);

@@ -48,7 +48,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   const current = spaces.find((s) => s.id === currentId) ?? spaces[0];
 
   const handleBack = useCallback(() => {
-    router.push('/');
+    router.push('/workbench');
   }, [router]);
 
   const handleSelectSpace = useCallback(

@@ -91,7 +91,7 @@ export function DeletePageAlertDialog() {
         if (first?.id) {
           selection.setSelectedPage(first.id, first.data?.title || '');
         } else {
-          selection.setSelectedView('dashboard');
+          selection.setSelectedView('workbench');
         }
       }
 

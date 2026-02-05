@@ -71,7 +71,7 @@ export function PasswordLoginForm() {
         return;
       }
 
-      router.replace('/');
+      router.replace('/workbench');
       router.refresh();
     } finally {
       setSubmitting(false);
