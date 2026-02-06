@@ -300,7 +300,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                           </SidebarMenuAction>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                          align="end"
+                          align="start"
                           onCloseAutoFocus={handleMenuCloseAutoFocus}
                           onPointerDown={(event) => event.stopPropagation()}
                           onClick={(event) => event.stopPropagation()}
