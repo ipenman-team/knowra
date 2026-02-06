@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  InternalServerErrorException,
   Injectable,
   Logger,
   NotFoundException,
@@ -7,6 +8,7 @@ import {
 import type { Prisma, SpaceType } from '@prisma/client';
 import { ActivityRecorderUseCase } from '@contexta/application';
 import { PrismaService } from '../prisma/prisma.service';
+import { PageService } from '../page/page.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { ListSpaceQuery } from './dto/list-space.query';
@@ -20,6 +22,7 @@ export class SpaceService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly pageService: PageService,
     private readonly activityRecorder: ActivityRecorderUseCase,
   ) {}
 
@@ -48,11 +51,26 @@ export class SpaceService {
       },
     });
 
+    await this.pageService
+      .initializePage(tenantId, {
+        spaceId: created.id,
+        userId: actor,
+      })
+      .catch(async (e) => {
+        this.logger.error(
+          `Failed to create usage guide page for space(${created.id}): ${(e as Error)?.message ?? e}`,
+        );
+
+        throw new InternalServerErrorException(
+          'space created but failed to create usage guide page',
+        );
+      });
+
     void this.activityRecorder
       .record({
         tenantId,
         actorUserId: actor,
-            action: SpaceActivityAction.Create,
+        action: SpaceActivityAction.Create,
         subjectType: 'space',
         subjectId: created.id,
         metadata: {
@@ -225,7 +243,10 @@ export class SpaceService {
       input.description !== undefined &&
       input.description !== existing.description
     ) {
-      changes.description = { from: existing.description, to: input.description };
+      changes.description = {
+        from: existing.description,
+        to: input.description,
+      };
     }
     if (input.icon !== undefined && input.icon !== existing.icon) {
       changes.icon = { from: existing.icon, to: input.icon };
@@ -239,7 +260,10 @@ export class SpaceService {
     ) {
       changes.identifier = { from: existing.identifier, to: input.identifier };
     }
-    if (input.type !== undefined && (input.type as SpaceType) !== existing.type) {
+    if (
+      input.type !== undefined &&
+      (input.type as SpaceType) !== existing.type
+    ) {
       changes.type = { from: existing.type, to: input.type };
     }
     if (input.metadata !== undefined) {

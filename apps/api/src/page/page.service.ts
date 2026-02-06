@@ -14,7 +14,11 @@ import { SavePageDto } from './dto/save-page.dto';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
 import { PageVersionService } from './page-version.service';
-import { PageActivityAction } from './constant';
+import {
+  DefaultPageContent,
+  DefaultPageTitle,
+  PageActivityAction,
+} from './constant';
 
 @Injectable()
 export class PageService {
@@ -93,6 +97,7 @@ export class PageService {
     tenantId: string,
     input: CreatePageDto,
     userId?: string,
+    needPublish = false,
   ): Promise<PageDto> {
     if (!tenantId) throw new BadRequestException('tenantId is required');
     if (!input.title) throw new BadRequestException('title is required');
@@ -114,16 +119,27 @@ export class PageService {
       },
     });
 
-    await this.createPageVersion({
+    const version = await this.createPageVersion({
       tenantId,
       spaceId: input.spaceId,
       pageId: created.id,
-      status: PageVersionStatus.DRAFT,
+      status: needPublish
+        ? PageVersionStatus.PUBLISHED
+        : PageVersionStatus.DRAFT,
       title: created.title,
       content: normalizedContent,
       parentIds: created.parentIds,
       userId: actor,
     });
+    if (needPublish) {
+      await this.prisma.page.update({
+        where: { id: created.id },
+        data: {
+          latestPublishedVersionId: version.id,
+          updatedBy: actor,
+        },
+      });
+    }
 
     this.recordPageCreateActivity({
       tenantId,
@@ -132,6 +148,22 @@ export class PageService {
     });
 
     return created;
+  }
+
+  async initializePage(
+    tenantId: string,
+    input: { spaceId: string; userId: string },
+  ): Promise<PageDto> {
+    return await this.create(
+      tenantId,
+      {
+        spaceId: input.spaceId,
+        title: DefaultPageTitle,
+        content: DefaultPageContent,
+      },
+      input.userId,
+      true,
+    );
   }
 
   async save(
@@ -458,9 +490,7 @@ export class PageService {
       where: {
         tenantId,
         spaceId,
-        ...(query
-          ? { title: { contains: query, mode: 'insensitive' } }
-          : {}),
+        ...(query ? { title: { contains: query, mode: 'insensitive' } } : {}),
       },
       skip,
       take,
@@ -521,7 +551,7 @@ export class PageService {
 
     const items = rows.slice(0, take);
     const hasMore = rows.length > take;
-    const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
+    const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
 
     return { items, nextCursor, hasMore };
   }
