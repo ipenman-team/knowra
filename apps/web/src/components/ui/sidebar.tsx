@@ -362,13 +362,29 @@ const Sidebar = React.forwardRef<
     React.useEffect(() => {
       if (!resizable?.enabled || isMobile) return
 
-      const panel = sidebarPanelRef.current
-      if (!panel) return
+      let cancelled = false
+      const run = (attempt: number) => {
+        if (cancelled) return
+        const panel = sidebarPanelRef.current
+        if (!panel) return
 
-      if (open) {
-        panel.expand()
-      } else {
-        panel.collapse()
+        try {
+          if (open) {
+            panel.expand()
+          } else {
+            panel.collapse()
+          }
+        } catch {
+          if (attempt < 2) {
+            requestAnimationFrame(() => run(attempt + 1))
+          }
+        }
+      }
+
+      run(0)
+
+      return () => {
+        cancelled = true
       }
     }, [isMobile, open, resizable?.enabled])
 
