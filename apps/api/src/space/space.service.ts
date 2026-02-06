@@ -13,6 +13,8 @@ import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { ListSpaceQuery } from './dto/list-space.query';
 import { SpaceActivityAction } from './constant';
+import { RenameSpaceDto } from './dto/rename-space.dto';
+import { SetSpaceFavoriteDto } from './dto/set-space-favorite.dto';
 
 import { SpaceDto } from './dto/space.dto';
 
@@ -112,7 +114,7 @@ export class SpaceService {
       where,
       skip,
       take,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     const total = await this.prisma.space.count({ where });
@@ -179,6 +181,133 @@ export class SpaceService {
     });
 
     return updated as unknown as SpaceDto;
+  }
+
+  async rename(
+    tenantId: string,
+    id: string,
+    input: RenameSpaceDto,
+    userId?: string,
+  ): Promise<SpaceDto> {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+    if (!id) throw new BadRequestException('id is required');
+
+    const name = input?.name?.trim();
+    if (!name) throw new BadRequestException('name is required');
+
+    const actor = userId?.trim() || 'system';
+
+    const existing = await this.prisma.space.findFirst({
+      where: { id, tenantId, isDeleted: false },
+    });
+    if (!existing) throw new NotFoundException('space not found');
+
+    if (existing.name === name) return existing as unknown as SpaceDto;
+
+    const updated = await this.prisma.space.update({
+      where: { id },
+      data: {
+        name,
+        updatedBy: actor,
+      },
+    });
+
+    void this.activityRecorder
+      .record({
+        tenantId,
+        actorUserId: actor,
+        action: SpaceActivityAction.Rename,
+        subjectType: 'space',
+        subjectId: updated.id,
+        metadata: {
+          from: { name: existing.name },
+          to: { name: updated.name },
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(space.rename): ${(e as Error)?.message ?? e}`,
+        );
+      });
+
+    return updated as unknown as SpaceDto;
+  }
+
+  async setFavorite(
+    tenantId: string,
+    spaceId: string,
+    input: SetSpaceFavoriteDto,
+    userId?: string,
+  ): Promise<{ favorite: boolean }> {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+    if (!spaceId) throw new BadRequestException('spaceId is required');
+    if (!userId?.trim()) throw new BadRequestException('userId is required');
+    if (typeof input?.favorite !== 'boolean') {
+      throw new BadRequestException('favorite must be boolean');
+    }
+
+    const actor = userId.trim();
+
+    const space = await this.prisma.space.findFirst({
+      where: { id: spaceId, tenantId, isDeleted: false },
+      select: { id: true, name: true, identifier: true },
+    });
+    if (!space) throw new NotFoundException('space not found');
+
+    if (input.favorite) {
+      await this.prisma.spaceFavorite.upsert({
+        where: {
+          spaceId_userId: {
+            spaceId,
+            userId: actor,
+          },
+        },
+        update: {
+          isDeleted: false,
+          updatedBy: actor,
+        },
+        create: {
+          spaceId,
+          userId: actor,
+          createdBy: actor,
+          updatedBy: actor,
+        },
+      });
+    } else {
+      await this.prisma.spaceFavorite.updateMany({
+        where: {
+          spaceId,
+          userId: actor,
+          isDeleted: false,
+        },
+        data: {
+          isDeleted: true,
+          updatedBy: actor,
+        },
+      });
+    }
+
+    void this.activityRecorder
+      .record({
+        tenantId,
+        actorUserId: actor,
+        action: input.favorite
+          ? SpaceActivityAction.Favorite
+          : SpaceActivityAction.Unfavorite,
+        subjectType: 'space',
+        subjectId: spaceId,
+        metadata: {
+          name: space.name,
+          identifier: space.identifier,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(space.favorite): ${(e as Error)?.message ?? e}`,
+        );
+      });
+
+    return { favorite: input.favorite };
   }
 
   async remove(tenantId: string, id: string, userId?: string) {

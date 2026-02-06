@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/sidebar';
 import {
   BoltIcon,
-  BookMinus,
+  BookTextIcon,
   ChevronLeft,
   ListTreeIcon,
   RecycleIcon,
@@ -79,7 +79,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
           <SidebarGroupContent>
             <div className="p-3">
               <div className="flex items-center gap-3">
-                <BookMinus size={20} color={current?.color || 'currentColor'} />
+                <BookTextIcon size={20} strokeWidth={2} color={current?.color || 'currentColor'} />
                 <div className="flex-1">
                   <Select
                     value={current?.id ?? ''}

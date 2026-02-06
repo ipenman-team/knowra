@@ -5,6 +5,7 @@ export type Space = {
   id: string;
   name: string;
   color?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 interface SpaceState {
