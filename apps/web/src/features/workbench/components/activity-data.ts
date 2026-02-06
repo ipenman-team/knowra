@@ -11,10 +11,10 @@ import type { DailyCount } from '@contexta/shared';
 
 export const ACTIVITY_LEVELS = [
   'bg-muted',
-  'bg-primary/10',
-  'bg-primary/25',
-  'bg-primary/40',
-  'bg-primary/60',
+  'bg-blue-200',
+  'bg-blue-300',
+  'bg-blue-400',
+  'bg-blue-500',
 ];
 
 export const CHART_RANGES = [
@@ -28,8 +28,11 @@ export const getDateKey = (date: Date) => format(date, 'yyyy-MM-dd');
 
 export const getGreeting = (date: Date) => {
   const hour = date.getHours();
+  if (hour < 6) return '凌晨好';
+  if (hour < 9) return '早上好';
   if (hour < 12) return '上午好';
-  if (hour < 18) return '中午好';
+  if (hour < 14) return '中午好';
+  if (hour < 18) return '下午好';
   return '晚上好';
 };
 
