@@ -1,6 +1,7 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Inject, Query } from '@nestjs/common';
 import { ActivityQueryUseCase } from '@contexta/application';
 import { TenantId } from '../common/tenant/tenant-id.decorator';
+import { ACTIVITY_ACTION_NAME_MAP } from './activity.tokens';
 
 type ListActivitiesQuery = {
   limit?: string;
@@ -47,7 +48,11 @@ function parseRequiredIsoDateOnly(name: string, raw: unknown): Date {
 
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly queryUseCase: ActivityQueryUseCase) {}
+  constructor(
+    private readonly queryUseCase: ActivityQueryUseCase,
+    @Inject(ACTIVITY_ACTION_NAME_MAP)
+    private readonly actionNameMap: Record<string, string>,
+  ) {}
 
   @Get()
   async list(@TenantId() tenantId: string, @Query() query: ListActivitiesQuery) {
@@ -63,7 +68,13 @@ export class ActivitiesController {
       to: toOptionalDate(query.to),
     });
 
-    return result;
+    return {
+      ...result,
+      items: result.items.map((it) => ({
+        ...it,
+        actionName: this.actionNameMap[it.action] ?? null,
+      })),
+    };
   }
 
   @Get('stats/daily')

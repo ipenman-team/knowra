@@ -12,6 +12,7 @@ export type ActivitiesQuery = {
 export type ActivityItem = {
   id: string;
   action: string;
+  ActivityItem: string;
   subjectType: string;
   subjectId: string;
   actorUserId: string;

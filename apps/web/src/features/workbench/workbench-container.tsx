@@ -14,10 +14,7 @@ import {
   getDateKey,
   getGreeting,
 } from './components/activity-data';
-import {
-  ActivityList,
-  type ActivityListItem,
-} from './components/activity-list';
+import { ActivityList } from './components/activity-list';
 import { ActivityOverviewCard } from './components/activity-overview-card';
 import { ProfileCard } from './components/profile-card';
 import { workbenchApi } from '@/lib/api';
@@ -47,7 +44,7 @@ export const WorkbenchContainer = () => {
   const [todayCount, setTodayCount] = useState(0);
   const [todayLoading, setTodayLoading] = useState(false);
   const [todayError, setTodayError] = useState<string | null>(null);
-  const [dailyItems, setDailyItems] = useState<ActivityListItem[]>([]);
+  const [dailyItems, setDailyItems] = useState<ActivityItem[]>([]);
   const [dailyLoading, setDailyLoading] = useState(false);
   const [dailyError, setDailyError] = useState<string | null>(null);
 
@@ -255,7 +252,7 @@ export const WorkbenchContainer = () => {
           limit: 200,
         });
         if (cancelled) return;
-        setDailyItems(mapActivityItems(res.items ?? []));
+        setDailyItems(res.items ?? []);
       } catch (error) {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : '加载失败';
@@ -340,37 +337,3 @@ export const WorkbenchContainer = () => {
     </ContainerLayout>
   );
 };
-
-function mapActivityItems(items: ActivityItem[]): ActivityListItem[] {
-  return items.map((item) => {
-    const time = formatActivityTime(item.createdAt);
-    return {
-      id: item.id,
-      type: item.action,
-      content: formatActivityContent(item),
-      time,
-    };
-  });
-}
-
-function formatActivityTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return format(date, 'HH:mm');
-}
-
-function formatActivityContent(item: ActivityItem) {
-  const metadata = item.metadata ?? {};
-  const title =
-    typeof metadata.title === 'string'
-      ? metadata.title
-      : typeof metadata.name === 'string'
-        ? metadata.name
-        : typeof (metadata as { filename?: unknown }).filename === 'string'
-          ? (metadata as { filename: string }).filename
-          : typeof (metadata as { fileName?: unknown }).fileName === 'string'
-            ? (metadata as { fileName: string }).fileName
-            : '';
-  if (title) return title;
-  return `${item.subjectType} ${item.subjectId}`;
-}

@@ -40,7 +40,7 @@ export function ActivityOverviewCard({
   onJumpToToday,
 }: ActivityOverviewCardProps) {
   return (
-    <Card>
+    <Card className='border-none shadow-none'>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center">

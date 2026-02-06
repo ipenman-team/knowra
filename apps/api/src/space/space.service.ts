@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { ListSpaceQuery } from './dto/list-space.query';
+import { SpaceActivityAction } from './constant';
 
 import { SpaceDto } from './dto/space.dto';
 
@@ -51,7 +52,7 @@ export class SpaceService {
       .record({
         tenantId,
         actorUserId: actor,
-        action: 'space.create',
+            action: SpaceActivityAction.Create,
         subjectType: 'space',
         subjectId: created.id,
         metadata: {
@@ -182,7 +183,7 @@ export class SpaceService {
       .record({
         tenantId,
         actorUserId: actor,
-        action: 'space.delete',
+        action: SpaceActivityAction.Delete,
         subjectType: 'space',
         subjectId: result.id,
         metadata: {
@@ -252,7 +253,7 @@ export class SpaceService {
       .record({
         tenantId,
         actorUserId,
-        action: 'space.update',
+        action: SpaceActivityAction.Update,
         subjectType: 'space',
         subjectId,
         metadata: {

@@ -14,6 +14,7 @@ import { SavePageDto } from './dto/save-page.dto';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
 import { PageVersionService } from './page-version.service';
+import { PageActivityAction } from './constant';
 
 @Injectable()
 export class PageService {
@@ -326,7 +327,7 @@ export class PageService {
       .record({
         tenantId: args.tenantId,
         actorUserId: args.actorUserId,
-        action: 'page.create',
+        action: PageActivityAction.Create,
         subjectType: 'page',
         subjectId: args.page.id,
         metadata: {
@@ -355,7 +356,7 @@ export class PageService {
       .record({
         tenantId: args.tenantId,
         actorUserId: args.actorUserId,
-        action: 'page.rename',
+        action: PageActivityAction.Rename,
         subjectType: 'page',
         subjectId: args.pageId,
         metadata: {
@@ -384,7 +385,7 @@ export class PageService {
       .record({
         tenantId: args.tenantId,
         actorUserId: args.actorUserId,
-        action: 'page.publish',
+        action: PageActivityAction.Publish,
         subjectType: 'page',
         subjectId: args.pageId,
         metadata: {
@@ -413,7 +414,7 @@ export class PageService {
       .record({
         tenantId: args.tenantId,
         actorUserId: args.actorUserId,
-        action: 'page.delete',
+        action: PageActivityAction.Delete,
         subjectType: 'page',
         subjectId: args.pageId,
         metadata: {
