@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { spacesApi } from '@/lib/api';
 import { useMeStore } from '@/stores';
 import type { SpaceDto } from '@/lib/api/spaces/types';
+import { toast } from 'sonner';
 
 export function CreateSpaceModal(props: {
   open: boolean;
@@ -35,6 +36,7 @@ export function CreateSpaceModal(props: {
         type: isPersonalTenant ? 'PERSONAL' : form.type,
         description: form.description || undefined,
       });
+      toast.success('创建成功');
       onCreated?.(created as SpaceDto);
       onOpenChange(false);
       setForm({ name: '', identifier: '', type: 'ORG', description: '' });

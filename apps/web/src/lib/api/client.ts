@@ -54,6 +54,16 @@ function hasMessage(x: unknown): x is { message: unknown } {
   return typeof x === 'object' && x !== null && 'message' in x;
 }
 
+function notifyApiError(message: string, status?: number, code?: string): void {
+  if (typeof window === 'undefined') return;
+  if (status === 401) return;
+  if (code === 'ERR_CANCELED') return;
+
+  void import('sonner').then(({ toast }) => {
+    toast.error(message);
+  });
+}
+
 apiClient.interceptors.response.use(
   (res) => res,
   (error: unknown) => {
@@ -69,6 +79,7 @@ apiClient.interceptors.response.use(
       const message = hasMessage(payload)
         ? String(payload.message)
         : axiosError.message;
+      notifyApiError(message, status, axiosError.code);
       throw new ApiError(message, status, payload);
     }
 

@@ -27,6 +27,7 @@ import {
 } from 'date-fns';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import { toast } from 'sonner';
 
 function formatRelativeDateTime(timestamp: string | null): string | null {
   if (!timestamp) return null;
@@ -96,6 +97,8 @@ export const PageHeader = () => {
       usePageTreeStore.getState().updateNode(saved.id, {
         data: nextPage,
       });
+
+      toast.success('发布成功');
 
       try {
         const published = await pageVersionsApi.getVersion(
