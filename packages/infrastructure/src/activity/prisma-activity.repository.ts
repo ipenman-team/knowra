@@ -1,11 +1,21 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import type {
   ActivityRepository,
+  ActivityDailyStatsParams,
+  ActivityDailyStatsResult,
   CreateActivityParams,
   ListActivitiesParams,
   ListActivitiesResult,
 } from '@contexta/domain';
 import { decodeActivityCursor, encodeActivityCursor } from '@contexta/domain';
+
+function toUtcStartOfDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function addUtcDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
 
 export class PrismaActivityRepository implements ActivityRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -68,6 +78,51 @@ export class PrismaActivityRepository implements ActivityRepository {
       items,
       hasMore,
       nextCursor: hasMore && last ? encodeActivityCursor(last) : null,
+    };
+  }
+
+  async dailyStats(
+    params: ActivityDailyStatsParams,
+  ): Promise<ActivityDailyStatsResult> {
+    const from = toUtcStartOfDay(params.from);
+    const toExclusive = addUtcDays(toUtcStartOfDay(params.to), 1);
+
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`"tenant_id" = ${params.tenantId}`,
+      Prisma.sql`"is_deleted" = false`,
+      Prisma.sql`"created_at" >= ${from}`,
+      Prisma.sql`"created_at" < ${toExclusive}`,
+    ];
+
+    if (params.actorUserId) {
+      conditions.push(Prisma.sql`"actor_user_id" = ${params.actorUserId}`);
+    }
+    if (params.action) {
+      conditions.push(Prisma.sql`"action" = ${params.action}`);
+    }
+    if (params.subjectType) {
+      conditions.push(Prisma.sql`"subject_type" = ${params.subjectType}`);
+    }
+    if (params.subjectId) {
+      conditions.push(Prisma.sql`"subject_id" = ${params.subjectId}`);
+    }
+
+    const where = Prisma.join(conditions, ' AND ');
+
+    const rows = await this.prisma.$queryRaw<
+      Array<{ date: string; count: number }>
+    >(Prisma.sql`
+      SELECT
+        to_char(("created_at" AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS "date",
+        COUNT(*)::int AS "count"
+      FROM "activities"
+      WHERE ${where}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `);
+
+    return {
+      items: rows.map((r) => ({ date: r.date, count: Number(r.count) })),
     };
   }
 }

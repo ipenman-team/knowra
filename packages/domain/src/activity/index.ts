@@ -2,6 +2,9 @@ export type {
   Activity,
   ActivityMetadata,
   CreateActivityParams,
+  ActivityDailyCount,
+  ActivityDailyStatsParams,
+  ActivityDailyStatsResult,
   ListActivitiesParams,
   ListActivitiesResult,
 } from './types';

@@ -1,5 +1,7 @@
 import type {
   Activity,
+  ActivityDailyStatsParams,
+  ActivityDailyStatsResult,
   CreateActivityParams,
   ListActivitiesParams,
   ListActivitiesResult,
@@ -8,4 +10,5 @@ import type {
 export interface ActivityRepository {
   create(params: CreateActivityParams): Promise<Activity>;
   list(params: ListActivitiesParams): Promise<ListActivitiesResult>;
+  dailyStats(params: ActivityDailyStatsParams): Promise<ActivityDailyStatsResult>;
 }

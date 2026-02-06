@@ -57,3 +57,23 @@ export type ListActivitiesResult = {
   nextCursor?: string | null;
   hasMore: boolean;
 };
+
+export type ActivityDailyCount = {
+  date: string; // "YYYY-MM-DD"
+  count: number;
+};
+
+export type ActivityDailyStatsParams = {
+  tenantId: string;
+  from: Date; // inclusive (UTC day)
+  to: Date; // inclusive (UTC day)
+
+  actorUserId?: string | null;
+  subjectType?: string | null;
+  subjectId?: string | null;
+  action?: string | null;
+};
+
+export type ActivityDailyStatsResult = {
+  items: ActivityDailyCount[];
+};

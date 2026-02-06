@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { ActivityQueryUseCase } from '@contexta/application';
 import { TenantId } from '../common/tenant/tenant-id.decorator';
 
@@ -13,6 +13,15 @@ type ListActivitiesQuery = {
   to?: string;
 };
 
+type DailyStatsQuery = {
+  from?: string; // ISO date
+  to?: string; // ISO date
+  actorUserId?: string;
+  action?: string;
+  subjectType?: string;
+  subjectId?: string;
+};
+
 function toOptionalDate(raw: unknown): Date | null {
   if (typeof raw !== 'string') return null;
   const v = raw.trim();
@@ -20,6 +29,20 @@ function toOptionalDate(raw: unknown): Date | null {
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return null;
   return d;
+}
+
+function parseRequiredIsoDateOnly(name: string, raw: unknown): Date {
+  if (typeof raw !== 'string') throw new BadRequestException(`${name} is required`);
+  const v = raw.trim();
+  const m = /^\d{4}-\d{2}-\d{2}$/.exec(v);
+  if (!m) throw new BadRequestException(`${name} must be ISO date (YYYY-MM-DD)`);
+
+  const [y, mo, d] = v.split('-').map((x) => Number(x));
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  if (Number.isNaN(date.getTime())) {
+    throw new BadRequestException(`${name} must be ISO date (YYYY-MM-DD)`);
+  }
+  return date;
 }
 
 @Controller('activities')
@@ -41,5 +64,24 @@ export class ActivitiesController {
     });
 
     return result;
+  }
+
+  @Get('stats/daily')
+  async dailyStats(
+    @TenantId() tenantId: string,
+    @Query() query: DailyStatsQuery,
+  ) {
+    const from = parseRequiredIsoDateOnly('from', query.from);
+    const to = parseRequiredIsoDateOnly('to', query.to);
+
+    return await this.queryUseCase.dailyStats({
+      tenantId,
+      from,
+      to,
+      actorUserId: query.actorUserId ?? null,
+      action: query.action ?? null,
+      subjectType: query.subjectType ?? null,
+      subjectId: query.subjectId ?? null,
+    });
   }
 }

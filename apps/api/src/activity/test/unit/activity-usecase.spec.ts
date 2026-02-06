@@ -28,6 +28,9 @@ function makeRepo(): ActivityRepository {
     async list(params) {
       return { items: [], hasMore: false, nextCursor: null };
     },
+    async dailyStats() {
+      return { items: [] };
+    },
   };
 }
 
@@ -53,6 +56,9 @@ describe('Activity usecases', () => {
       async list(params) {
         expect(params.limit).toBe(200);
         return { items: [], hasMore: false, nextCursor: null };
+      },
+      async dailyStats() {
+        throw new Error('not used');
       },
     };
 
