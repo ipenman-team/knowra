@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PageVersionStatus, type Prisma } from '@prisma/client';
+import { ActivityRecorderUseCase } from '@contexta/application';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { PageDto } from './dto/page.dto';
@@ -15,9 +17,12 @@ import { PageVersionService } from './page-version.service';
 
 @Injectable()
 export class PageService {
+  private readonly logger = new Logger(PageService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pageVersionService: PageVersionService,
+    private readonly activityRecorder: ActivityRecorderUseCase,
   ) {}
 
   private normalizePageContent(input: unknown): Prisma.InputJsonValue {
@@ -119,6 +124,12 @@ export class PageService {
       userId: actor,
     });
 
+    this.recordPageCreateActivity({
+      tenantId,
+      actorUserId: actor,
+      page: created,
+    });
+
     return created;
   }
 
@@ -205,6 +216,16 @@ export class PageService {
       });
     }
 
+    this.recordPageRenameActivity({
+      tenantId,
+      actorUserId: actor,
+      pageId: updated.id,
+      spaceId: updated.spaceId,
+      fromTitle: existing.title,
+      toTitle: updated.title,
+      hasPublished: Boolean(updated.latestPublishedVersionId),
+    });
+
     return updated;
   }
 
@@ -242,6 +263,17 @@ export class PageService {
       },
     });
 
+    if (version.status === PageVersionStatus.PUBLISHED) {
+      this.recordPagePublishActivity({
+        tenantId,
+        actorUserId: actor,
+        pageId: page.id,
+        spaceId: page.spaceId,
+        versionId: version.id,
+        title: page.title,
+      });
+    }
+
     return { ok: true, versionId: version.id };
   }
 
@@ -256,9 +288,15 @@ export class PageService {
     return this.pageVersionService.getVersion(pageId, versionId, tenantId);
   }
 
-  async remove(id: string, tenantId: string): Promise<{ ok: true }> {
+  async remove(
+    id: string,
+    tenantId: string,
+    userId?: string,
+  ): Promise<{ ok: true }> {
     if (!id) throw new BadRequestException('id is required');
     if (!tenantId) throw new BadRequestException('tenantId is required');
+
+    const actor = userId?.trim() || 'system';
 
     const existing = await this.prisma.page.findFirst({
       where: { id, tenantId },
@@ -266,7 +304,129 @@ export class PageService {
     if (!existing) throw new NotFoundException('page not found');
 
     await this.prisma.page.delete({ where: { id } });
+
+    this.recordPageDeleteActivity({
+      tenantId,
+      actorUserId: actor,
+      pageId: existing.id,
+      spaceId: existing.spaceId,
+      title: existing.title,
+      hadPublished: Boolean(existing.latestPublishedVersionId),
+    });
+
     return { ok: true };
+  }
+
+  private recordPageCreateActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    page: { id: string; spaceId: string; title: string; parentIds: string[] };
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: 'page.create',
+        subjectType: 'page',
+        subjectId: args.page.id,
+        metadata: {
+          spaceId: args.page.spaceId,
+          title: args.page.title,
+          parentIds: args.page.parentIds,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.create): ${(e as Error)?.message ?? e}`,
+        );
+      });
+  }
+
+  private recordPageRenameActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    pageId: string;
+    spaceId: string;
+    fromTitle: string;
+    toTitle: string;
+    hasPublished: boolean;
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: 'page.rename',
+        subjectType: 'page',
+        subjectId: args.pageId,
+        metadata: {
+          spaceId: args.spaceId,
+          fromTitle: args.fromTitle,
+          toTitle: args.toTitle,
+          hasPublished: args.hasPublished,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.rename): ${(e as Error)?.message ?? e}`,
+        );
+      });
+  }
+
+  private recordPagePublishActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    pageId: string;
+    spaceId: string;
+    versionId: string;
+    title: string;
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: 'page.publish',
+        subjectType: 'page',
+        subjectId: args.pageId,
+        metadata: {
+          spaceId: args.spaceId,
+          versionId: args.versionId,
+          title: args.title,
+          status: PageVersionStatus.PUBLISHED,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.publish): ${(e as Error)?.message ?? e}`,
+        );
+      });
+  }
+
+  private recordPageDeleteActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    pageId: string;
+    spaceId: string;
+    title: string;
+    hadPublished: boolean;
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: 'page.delete',
+        subjectType: 'page',
+        subjectId: args.pageId,
+        metadata: {
+          spaceId: args.spaceId,
+          title: args.title,
+          hadPublished: args.hadPublished,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.delete): ${(e as Error)?.message ?? e}`,
+        );
+      });
   }
 
   async get(id: string, tenantId: string): Promise<PageDto> {

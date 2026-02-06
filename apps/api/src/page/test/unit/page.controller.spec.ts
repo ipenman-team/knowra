@@ -89,8 +89,10 @@ describe('PageController', () => {
   it('remove forwards id + tenantId', async () => {
     pageService.remove.mockResolvedValue({ ok: true });
 
-    await expect(controller.remove('p1', 't1')).resolves.toEqual({ ok: true });
-    expect(pageService.remove).toHaveBeenCalledWith('p1', 't1');
+    await expect(controller.remove('p1', 't1', undefined)).resolves.toEqual({
+      ok: true,
+    });
+    expect(pageService.remove).toHaveBeenCalledWith('p1', 't1', undefined);
   });
 
   it('get forwards id + tenantId', async () => {

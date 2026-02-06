@@ -89,8 +89,12 @@ export class PageController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @TenantId() tenantId: string) {
-    return this.pageService.remove(id, tenantId);
+  remove(
+    @Param('id') id: string,
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+  ) {
+    return this.pageService.remove(id, tenantId, userId);
   }
 
   @Get('tree')
