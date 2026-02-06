@@ -19,13 +19,9 @@ import type { SpaceDto } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 
-import {
-  BookMinus,
-  BotIcon,
-  HomeIcon,
-  PlusCircleIcon,
-} from 'lucide-react';
+import { BookMinus, BotIcon, HomeIcon, PlusCircleIcon, PlusIcon } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
+import { Button } from '../ui/button';
 
 export const HomeSidebar = memo(function HomeSidebar() {
   const { setSelectedView } = usePageSelectionStore();
@@ -102,12 +98,16 @@ export const HomeSidebar = memo(function HomeSidebar() {
           </SidebarGroup>
           <SidebarGroup>
             <SidebarGroupLabel>
-              <div className="flex justify-between flex-1">
+              <div className="flex justify-between flex-1 items-center">
                 空间
-                <PlusCircleIcon
-                  className="w-4 h-4 cursor-pointer text-muted-foreground"
+                <Button
+                  variant="ghost"
+                  className='h-6 w-6'
+                  size="icon"
                   onClick={() => setOpenCreate(true)}
-                />
+                >
+                  <PlusIcon className="cursor-pointer" />
+                </Button>
               </div>
             </SidebarGroupLabel>
             <SidebarGroupContent>

@@ -14,11 +14,12 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "border border-input bg-background shadow-sm hover:bg-blue-50 hover:text-blue-500 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-500 data-[state=on]:bg-blue-50 data-[state=on]:text-blue-500 aria-[pressed=true]:bg-blue-50 aria-[pressed=true]:text-blue-500 aria-[selected=true]:bg-blue-50 aria-[selected=true]:text-blue-500",
         secondary:
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary/70 underline-offset-4 hover:text-primary",
+        ghost:
+          "hover:bg-blue-50 hover:text-blue-500 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-500 data-[state=on]:bg-blue-50 data-[state=on]:text-blue-500 aria-[pressed=true]:bg-blue-50 aria-[pressed=true]:text-blue-500 aria-[selected=true]:bg-blue-50 aria-[selected=true]:text-blue-500",
+        link: "text-primary/70 underline-offset-4 hover:text-blue-500 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-500 data-[state=on]:bg-blue-50 data-[state=on]:text-blue-500 aria-[pressed=true]:bg-blue-50 aria-[pressed=true]:text-blue-500 aria-[selected=true]:bg-blue-50 aria-[selected=true]:text-blue-500",
       },
       size: {
         default: "h-9 px-4 py-2",
