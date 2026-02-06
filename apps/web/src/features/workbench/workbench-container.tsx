@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, endOfDay, endOfMonth, format, startOfDay } from 'date-fns';
 import type { ActivityItem, DailyCount } from '@contexta/shared';
 
@@ -14,7 +14,10 @@ import {
   getDateKey,
   getGreeting,
 } from './components/activity-data';
-import { ActivityList, type ActivityListItem } from './components/activity-list';
+import {
+  ActivityList,
+  type ActivityListItem,
+} from './components/activity-list';
 import { ActivityOverviewCard } from './components/activity-overview-card';
 import { ProfileCard } from './components/profile-card';
 import { workbenchApi } from '@/lib/api';
@@ -26,6 +29,7 @@ export const WorkbenchContainer = () => {
   const ensureMeLoaded = useMeStore((s) => s.ensureLoaded);
   const profile = useMeStore((s) => s.profile);
   const user = useMeStore((s) => s.user);
+  const meLoaded = useMeStore((s) => s.loaded);
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [selectedYear, setSelectedYear] = useState<number>(todayYear);
   const [viewMode, setViewMode] = useState<'grid' | 'line'>('grid');
@@ -33,9 +37,13 @@ export const WorkbenchContainer = () => {
   const [gridStats, setGridStats] = useState<DailyCount[]>([]);
   const [gridLoading, setGridLoading] = useState(false);
   const [gridError, setGridError] = useState<string | null>(null);
+  const gridRequestKeyRef = useRef<string | null>(null);
+  const gridFetchedKeyRef = useRef<string | null>(null);
   const [lineStats, setLineStats] = useState<DailyCount[]>([]);
   const [lineLoading, setLineLoading] = useState(false);
   const [lineError, setLineError] = useState<string | null>(null);
+  const lineRequestKeyRef = useRef<string | null>(null);
+  const lineFetchedKeyRef = useRef<string | null>(null);
   const [todayCount, setTodayCount] = useState(0);
   const [todayLoading, setTodayLoading] = useState(false);
   const [todayError, setTodayError] = useState<string | null>(null);
@@ -100,10 +108,15 @@ export const WorkbenchContainer = () => {
   }, [ensureMeLoaded]);
 
   useEffect(() => {
+    if (!meLoaded || !actorUserId || viewMode !== 'grid') return;
+    const requestKey = `${selectedYear}:${actorUserId}`;
+    if (gridFetchedKeyRef.current === requestKey) return;
+    if (gridRequestKeyRef.current === requestKey) return;
     let cancelled = false;
     setGridLoading(true);
     setGridError(null);
     setGridStats([]);
+    gridRequestKeyRef.current = requestKey;
 
     (async () => {
       try {
@@ -116,26 +129,45 @@ export const WorkbenchContainer = () => {
         });
         if (cancelled) return;
         setGridStats(res.items ?? []);
+        gridFetchedKeyRef.current = requestKey;
       } catch (error) {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : '加载失败';
         setGridError(message);
+        if (gridRequestKeyRef.current === requestKey) {
+          gridRequestKeyRef.current = null;
+        }
       } finally {
         if (cancelled) return;
+        if (gridRequestKeyRef.current === requestKey) {
+          gridRequestKeyRef.current = null;
+        }
         setGridLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
+      if (gridRequestKeyRef.current === requestKey) {
+        gridRequestKeyRef.current = null;
+        setGridLoading(false);
+      }
     };
-  }, [actorUserId, selectedYear]);
+  }, [actorUserId, meLoaded, selectedYear, viewMode]);
 
   useEffect(() => {
+    if (!meLoaded || !actorUserId || viewMode !== 'line') return;
+    const requestKey = `${format(lineRange.startDate, 'yyyy-MM-dd')}:${format(
+      lineRange.endDate,
+      'yyyy-MM-dd',
+    )}:${actorUserId}`;
+    if (lineFetchedKeyRef.current === requestKey) return;
+    if (lineRequestKeyRef.current === requestKey) return;
     let cancelled = false;
     setLineLoading(true);
     setLineError(null);
     setLineStats([]);
+    lineRequestKeyRef.current = requestKey;
 
     (async () => {
       try {
@@ -148,22 +180,34 @@ export const WorkbenchContainer = () => {
         });
         if (cancelled) return;
         setLineStats(res.items ?? []);
+        lineFetchedKeyRef.current = requestKey;
       } catch (error) {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : '加载失败';
         setLineError(message);
+        if (lineRequestKeyRef.current === requestKey) {
+          lineRequestKeyRef.current = null;
+        }
       } finally {
         if (cancelled) return;
+        if (lineRequestKeyRef.current === requestKey) {
+          lineRequestKeyRef.current = null;
+        }
         setLineLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
+      if (lineRequestKeyRef.current === requestKey) {
+        lineRequestKeyRef.current = null;
+        setLineLoading(false);
+      }
     };
-  }, [actorUserId, lineRange.endDate, lineRange.startDate]);
+  }, [actorUserId, lineRange.endDate, lineRange.startDate, meLoaded, viewMode]);
 
   useEffect(() => {
+    if (!meLoaded || !actorUserId) return;
     let cancelled = false;
     setTodayLoading(true);
     setTodayError(null);
@@ -191,9 +235,10 @@ export const WorkbenchContainer = () => {
     return () => {
       cancelled = true;
     };
-  }, [actorUserId, today]);
+  }, [actorUserId, meLoaded, today]);
 
   useEffect(() => {
+    if (!meLoaded || !actorUserId) return;
     let cancelled = false;
     setDailyLoading(true);
     setDailyError(null);
@@ -224,7 +269,7 @@ export const WorkbenchContainer = () => {
     return () => {
       cancelled = true;
     };
-  }, [actorUserId, selectedDate]);
+  }, [actorUserId, meLoaded, selectedDate]);
 
   return (
     <ContainerLayout isRoot sidebar={<HomeSidebar />}>
@@ -254,6 +299,10 @@ export const WorkbenchContainer = () => {
                 selectedDayKey,
                 activityMap,
                 onSelectDate: setSelectedDate,
+              }}
+              onJumpToToday={() => {
+                setSelectedDate(today);
+                setSelectedYear(today.getFullYear());
               }}
               lineProps={{
                 lineData,

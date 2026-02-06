@@ -1,5 +1,6 @@
 import {
   addDays,
+  Day,
   endOfWeek,
   endOfYear,
   format,
@@ -40,7 +41,7 @@ export const getActivityLevel = (count: number) => {
   return 4;
 };
 
-export const buildYearGrid = (year: number, weekStartsOn = 1) => {
+export const buildYearGrid = (year: number, weekStartsOn: Day = 1) => {
   const start = startOfWeek(startOfYear(new Date(year, 0, 1)), {
     weekStartsOn,
   });

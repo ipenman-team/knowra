@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { ActivityGrid } from './activity-grid';
 import { ActivityLineChart } from './activity-line-chart';
-import { ChartLineIcon, Grid3X3Icon } from 'lucide-react';
+import { ChartLineIcon, Grid3X3Icon, RotateCcwIcon } from 'lucide-react';
 
 type ActivityOverviewCardProps = {
   today: Date;
@@ -24,6 +24,7 @@ type ActivityOverviewCardProps = {
   gridProps: ComponentProps<typeof ActivityGrid>;
   lineProps: ComponentProps<typeof ActivityLineChart>;
   statusText?: string | null;
+  onJumpToToday?: () => void;
 };
 
 export function ActivityOverviewCard({
@@ -36,16 +37,24 @@ export function ActivityOverviewCard({
   gridProps,
   lineProps,
   statusText,
+  onJumpToToday,
 }: ActivityOverviewCardProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <CardTitle>协作指数</CardTitle>
-            <div className="mt-1 text-sm text-muted-foreground">
-              按天统计（{format(today, 'yyyy年M月d日')}）
-            </div>
+          <div className="flex items-center">
+            <CardTitle>活跃度</CardTitle>
+            {onJumpToToday ? (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={onJumpToToday}
+              >
+                <RotateCcwIcon />
+              </Button>
+            ) : null}
             {statusText ? (
               <div className="mt-1 text-xs text-muted-foreground">
                 {statusText}

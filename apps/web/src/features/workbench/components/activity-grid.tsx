@@ -40,28 +40,14 @@ export function ActivityGrid({
       </div>
 
       <div className="flex gap-3">
-        <div className="flex flex-col gap-1 text-[10px] text-muted-foreground">
+        <div className="flex w-4 flex-col gap-1 text-[10px] text-muted-foreground">
           {['一', '', '三', '', '五', '', ''].map((label, index) => (
             <div key={`${label}-${index}`} className="h-3">
               {label}
             </div>
           ))}
         </div>
-        <div className="space-y-2 overflow-x-auto">
-          <div className="flex gap-1 text-[10px] text-muted-foreground">
-            {weeks.map((week, index) => {
-              const monthLabel = week.find(
-                (day) =>
-                  day.getDate() === 1 && day.getFullYear() === selectedYear,
-              );
-              return (
-                <div key={`month-${index}`} className="w-3 text-[10px]">
-                  {monthLabel ? format(monthLabel, 'M月') : ''}
-                </div>
-              );
-            })}
-          </div>
-
+        <div className="space-y-2 overflow-x-auto overflow-y-hidden">
           <div className="flex gap-1">
             {weeks.map((week, weekIndex) => (
               <div key={`week-${weekIndex}`} className="flex flex-col gap-1">
@@ -91,6 +77,23 @@ export function ActivityGrid({
                 })}
               </div>
             ))}
+          </div>
+
+          <div className="flex gap-1 pt-1 text-[10px] leading-none text-muted-foreground whitespace-nowrap">
+            {weeks.map((week, index) => {
+              const monthLabel = week.find(
+                (day) =>
+                  day.getDate() === 1 && day.getFullYear() === selectedYear,
+              );
+              return (
+                <div
+                  key={`month-${index}`}
+                  className="w-3 text-[10px] leading-none whitespace-nowrap"
+                >
+                  {monthLabel ? format(monthLabel, 'M月') : ''}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
