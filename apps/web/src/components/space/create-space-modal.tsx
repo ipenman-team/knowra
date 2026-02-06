@@ -7,6 +7,7 @@ import { spacesApi } from '@/lib/api';
 import { useMeStore } from '@/stores';
 import type { SpaceDto } from '@/lib/api/spaces/types';
 import { toast } from 'sonner';
+import { Textarea } from '../ui/textarea';
 
 export function CreateSpaceModal(props: {
   open: boolean;
@@ -87,7 +88,7 @@ export function CreateSpaceModal(props: {
 
         <div>
           <div className="text-sm font-medium">描述</div>
-          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="输入空间描述" className="mt-1 block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" rows={4} />
+          <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="输入空间描述" className="mt-1 block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" rows={4} />
         </div>
       </div>
     </Modal>
