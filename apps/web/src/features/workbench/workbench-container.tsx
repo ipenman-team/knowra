@@ -269,9 +269,13 @@ export const WorkbenchContainer = () => {
   }, [actorUserId, meLoaded, selectedDate]);
 
   return (
-    <ContainerLayout isRoot sidebar={<HomeSidebar />}>
-      <div className="flex min-h-full flex-col gap-6 px-6 py-6 lg:px-11">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+    <ContainerLayout
+      isRoot
+      sidebar={<HomeSidebar />}
+      insetClassName="min-h-0 overflow-auto lg:overflow-hidden"
+    >
+      <div className="flex h-full min-h-0 flex-col gap-6 px-6 py-6 lg:px-11">
+        <div className="grid flex-1 min-h-0 grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
           <ProfileCard
             name={displayName}
             greeting={greeting}
@@ -282,7 +286,7 @@ export const WorkbenchContainer = () => {
             error={todayError}
           />
 
-          <div className="flex flex-1 flex-col gap-6">
+          <div className="flex h-full min-h-0 flex-col gap-6">
             <ActivityOverviewCard
               today={today}
               selectedYear={selectedYear}
@@ -325,12 +329,14 @@ export const WorkbenchContainer = () => {
               }
             />
 
-            <ActivityList
-              selectedDate={selectedDate}
-              items={dailyItems}
-              loading={dailyLoading}
-              error={dailyError}
-            />
+            <div className="flex-1 min-h-0">
+              <ActivityList
+                selectedDate={selectedDate}
+                items={dailyItems}
+                loading={dailyLoading}
+                error={dailyError}
+              />
+            </div>
           </div>
         </div>
       </div>

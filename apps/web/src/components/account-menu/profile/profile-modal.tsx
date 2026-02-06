@@ -6,7 +6,7 @@ import { useMeStore, type MeProfile } from "@/stores";
 import { apiClient } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/dialog";
 
 export const ProfileModal = memo(function ProfileModal({
   open,

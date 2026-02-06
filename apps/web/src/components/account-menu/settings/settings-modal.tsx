@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Modal } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/dialog";
 import type { MeProfile, MeVerification } from "@/stores";
 import { SettingsModalSidebar } from "./settings-modal-sidebar";
 import { SettingsModalMain } from "./settings-modal-main";

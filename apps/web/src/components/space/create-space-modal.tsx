@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Modal } from '@/components/ui/modal';
+import { Modal } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { spacesApi } from '@/lib/api';
 import { useMeStore } from '@/stores';

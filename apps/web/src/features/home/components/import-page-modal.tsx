@@ -2,8 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 
-import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
+import { Modal } from "@/components/ui/dialog";
 
 type ImportType = "markdown" | "pdf" | "docx";
 
