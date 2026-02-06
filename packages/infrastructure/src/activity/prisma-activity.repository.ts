@@ -87,27 +87,22 @@ export class PrismaActivityRepository implements ActivityRepository {
     const from = toUtcStartOfDay(params.from);
     const toExclusive = addUtcDays(toUtcStartOfDay(params.to), 1);
 
-    const conditions: Prisma.Sql[] = [
-      Prisma.sql`"tenant_id" = ${params.tenantId}`,
-      Prisma.sql`"is_deleted" = false`,
-      Prisma.sql`"created_at" >= ${from}`,
-      Prisma.sql`"created_at" < ${toExclusive}`,
-    ];
-
-    if (params.actorUserId) {
-      conditions.push(Prisma.sql`"actor_user_id" = ${params.actorUserId}`);
-    }
-    if (params.action) {
-      conditions.push(Prisma.sql`"action" = ${params.action}`);
-    }
-    if (params.subjectType) {
-      conditions.push(Prisma.sql`"subject_type" = ${params.subjectType}`);
-    }
-    if (params.subjectId) {
-      conditions.push(Prisma.sql`"subject_id" = ${params.subjectId}`);
-    }
-
-    const where = Prisma.join(conditions, ' AND ');
+    const where = Prisma.sql`
+      "tenant_id" = ${params.tenantId}
+      AND "is_deleted" = false
+      AND "created_at" >= ${from}
+      AND "created_at" < ${toExclusive}
+      ${params.actorUserId
+        ? Prisma.sql`AND "actor_user_id" = ${params.actorUserId}`
+        : Prisma.empty}
+      ${params.action ? Prisma.sql`AND "action" = ${params.action}` : Prisma.empty}
+      ${params.subjectType
+        ? Prisma.sql`AND "subject_type" = ${params.subjectType}`
+        : Prisma.empty}
+      ${params.subjectId
+        ? Prisma.sql`AND "subject_id" = ${params.subjectId}`
+        : Prisma.empty}
+    `;
 
     const rows = await this.prisma.$queryRaw<
       Array<{ date: string; count: number }>

@@ -14,6 +14,8 @@ type ProfileCardProps = {
   todayCount: number;
   updatedAt: Date;
   avatarUrl?: string;
+  loading?: boolean;
+  error?: string | null;
 };
 
 export function ProfileCard({
@@ -22,6 +24,8 @@ export function ProfileCard({
   todayCount,
   updatedAt,
   avatarUrl,
+  loading,
+  error,
 }: ProfileCardProps) {
   const fallback = name?.trim().slice(0, 1) || 'U';
 
@@ -40,7 +44,9 @@ export function ProfileCard({
             </div>
           </HoverCardTrigger>
           <HoverCardContent className="w-64">
-            <div className="text-sm font-medium">今日动态：{todayCount} 条</div>
+            <div className="text-sm font-medium">
+              今日动态：{loading ? '加载中…' : `${todayCount} 条`}
+            </div>
             <div className="mt-1 text-xs text-muted-foreground">
               最近更新时间：{format(updatedAt, 'HH:mm')}
             </div>
@@ -54,7 +60,12 @@ export function ProfileCard({
       <CardContent>
         <div className="rounded-lg border bg-muted/40 p-4 text-center">
           <div className="text-xs text-muted-foreground">今日活跃度</div>
-          <div className="mt-2 text-2xl font-semibold">{todayCount}</div>
+          <div className="mt-2 text-2xl font-semibold">
+            {loading ? '—' : todayCount}
+          </div>
+          {error ? (
+            <div className="mt-1 text-xs text-destructive">{error}</div>
+          ) : null}
         </div>
       </CardContent>
     </Card>

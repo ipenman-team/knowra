@@ -23,6 +23,7 @@ type ActivityOverviewCardProps = {
   onYearChange: (value: string) => void;
   gridProps: ComponentProps<typeof ActivityGrid>;
   lineProps: ComponentProps<typeof ActivityLineChart>;
+  statusText?: string | null;
 };
 
 export function ActivityOverviewCard({
@@ -34,6 +35,7 @@ export function ActivityOverviewCard({
   onYearChange,
   gridProps,
   lineProps,
+  statusText,
 }: ActivityOverviewCardProps) {
   return (
     <Card>
@@ -41,6 +43,14 @@ export function ActivityOverviewCard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle>协作指数</CardTitle>
+            <div className="mt-1 text-sm text-muted-foreground">
+              按天统计（{format(today, 'yyyy年M月d日')}）
+            </div>
+            {statusText ? (
+              <div className="mt-1 text-xs text-muted-foreground">
+                {statusText}
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 rounded-md p-1">
