@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma, SpaceType } from '@prisma/client';
+import { ActivityRecorderUseCase } from '@contexta/application';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
@@ -13,7 +15,12 @@ import { SpaceDto } from './dto/space.dto';
 
 @Injectable()
 export class SpaceService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(SpaceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityRecorder: ActivityRecorderUseCase,
+  ) {}
 
   async create(
     tenantId: string,
@@ -39,6 +46,25 @@ export class SpaceService {
         updatedBy: actor,
       },
     });
+
+    void this.activityRecorder
+      .record({
+        tenantId,
+        actorUserId: actor,
+        action: 'space.create',
+        subjectType: 'space',
+        subjectId: created.id,
+        metadata: {
+          name: created.name,
+          identifier: created.identifier,
+          type: created.type,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(space.create): ${(e as Error)?.message ?? e}`,
+        );
+      });
 
     return created as unknown as SpaceDto;
   }
@@ -125,6 +151,14 @@ export class SpaceService {
       },
     });
 
+    this.recordSpaceUpdateActivity({
+      tenantId,
+      actorUserId: actor,
+      subjectId: updated.id,
+      existing,
+      input,
+    });
+
     return updated as unknown as SpaceDto;
   }
 
@@ -144,6 +178,91 @@ export class SpaceService {
       data: { isDeleted: true, updatedBy: actor },
     });
 
+    void this.activityRecorder
+      .record({
+        tenantId,
+        actorUserId: actor,
+        action: 'space.delete',
+        subjectType: 'space',
+        subjectId: result.id,
+        metadata: {
+          name: existing.name,
+          identifier: existing.identifier,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(space.delete): ${(e as Error)?.message ?? e}`,
+        );
+      });
+
     return { ok: true, space: result };
+  }
+
+  private recordSpaceUpdateActivity(params: {
+    tenantId: string;
+    actorUserId: string;
+    subjectId: string;
+    existing: {
+      name: string;
+      description: string | null;
+      icon: string | null;
+      color: string | null;
+      identifier: string | null;
+      type: SpaceType;
+      metadata: unknown;
+    };
+    input: UpdateSpaceDto;
+  }) {
+    const { tenantId, actorUserId, subjectId, existing, input } = params;
+
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+    if (input.name !== undefined && input.name !== existing.name) {
+      changes.name = { from: existing.name, to: input.name };
+    }
+    if (
+      input.description !== undefined &&
+      input.description !== existing.description
+    ) {
+      changes.description = { from: existing.description, to: input.description };
+    }
+    if (input.icon !== undefined && input.icon !== existing.icon) {
+      changes.icon = { from: existing.icon, to: input.icon };
+    }
+    if (input.color !== undefined && input.color !== existing.color) {
+      changes.color = { from: existing.color, to: input.color };
+    }
+    if (
+      input.identifier !== undefined &&
+      input.identifier !== existing.identifier
+    ) {
+      changes.identifier = { from: existing.identifier, to: input.identifier };
+    }
+    if (input.type !== undefined && (input.type as SpaceType) !== existing.type) {
+      changes.type = { from: existing.type, to: input.type };
+    }
+    if (input.metadata !== undefined) {
+      changes.metadata = {
+        from: existing.metadata ?? {},
+        to: input.metadata ?? {},
+      };
+    }
+
+    void this.activityRecorder
+      .record({
+        tenantId,
+        actorUserId,
+        action: 'space.update',
+        subjectType: 'space',
+        subjectId,
+        metadata: {
+          changes,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(space.update): ${(e as Error)?.message ?? e}`,
+        );
+      });
   }
 }
