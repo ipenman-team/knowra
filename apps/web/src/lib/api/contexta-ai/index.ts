@@ -43,6 +43,13 @@ export const contextaAiApi = {
     return res.data;
   },
 
+  async deleteConversation(conversationId: string) {
+    const res = await contextaAiClient.delete<{ ok: true }>(
+      `/api/conversations/${encodeURIComponent(conversationId)}`,
+    );
+    return res.data;
+  },
+
   async getConversationSources(conversationId: string) {
     const res = await contextaAiClient.get<AiConversationSourcesDto>(
       `/api/conversations/${encodeURIComponent(conversationId)}/sources`,

@@ -41,4 +41,12 @@ export class ConversationService {
   }) {
     return this.useCase.updateSources(params);
   }
+
+  delete(params: {
+    tenantId: string;
+    conversationId: string;
+    actorUserId: string;
+  }) {
+    return this.useCase.delete(params);
+  }
 }

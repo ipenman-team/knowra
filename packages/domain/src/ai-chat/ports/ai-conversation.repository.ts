@@ -31,6 +31,12 @@ export interface AiConversationRepository {
     actorUserId: string;
   }): Promise<AiConversation>;
 
+  delete(params: {
+    tenantId: string;
+    conversationId: string;
+    actorUserId: string;
+  }): Promise<void>;
+
   touch(params: {
     tenantId: string;
     conversationId: string;

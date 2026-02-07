@@ -163,6 +163,41 @@ export class PrismaAiConversationRepository implements AiConversationRepository 
     return updated;
   }
 
+  async delete(params: {
+    tenantId: string;
+    conversationId: string;
+    actorUserId: string;
+  }): Promise<void> {
+    const now = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.aiMessage.updateMany({
+        where: {
+          tenantId: params.tenantId,
+          conversationId: params.conversationId,
+          isDeleted: false,
+        },
+        data: {
+          isDeleted: true,
+          updatedBy: params.actorUserId,
+          updatedAt: now,
+        },
+      }),
+      this.prisma.aiConversation.updateMany({
+        where: {
+          id: params.conversationId,
+          tenantId: params.tenantId,
+          isDeleted: false,
+        },
+        data: {
+          isDeleted: true,
+          updatedBy: params.actorUserId,
+          updatedAt: now,
+        },
+      }),
+    ]);
+  }
+
   async touch(params: {
     tenantId: string;
     conversationId: string;

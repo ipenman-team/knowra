@@ -28,14 +28,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
-  Search,
-  Plus,
-  EllipsisIcon,
-  Pin,
-} from 'lucide-react';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Search, Plus, EllipsisIcon, Pin } from 'lucide-react';
 
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { Separator } from '@/components/ui/separator';
+import { buttonVariants } from '@/components/ui/button';
 
 export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   conversations: ContextaAiConversation[];
@@ -44,10 +50,14 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   onSelectConversation: (id: string) => void;
   onRenameConversation: (id: string, title: string) => void;
   onTogglePinConversation: (id: string) => void;
+  onDeleteConversation: (id: string) => Promise<void>;
 }) {
   const [keyword, setKeyword] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [deleteTarget, setDeleteTarget] =
+    useState<ContextaAiConversation | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
 
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
@@ -79,6 +89,29 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   function cancelRename() {
     setRenamingId(null);
     setRenameValue('');
+  }
+
+  function handleOpenDelete(target: ContextaAiConversation) {
+    setDeleteTarget(target);
+  }
+
+  function handleDeleteOpenChange(open: boolean) {
+    if (open) return;
+    if (deletePending) return;
+    setDeleteTarget(null);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeletePending(true);
+    try {
+      await props.onDeleteConversation(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch {
+      // Keep dialog open; errors are handled by global API client.
+    } finally {
+      setDeletePending(false);
+    }
   }
 
   return (
@@ -158,13 +191,21 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
                       >
                         重命名
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onSelect={() => {
                           props.onTogglePinConversation(c.id);
                         }}
                       >
                         {c.pinned ? '取消置顶' : '置顶'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => {
+                          handleOpenDelete(c);
+                        }}
+                      >
+                        删除
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -188,6 +229,34 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={handleDeleteOpenChange}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>删除对话</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget
+                ? `确认删除“${deleteTarget.title || '未命名对话'}”？删除后无法恢复。`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePending}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!deleteTarget || deletePending}
+              className={buttonVariants({ variant: 'destructive' })}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleConfirmDelete();
+              }}
+            >
+              {deletePending ? '删除中…' : '确认删除'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   );
 });

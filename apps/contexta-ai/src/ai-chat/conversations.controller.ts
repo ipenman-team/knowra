@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -177,6 +178,29 @@ export class ConversationsController {
         carryContext,
         actorUserId: userId,
       });
+    } catch (err) {
+      if (err instanceof AiConversationNotFoundError) {
+        throw new NotFoundException('conversation not found');
+      }
+      throw err;
+    }
+  }
+
+  @Delete(':id')
+  async delete(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('id') conversationId: string,
+  ): Promise<{ ok: true }> {
+    if (!userId) throw new UnauthorizedException('unauthorized');
+
+    try {
+      await this.conversationService.delete({
+        tenantId,
+        conversationId,
+        actorUserId: userId,
+      });
+      return { ok: true };
     } catch (err) {
       if (err instanceof AiConversationNotFoundError) {
         throw new NotFoundException('conversation not found');

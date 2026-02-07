@@ -12,6 +12,7 @@ import { ContextaAiContent } from '@/features/contexta-ai/contexta-ai-content';
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { contextaAiApi } from '@/lib/api';
 import { ContainerLayout } from '@/components/layout/container-layout';
+import { toast } from 'sonner';
 
 type UiConversation = ContextaAiConversation & {
   messagesLoaded?: boolean;
@@ -229,6 +230,23 @@ export default function ContextaAiContainer() {
     }));
   }
 
+  async function handleDeleteConversation(id: string) {
+    await contextaAiApi.deleteConversation(id);
+
+    loadedConversationsRef.current.delete(id);
+    messageReqByConversationRef.current.delete(id);
+
+    setConversations((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      setActiveId((prevActive) =>
+        prevActive === id ? next[0]?.id ?? '' : prevActive,
+      );
+      return next;
+    });
+
+    toast.success('对话已删除');
+  }
+
   function updateConversation(
     id: string,
     updater: (prev: ContextaAiConversation) => ContextaAiConversation,
@@ -251,6 +269,7 @@ export default function ContextaAiContainer() {
               onSelectConversation={handleSelectConversation}
               onRenameConversation={handleRenameConversation}
               onTogglePinConversation={handleTogglePinConversation}
+              onDeleteConversation={handleDeleteConversation}
             />
           }
         >

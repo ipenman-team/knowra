@@ -190,4 +190,26 @@ export class AiConversationUseCase {
       carryContext: ds.carryContext,
     };
   }
+
+  async delete(params: {
+    tenantId: string;
+    conversationId: string;
+    actorUserId: string;
+  }): Promise<void> {
+    if (!params.tenantId) throw new Error('tenantId is required');
+    if (!params.conversationId) throw new Error('conversationId is required');
+    if (!params.actorUserId) throw new Error('actorUserId is required');
+
+    const existed = await this.repo.getById({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+    });
+    if (!existed) throw new AiConversationNotFoundError(params.conversationId);
+
+    await this.repo.delete({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+      actorUserId: params.actorUserId,
+    });
+  }
 }
