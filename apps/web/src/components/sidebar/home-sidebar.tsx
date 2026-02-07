@@ -21,6 +21,7 @@ import type { SpaceDto } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
+import { SpaceIcon } from '@/components/icon/space.icon';
 
 import {
   BookTextIcon,
@@ -251,10 +252,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     >
                       <SidebarMenuButton asChild>
                         <div className="flex items-center gap-2 cursor-pointer text-muted-foreground text-lg">
-                          <BookTextIcon
-                            strokeWidth={2}
-                            color={space.color || 'currentColor'}
-                          />
+                          <SpaceIcon color={space.color as string} />
                           {renamingId === space.id ? (
                             <Input
                               autoFocus

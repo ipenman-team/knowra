@@ -37,6 +37,7 @@ import {
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import DirectoryList from './directory-list';
+import { SpaceIcon } from '../icon/space.icon';
 
 export const SpaceSidebar = memo(function SpaceSidebar() {
   const router = useRouter();
@@ -79,7 +80,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
           <SidebarGroupContent>
             <div className="p-3">
               <div className="flex items-center gap-3">
-                <BookTextIcon size={20} strokeWidth={2} color={current?.color || 'currentColor'} />
+                <SpaceIcon size={20} color={current?.color as string} />
                 <div className="flex-1">
                   <Select
                     value={current?.id ?? ''}

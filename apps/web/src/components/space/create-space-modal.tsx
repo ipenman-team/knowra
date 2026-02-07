@@ -25,9 +25,9 @@ import {
 import { spacesApi } from '@/lib/api';
 import { useMeStore } from '@/stores';
 import type { SpaceDto } from '@/lib/api/spaces/types';
-import { BookTextIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Textarea } from '../ui/textarea';
+import { SpaceIcon } from '../icon/space.icon';
 
 const IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const IDENTIFIER_LENGTH = 8;
@@ -48,6 +48,8 @@ const SPACE_COLORS = [
   { label: 'gray', value: '#6B7280' },
   { label: 'neutral', value: '#000000' },
 ];
+
+const DEFAULT_COLOR = SPACE_COLORS.find((x) => x.label === 'blue')?.value;
 
 const generateIdentifier = (length = IDENTIFIER_LENGTH) => {
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
@@ -107,7 +109,7 @@ export function CreateSpaceModal(props: {
       identifier: '',
       type: 'ORG',
       description: '',
-      color: SPACE_COLORS[0].value,
+      color: DEFAULT_COLOR,
     },
   });
 
@@ -158,7 +160,7 @@ export function CreateSpaceModal(props: {
         identifier: '',
         type: isPersonalTenant ? 'PERSONAL' : 'ORG',
         description: '',
-        color: SPACE_COLORS[0].value,
+        color: DEFAULT_COLOR,
       });
     } catch (e) {
       // ignore for now
@@ -190,10 +192,7 @@ export function CreateSpaceModal(props: {
                 <Popover>
                   <PopoverTrigger asChild>
                     <InputGroupButton aria-label="选择颜色" size="icon-sm">
-                      <BookTextIcon
-                        strokeWidth={2}
-                        color={colorValue || 'currentColor'}
-                      />
+                      <SpaceIcon color={colorValue || DEFAULT_COLOR} />
                     </InputGroupButton>
                   </PopoverTrigger>
                   <PopoverContent
