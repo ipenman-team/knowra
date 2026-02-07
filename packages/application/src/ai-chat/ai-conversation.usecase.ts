@@ -26,7 +26,7 @@ function normalizeDataSource(raw: unknown): AiConversationDataSource {
   const internetEnabled =
     obj.internetEnabled === undefined ? true : Boolean(obj.internetEnabled);
   const spaceEnabled =
-    obj.spaceEnabled === undefined ? false : Boolean(obj.spaceEnabled);
+    obj.spaceEnabled === undefined ? true : Boolean(obj.spaceEnabled);
   const carryContext =
     obj.carryContext === undefined ? true : Boolean(obj.carryContext);
 

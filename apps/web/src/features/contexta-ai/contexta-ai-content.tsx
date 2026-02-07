@@ -67,7 +67,8 @@ export function ContextaAiContent(props: {
 
         const next = {
           internetEnabled: Boolean(cfg.internetEnabled),
-          spaceEnabled: Boolean(cfg.spaceEnabled),
+          spaceEnabled:
+            cfg.spaceEnabled === undefined ? true : Boolean(cfg.spaceEnabled),
           spaceIds: normalizeSpaceIds(cfg.spaceIds),
           carryContext:
             cfg.carryContext === undefined ? true : Boolean(cfg.carryContext),
@@ -84,7 +85,7 @@ export function ContextaAiContent(props: {
 
         const fallback = {
           internetEnabled: true,
-          spaceEnabled: false,
+          spaceEnabled: true,
           spaceIds: [],
           carryContext: true,
         };

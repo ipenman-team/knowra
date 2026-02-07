@@ -109,6 +109,35 @@ async function main() {
   const messages = (await messagesRes.json()) as unknown[];
   if (!Array.isArray(messages)) throw new Error('messages is not array');
 
+  const sourcesRes = await fetch(
+    `${baseUrl}/api/conversations/${created.id}/sources`,
+    {
+      method: 'GET',
+      headers,
+    },
+  );
+  if (!sourcesRes.ok) {
+    throw new Error(`get sources failed: ${sourcesRes.status}`);
+  }
+  const sources = (await sourcesRes.json()) as {
+    internetEnabled?: unknown;
+    spaceEnabled?: unknown;
+    spaceIds?: unknown;
+    carryContext?: unknown;
+  };
+  if (sources?.internetEnabled !== true) {
+    throw new Error(`sources.internetEnabled expected true, got ${String(sources?.internetEnabled)}`);
+  }
+  if (sources?.spaceEnabled !== true) {
+    throw new Error(`sources.spaceEnabled expected true, got ${String(sources?.spaceEnabled)}`);
+  }
+  if (!Array.isArray(sources?.spaceIds)) {
+    throw new Error('sources.spaceIds is not array');
+  }
+  if (sources?.carryContext !== true) {
+    throw new Error(`sources.carryContext expected true, got ${String(sources?.carryContext)}`);
+  }
+
   const renameRes = await fetch(
     `${baseUrl}/api/conversations/${created.id}/rename`,
     {
@@ -130,7 +159,7 @@ async function main() {
   await prisma.$disconnect();
 
   process.stdout.write(
-    `OK stage2: conversation=${created.id} title=${renamed.title} messages=${messages.length}\n`,
+    `OK stage2: conversation=${created.id} title=${renamed.title} messages=${messages.length} sources.spaceEnabled=true\n`,
   );
 }
 
