@@ -9,8 +9,9 @@ coverage/
 *.log
 *.tsbuildinfo
 plan*.md
-.github/agents/*.agent.md
+.github/agents
+.github/skills
+.github/copilot-instructions.md
 DEPLOYMENT*
 draft*
-.github
 *backup*
