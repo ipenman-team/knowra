@@ -52,6 +52,7 @@ export const PageHeader = () => {
   const editorValue = usePageContentStore((s) => s.editorValue);
   const pageSaving = usePageContentStore((s) => s.pageSaving);
   const pagePublishing = usePageContentStore((s) => s.pagePublishing);
+  const pageLoading = usePageContentStore((s) => s.pageLoading);
   const lastSavedAt = activePage?.updatedAt ?? null;
   const lastPublishedAt = usePageContentStore((s) => s.publishedSnapshot?.updatedAt ?? null);
   const timeText =
@@ -129,7 +130,7 @@ export const PageHeader = () => {
     <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
       <div className="flex items-center">
         <Button variant="link">
-          {activePage?.title?.trim() || '无标题文档'}
+          {pageLoading ? '加载中…' : (activePage?.title?.trim() || '无标题文档')}
         </Button>
         {timeText ? (
           <span
