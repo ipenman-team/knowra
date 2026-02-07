@@ -1,9 +1,11 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Prisma } from '@prisma/client';
+import { ActivityRecorderUseCase } from '@contexta/application';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PageService } from '../../page.service';
 import type { PageDto } from '../../dto/page.dto';
+import { PageVersionService } from '../../page-version.service';
 
 describe('PageService', () => {
   let service: PageService;
@@ -24,11 +26,22 @@ describe('PageService', () => {
       delete: jest.fn(),
       findMany: jest.fn(),
     },
+    ragChunk: {
+      deleteMany: jest.fn(),
+    },
     pageVersion: {
       create: jest.fn(),
-      findFirst: jest.fn(),
       update: jest.fn(),
     },
+  };
+
+  const pageVersionService = {
+    listVersions: jest.fn(),
+    getVersion: jest.fn(),
+  };
+
+  const activityRecorder = {
+    record: jest.fn().mockResolvedValue(undefined),
   };
 
   const samplePage = (overrides?: Partial<PageDto>): PageDto => {
@@ -40,6 +53,7 @@ describe('PageService', () => {
       title: 'Hello',
       content: defaultSlateDoc(),
       parentIds: [],
+      latestPublishedVersionId: null,
       createdAt: now,
       updatedAt: now,
       ...overrides,
@@ -47,10 +61,15 @@ describe('PageService', () => {
   };
 
   beforeEach(async () => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PageService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        PageService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: PageVersionService, useValue: pageVersionService },
+        { provide: ActivityRecorderUseCase, useValue: activityRecorder },
+      ],
     }).compile();
 
     service = module.get(PageService);
@@ -118,7 +137,7 @@ describe('PageService', () => {
       });
 
       expect(prisma.page.findFirst).toHaveBeenCalledWith({
-        where: { id: 'p1', tenantId: 't1' },
+        where: { id: 'p1', tenantId: 't1', isDeleted: false },
       });
       expect(prisma.page.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
@@ -154,10 +173,12 @@ describe('PageService', () => {
 
   describe('rename', () => {
     it('updates page title and syncs latest published title', async () => {
-      prisma.page.findFirst.mockResolvedValue(samplePage({ title: 'Old' }));
-      prisma.page.update.mockResolvedValue(samplePage({ title: 'New' }));
-      prisma.pageVersion.create.mockResolvedValue({ id: 'v-temp' });
-      prisma.pageVersion.findFirst.mockResolvedValue({ id: 'v-pub' });
+      prisma.page.findFirst.mockResolvedValue(
+        samplePage({ title: 'Old', latestPublishedVersionId: 'v-pub' }),
+      );
+      prisma.page.update.mockResolvedValue(
+        samplePage({ title: 'New', latestPublishedVersionId: 'v-pub' }),
+      );
       prisma.pageVersion.update.mockResolvedValue({ id: 'v-pub' });
 
       await expect(
@@ -175,17 +196,6 @@ describe('PageService', () => {
         },
       });
 
-      expect(prisma.pageVersion.findFirst).toHaveBeenCalledWith({
-        where: {
-          tenantId: 't1',
-          pageId: 'p1',
-          status: 'PUBLISHED',
-          isDeleted: false,
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { id: true },
-      });
-
       expect(prisma.pageVersion.update).toHaveBeenCalledWith({
         where: { id: 'v-pub' },
         data: {
@@ -198,8 +208,6 @@ describe('PageService', () => {
     it('updates page title and skips published sync when none exists', async () => {
       prisma.page.findFirst.mockResolvedValue(samplePage({ title: 'Old' }));
       prisma.page.update.mockResolvedValue(samplePage({ title: 'New' }));
-      prisma.pageVersion.create.mockResolvedValue({ id: 'v-temp' });
-      prisma.pageVersion.findFirst.mockResolvedValue(null);
 
       await expect(
         service.rename('t1', 'p1', { title: 'New' }),
@@ -213,16 +221,23 @@ describe('PageService', () => {
   });
 
   describe('remove', () => {
-    it('deletes existing', async () => {
+    it('soft-deletes existing', async () => {
       prisma.page.findFirst.mockResolvedValue(samplePage());
-      prisma.page.delete.mockResolvedValue(samplePage());
+      prisma.page.update.mockResolvedValue(samplePage({ isDeleted: true } as any));
+      prisma.ragChunk.deleteMany.mockResolvedValue({ count: 0 });
 
       await expect(service.remove('p1', 't1')).resolves.toEqual({ ok: true });
 
       expect(prisma.page.findFirst).toHaveBeenCalledWith({
-        where: { id: 'p1', tenantId: 't1' },
+        where: { id: 'p1', tenantId: 't1', isDeleted: false },
       });
-      expect(prisma.page.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
+      expect(prisma.page.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { isDeleted: true, updatedBy: 'system' },
+      });
+      expect(prisma.ragChunk.deleteMany).toHaveBeenCalledWith({
+        where: { tenantId: 't1', pageId: 'p1' },
+      });
     });
 
     it('throws when not found', async () => {
@@ -231,6 +246,41 @@ describe('PageService', () => {
       await expect(service.remove('p1', 't1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('restore', () => {
+    it('restores from trash', async () => {
+      prisma.page.findFirst.mockResolvedValue(samplePage({ isDeleted: true } as any));
+      prisma.page.update.mockResolvedValue(samplePage({ isDeleted: false } as any));
+
+      await expect(service.restore('t1', 'p1')).resolves.toEqual({ ok: true });
+
+      expect(prisma.page.findFirst).toHaveBeenCalledWith({
+        where: { id: 'p1', tenantId: 't1', isDeleted: true },
+      });
+      expect(prisma.page.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { isDeleted: false, updatedBy: 'system' },
+      });
+    });
+  });
+
+  describe('permanentRemove', () => {
+    it('purges a trashed page', async () => {
+      prisma.page.findFirst.mockResolvedValue(samplePage({ isDeleted: true } as any));
+      prisma.ragChunk.deleteMany.mockResolvedValue({ count: 0 });
+      prisma.page.delete.mockResolvedValue(samplePage({ isDeleted: true } as any));
+
+      await expect(service.permanentRemove('p1', 't1')).resolves.toEqual({ ok: true });
+
+      expect(prisma.page.findFirst).toHaveBeenCalledWith({
+        where: { id: 'p1', tenantId: 't1', isDeleted: true },
+      });
+      expect(prisma.ragChunk.deleteMany).toHaveBeenCalledWith({
+        where: { tenantId: 't1', pageId: 'p1' },
+      });
+      expect(prisma.page.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
     });
   });
 
@@ -243,7 +293,7 @@ describe('PageService', () => {
         tenantId: 't1',
       });
       expect(prisma.page.findFirst).toHaveBeenCalledWith({
-        where: { id: 'p1', tenantId: 't1' },
+        where: { id: 'p1', tenantId: 't1', isDeleted: false },
       });
     });
 
@@ -262,7 +312,7 @@ describe('PageService', () => {
 
       await expect(service.list('t1', 's1')).resolves.toHaveLength(1);
       expect(prisma.page.findMany).toHaveBeenCalledWith({
-        where: { tenantId: 't1', spaceId: 's1' },
+        where: { tenantId: 't1', spaceId: 's1', isDeleted: false },
         skip: 0,
         take: 50,
         orderBy: { updatedAt: 'desc' },

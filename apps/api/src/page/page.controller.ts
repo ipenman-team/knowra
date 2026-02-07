@@ -106,6 +106,33 @@ export class PageController {
     return this.pageService.listTree(tenantId, spaceId, query);
   }
 
+  @Get('trash')
+  listTrash(
+    @TenantId() tenantId: string,
+    @Param('spaceId') spaceId: string,
+    @Query() query: ListPageQuery,
+  ) {
+    return this.pageService.listTrash(tenantId, spaceId, query);
+  }
+
+  @Post(':id/restore')
+  restore(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.pageService.restore(tenantId, id, userId);
+  }
+
+  @Delete(':id/permanent')
+  permanentRemove(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.pageService.permanentRemove(id, tenantId, userId);
+  }
+
   @Get(':id')
   get(@Param('id') id: string, @TenantId() tenantId: string) {
     return this.pageService.get(id, tenantId);

@@ -11,6 +11,9 @@ describe('PageController', () => {
     rename: jest.fn(),
     save: jest.fn(),
     remove: jest.fn(),
+    restore: jest.fn(),
+    permanentRemove: jest.fn(),
+    listTrash: jest.fn(),
     get: jest.fn(),
     list: jest.fn(),
     listTree: jest.fn(),
@@ -38,7 +41,7 @@ describe('PageController', () => {
     pageService.create.mockResolvedValue({ id: 'p1' });
 
     await expect(
-      controller.create('t1', 's1', undefined, { title: 'Hello' }),
+      controller.create('t1', 's1', undefined, { title: 'Hello', spaceId: 'x' }),
     ).resolves.toEqual({
       id: 'p1',
     });

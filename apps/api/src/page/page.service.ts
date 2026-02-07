@@ -178,7 +178,7 @@ export class PageService {
     const actor = userId?.trim() || 'system';
 
     const existing = await this.prisma.page.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, isDeleted: false },
     });
     if (!existing) throw new NotFoundException('page not found');
 
@@ -225,7 +225,7 @@ export class PageService {
     const actor = userId?.trim() || 'system';
 
     const existing = await this.prisma.page.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, isDeleted: false },
     });
     if (!existing) throw new NotFoundException('page not found');
 
@@ -273,7 +273,7 @@ export class PageService {
     const actor = userId?.trim() || 'system';
 
     const page = await this.prisma.page.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, isDeleted: false },
     });
     if (!page) throw new NotFoundException('page not found');
 
@@ -332,13 +332,99 @@ export class PageService {
     const actor = userId?.trim() || 'system';
 
     const existing = await this.prisma.page.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, isDeleted: false },
     });
     if (!existing) throw new NotFoundException('page not found');
 
-    await this.prisma.page.delete({ where: { id } });
+    await this.prisma.page.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        updatedBy: actor,
+      },
+    });
+
+    // Ensure deleted pages do not participate in RAG retrieval.
+    // (Vector-store filtering is also applied, but this keeps storage tidy.)
+    await this.prisma.ragChunk.deleteMany({
+      where: {
+        tenantId,
+        pageId: id,
+      },
+    });
 
     this.recordPageDeleteActivity({
+      tenantId,
+      actorUserId: actor,
+      pageId: existing.id,
+      spaceId: existing.spaceId,
+      title: existing.title,
+      hadPublished: Boolean(existing.latestPublishedVersionId),
+    });
+
+    return { ok: true };
+  }
+
+  async restore(
+    tenantId: string,
+    id: string,
+    userId?: string,
+  ): Promise<{ ok: true }> {
+    if (!id) throw new BadRequestException('id is required');
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+
+    const actor = userId?.trim() || 'system';
+
+    const existing = await this.prisma.page.findFirst({
+      where: { id, tenantId, isDeleted: true },
+    });
+    if (!existing) throw new NotFoundException('page not found');
+
+    await this.prisma.page.update({
+      where: { id },
+      data: {
+        isDeleted: false,
+        updatedBy: actor,
+      },
+    });
+
+    this.recordPageRestoreActivity({
+      tenantId,
+      actorUserId: actor,
+      pageId: existing.id,
+      spaceId: existing.spaceId,
+      title: existing.title,
+      hadPublished: Boolean(existing.latestPublishedVersionId),
+    });
+
+    return { ok: true };
+  }
+
+  async permanentRemove(
+    id: string,
+    tenantId: string,
+    userId?: string,
+  ): Promise<{ ok: true }> {
+    if (!id) throw new BadRequestException('id is required');
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+
+    const actor = userId?.trim() || 'system';
+
+    const existing = await this.prisma.page.findFirst({
+      where: { id, tenantId, isDeleted: true },
+    });
+    if (!existing) throw new NotFoundException('page not found');
+
+    await this.prisma.ragChunk.deleteMany({
+      where: {
+        tenantId,
+        pageId: id,
+      },
+    });
+
+    await this.prisma.page.delete({ where: { id } });
+
+    this.recordPagePurgeActivity({
       tenantId,
       actorUserId: actor,
       pageId: existing.id,
@@ -467,7 +553,7 @@ export class PageService {
     if (!tenantId) throw new BadRequestException('tenantId is required');
 
     const page = await this.prisma.page.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, isDeleted: false },
     });
     if (!page) throw new NotFoundException('page not found');
 
@@ -490,6 +576,33 @@ export class PageService {
       where: {
         tenantId,
         spaceId,
+        isDeleted: false,
+        ...(query ? { title: { contains: query, mode: 'insensitive' } } : {}),
+      },
+      skip,
+      take,
+      orderBy: { updatedAt: 'desc' },
+      omit: { content: true },
+    });
+  }
+
+  async listTrash(
+    tenantId: string,
+    spaceId: string,
+    q?: ListPageQuery,
+  ): Promise<Omit<PageDto, 'content'>[]> {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+    if (!spaceId) throw new BadRequestException('spaceId is required');
+
+    const skip = Number(q?.skip) || 0;
+    const take = Math.min(Math.max(Number(q?.take) || 50, 1), 200);
+    const query = q?.q?.trim();
+
+    return this.prisma.page.findMany({
+      where: {
+        tenantId,
+        spaceId,
+        isDeleted: true,
         ...(query ? { title: { contains: query, mode: 'insensitive' } } : {}),
       },
       skip,
@@ -520,6 +633,7 @@ export class PageService {
     const where: Prisma.PageWhereInput = {
       tenantId,
       spaceId,
+      isDeleted: false,
     };
 
     if (query) {
@@ -554,5 +668,61 @@ export class PageService {
     const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
 
     return { items, nextCursor, hasMore };
+  }
+
+  private recordPageRestoreActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    pageId: string;
+    spaceId: string;
+    title: string;
+    hadPublished: boolean;
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: PageActivityAction.Restore,
+        subjectType: 'page',
+        subjectId: args.pageId,
+        metadata: {
+          spaceId: args.spaceId,
+          title: args.title,
+          hadPublished: args.hadPublished,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.restore): ${(e as Error)?.message ?? e}`,
+        );
+      });
+  }
+
+  private recordPagePurgeActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    pageId: string;
+    spaceId: string;
+    title: string;
+    hadPublished: boolean;
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: PageActivityAction.Purge,
+        subjectType: 'page',
+        subjectId: args.pageId,
+        metadata: {
+          spaceId: args.spaceId,
+          title: args.title,
+          hadPublished: args.hadPublished,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.purge): ${(e as Error)?.message ?? e}`,
+        );
+      });
   }
 }

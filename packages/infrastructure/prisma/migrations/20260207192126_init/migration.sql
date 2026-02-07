@@ -1,6 +1,3 @@
--- Extensions
-CREATE EXTENSION IF NOT EXISTS vector;
-
 -- CreateEnum
 CREATE TYPE "PageVersionStatus" AS ENUM ('DRAFT', 'TEMP', 'PUBLISHED');
 
@@ -55,6 +52,7 @@ CREATE TABLE "pages" (
     "latest_published_version_id" TEXT,
     "created_by" TEXT NOT NULL,
     "updated_by" TEXT NOT NULL,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -101,6 +99,28 @@ CREATE TABLE "tasks" (
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "activities" (
+    "id" TEXT NOT NULL,
+    "tenant_id" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "subject_type" TEXT NOT NULL,
+    "subject_id" TEXT NOT NULL,
+    "actor_user_id" TEXT NOT NULL,
+    "occurred_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "trace_id" TEXT,
+    "ip" TEXT,
+    "user_agent" TEXT,
+    "metadata" JSONB,
+    "created_by" TEXT NOT NULL,
+    "updated_by" TEXT NOT NULL,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "activities_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -318,6 +338,9 @@ CREATE INDEX "pages_id_idx" ON "pages"("id");
 CREATE INDEX "pages_tenant_id_space_id_idx" ON "pages"("tenant_id", "space_id");
 
 -- CreateIndex
+CREATE INDEX "pages_tenant_id_space_id_is_deleted_idx" ON "pages"("tenant_id", "space_id", "is_deleted");
+
+-- CreateIndex
 CREATE INDEX "page_versions_id_idx" ON "page_versions"("id");
 
 -- CreateIndex
@@ -340,6 +363,18 @@ CREATE INDEX "tasks_tenant_id_type_idx" ON "tasks"("tenant_id", "type");
 
 -- CreateIndex
 CREATE INDEX "tasks_tenant_id_status_idx" ON "tasks"("tenant_id", "status");
+
+-- CreateIndex
+CREATE INDEX "act_tenant_del_created_idx" ON "activities"("tenant_id", "is_deleted", "created_at");
+
+-- CreateIndex
+CREATE INDEX "act_tenant_actor_del_created_idx" ON "activities"("tenant_id", "actor_user_id", "is_deleted", "created_at");
+
+-- CreateIndex
+CREATE INDEX "act_tenant_subject_del_created_idx" ON "activities"("tenant_id", "subject_type", "subject_id", "is_deleted", "created_at");
+
+-- CreateIndex
+CREATE INDEX "act_tenant_action_del_created_idx" ON "activities"("tenant_id", "action", "is_deleted", "created_at");
 
 -- CreateIndex
 CREATE INDEX "verification_codes_channel_recipient_type_used_idx" ON "verification_codes"("channel", "recipient", "type", "used");

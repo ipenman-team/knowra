@@ -16,7 +16,7 @@ export class PageVersionService {
     if (!tenantId) throw new BadRequestException('tenantId is required');
 
     const existing = await this.prisma.page.findFirst({
-      where: { id: pageId, tenantId },
+      where: { id: pageId, tenantId, isDeleted: false },
       select: { id: true },
     });
     if (!existing) throw new NotFoundException('page not found');
@@ -43,7 +43,7 @@ export class PageVersionService {
     if (!tenantId) throw new BadRequestException('tenantId is required');
 
     const existing = await this.prisma.page.findFirst({
-      where: { id: pageId, tenantId },
+      where: { id: pageId, tenantId, isDeleted: false },
       select: { id: true },
     });
     if (!existing) throw new NotFoundException('page not found');

@@ -107,10 +107,12 @@ export class PrismaPgVectorVectorStore implements VectorStore {
         rc."content",
         (rc."embedding" <-> ${q}::vector) AS distance
       FROM "rag_chunks" rc
-      LEFT JOIN "pages" p
+      JOIN "pages" p
         ON p."id" = rc."page_id"
        AND p."tenant_id" = rc."tenant_id"
       WHERE rc."tenant_id" = ${input.filter.tenantId}
+        AND rc."is_deleted" = false
+        AND p."is_deleted" = false
         AND (${sourceId}::text IS NULL OR rc."page_id" = ${sourceId}::text)
         AND (
           (

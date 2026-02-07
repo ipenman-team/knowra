@@ -3,6 +3,8 @@ export const PageActivityAction = {
   Rename: 'page.rename',
   Publish: 'page.publish',
   Delete: 'page.delete',
+  Restore: 'page.restore',
+  Purge: 'page.purge',
 } as const;
 
 export const PAGE_ACTIVITY_ACTION_NAME_MAP: Record<string, string> = {
@@ -10,6 +12,8 @@ export const PAGE_ACTIVITY_ACTION_NAME_MAP: Record<string, string> = {
   [PageActivityAction.Rename]: '重命名页面',
   [PageActivityAction.Publish]: '发布页面',
   [PageActivityAction.Delete]: '删除页面',
+  [PageActivityAction.Restore]: '恢复页面',
+  [PageActivityAction.Purge]: '彻底删除页面',
 };
 
 export const DefaultPageTitle = '首页';
