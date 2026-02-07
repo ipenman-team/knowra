@@ -69,6 +69,7 @@ type SidebarContextProps = {
   isMobile: boolean
   toggleSidebar: () => void
   resizable?: SidebarResizableConfig
+  layoutId: string
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -108,8 +109,15 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const [resizableActive, setResizableActive] = React.useState(false)
+    const [defaultLayout, setDefaultLayout] = React.useState<
+      Record<string, number> | undefined
+    >(undefined)
+    const wrapperRef = React.useRef<HTMLDivElement | null>(null)
+    const autoLayoutId = React.useId()
 
     const cookieName = cookieNameProp ?? SIDEBAR_COOKIE_NAME
+    const layoutId = cookieName ? `layout_${cookieName}` : `layout_${autoLayoutId}`
 
     const readCookieBoolean = React.useCallback((name: string) => {
       if (!name) return undefined
@@ -225,6 +233,57 @@ const SidebarProvider = React.forwardRef<
       [resizable]
     )
 
+    React.useLayoutEffect(() => {
+      if (!resizableConfig?.enabled || isMobile) {
+        setResizableActive(false)
+        setDefaultLayout(undefined)
+        return
+      }
+
+      let cancelled = false
+      const run = (attempt: number) => {
+        if (cancelled) return
+        const el = wrapperRef.current
+        const width = el?.getBoundingClientRect().width ?? 0
+        if (!width) {
+          if (attempt < 2) {
+            requestAnimationFrame(() => run(attempt + 1))
+            return
+          }
+          setResizableActive(true)
+          return
+        }
+
+        let sidebarPercent = 0
+        if (resizableConfig.unit === "px") {
+          const sidebarPx =
+            typeof resizableConfig.defaultSize === "number"
+              ? resizableConfig.defaultSize
+              : Number.parseFloat(resizableConfig.defaultSize)
+          sidebarPercent = (sidebarPx / width) * 100
+        } else if (typeof resizableConfig.defaultSize === "string") {
+          sidebarPercent = Number.parseFloat(resizableConfig.defaultSize)
+        } else {
+          sidebarPercent = Number(resizableConfig.defaultSize)
+        }
+
+        const clampedSidebar = Math.max(0, Math.min(100, sidebarPercent))
+        const mainPercent = Math.max(0, 100 - clampedSidebar)
+
+        setDefaultLayout({
+          [`${layoutId}-sidebar`]: clampedSidebar,
+          [`${layoutId}-main`]: mainPercent,
+        })
+        setResizableActive(true)
+      }
+
+      run(0)
+
+      return () => {
+        cancelled = true
+      }
+    }, [isMobile, layoutId, resizableConfig])
+
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
       if (isMobile) {
@@ -263,7 +322,11 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
-        resizable: resizableConfig,
+        resizable:
+          resizableConfig?.enabled && resizableActive && !isMobile
+            ? resizableConfig
+            : undefined,
+        layoutId,
       }),
       [
         state,
@@ -273,8 +336,34 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        resizableActive,
         resizableConfig,
+        layoutId,
       ]
+    )
+
+    const resolvedSidebarWidth =
+      resizableConfig?.enabled && resizableConfig.unit === "px"
+        ? `${resizableConfig.defaultSize}px`
+        : resizableConfig?.enabled && typeof resizableConfig?.defaultSize === "string"
+          ? resizableConfig.defaultSize
+          : SIDEBAR_WIDTH
+
+    const resolvedSidebarIconWidth =
+      resizableConfig?.enabled && resizableConfig.unit === "px"
+        ? `${resizableConfig.collapsedSize}px`
+        : SIDEBAR_WIDTH_ICON
+
+    const setRefs = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        wrapperRef.current = node
+        if (typeof ref === "function") {
+          ref(node)
+        } else if (ref) {
+          ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+        }
+      },
+      [ref]
     )
 
     return (
@@ -283,8 +372,8 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
-                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+                "--sidebar-width": resolvedSidebarWidth,
+                "--sidebar-width-icon": resolvedSidebarIconWidth,
                 ...style,
               } as React.CSSProperties
             }
@@ -292,13 +381,14 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper flex min-h-0 w-full has-[[data-variant=inset]]:bg-sidebar",
               className
             )}
-            ref={ref}
+            ref={setRefs}
             {...props}
           >
-            {resizableConfig?.enabled && !isMobile ? (
+            {resizableConfig?.enabled && !isMobile && resizableActive ? (
               <ResizablePanelGroup
                 orientation="horizontal"
                 disableCursor
+                defaultLayout={defaultLayout}
                 className="flex h-full min-h-0 w-full"
               >
                 {(() => {
@@ -356,6 +446,7 @@ const Sidebar = React.forwardRef<
       setOpenMobile,
       resizable,
       setOpen,
+      layoutId,
     } = useSidebar()
     const sidebarPanelRef = React.useRef<PanelImperativeHandle | null>(null)
 
@@ -450,6 +541,7 @@ const Sidebar = React.forwardRef<
       return (
         <ResizablePanel
           panelRef={sidebarPanelRef}
+          id={`${layoutId}-sidebar`}
           defaultSize={resizable.defaultSize}
           minSize={resizable.minSize}
           maxSize={resizable.maxSize}
@@ -624,11 +716,11 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"main">
 >(({ className, ...props }, ref) => {
-  const { isMobile, resizable } = useSidebar()
+  const { isMobile, resizable, layoutId } = useSidebar()
 
   if (!isMobile && resizable?.enabled) {
     return (
-      <ResizablePanel className="h-full min-h-0">
+      <ResizablePanel className="h-full min-h-0" id={`${layoutId}-main`}>
         <main
           ref={ref}
           className={cn(
