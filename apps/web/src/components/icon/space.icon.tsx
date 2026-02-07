@@ -4,7 +4,7 @@ export const SpaceIcon = (props: IconProps = {}) => {
   const newProps = {
     fill: true,
     ...props,
-    color: props.color ?? '#3b82f6',
+    color: props.color ?? '#60a5fa',
   };
   return (
     <Icon

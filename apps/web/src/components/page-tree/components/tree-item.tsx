@@ -16,17 +16,6 @@ import {
 } from '@/stores';
 import type { PageDto } from '@/lib/api';
 
-/**
- * 🔑 核心组件：树节点项
- *
- * 这是解决"整个树重渲染"问题的核心组件
- *
- * 关键性能优化模式：
- * 1. 每节点订阅：使用 useIsPageSelected(node.id) 代替基于 prop 的 selectedId
- * 2. 自定义 memo 比较：仅在该节点数据实际变化时重渲染
- * 3. 所有事件处理器使用 useCallback 包裹，保持依赖稳定
- */
-
 interface PageTreeItemProps<T> extends TreeRenderContext<T> {
   onCreateChildPage?: (node: TreeNode<T>) => void;
   onCommitRename?: () => void;
@@ -45,12 +34,10 @@ export const PageTreeItem = memo(
     const isSelected = useIsPageSelected(node.id);
     const isMenuOpen = useNodeMenuState(node.id);
 
-    // 获取 store actions
     const { setSelectedPage } = usePageSelectionStore();
     const { setOpenMenuNodeId, startRename, setDeleteTarget } =
       useUIStateStore();
 
-    // ✅ 所有回调都被 memoize 以防止子组件重渲染
     const handleSelect = useCallback(() => {
       setSelectedPage(node.id, node.label);
     }, [node.id, node.label, setSelectedPage]);
@@ -101,12 +88,9 @@ export const PageTreeItem = memo(
           isSelected={isSelected}
           onSelect={handleSelect}
           onCommitRename={handleCommitRename}
-        />
-
-        <TreeNodeActions
-          nodeId={node.id}
-          onToggleMenu={handleToggleMenu}
-        />
+        >
+          <TreeNodeActions nodeId={node.id} onToggleMenu={handleToggleMenu} />
+        </TreeNodeContent>
 
         <div className="relative">
           <TreeNodeContextMenu
@@ -130,10 +114,11 @@ export const PageTreeItem = memo(
       prevProps.hasChildren === nextProps.hasChildren &&
       prevProps.expanded === nextProps.expanded
     );
-  }
+  },
 ) as <T = PageDto>(props: PageTreeItemProps<T>) => React.JSX.Element;
 
 // 在开发环境中启用 why-did-you-render 追踪
 if (process.env.NODE_ENV === 'development') {
-  (PageTreeItem as unknown as { whyDidYouRender?: boolean }).whyDidYouRender = true;
+  (PageTreeItem as unknown as { whyDidYouRender?: boolean }).whyDidYouRender =
+    true;
 }

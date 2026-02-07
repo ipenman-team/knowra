@@ -23,12 +23,14 @@ export const TreeNodeContent = memo(function TreeNodeContent({
   isSelected,
   onSelect,
   onCommitRename,
+  children,
 }: {
   nodeId: string;
   label: string;
   isSelected: boolean;
   onSelect: () => void;
   onCommitRename: () => void;
+  children?: React.ReactNode;
 }) {
   const isRenaming = useIsNodeRenaming(nodeId);
   const renamingValue = useRenamingValue();
@@ -49,7 +51,7 @@ export const TreeNodeContent = memo(function TreeNodeContent({
         cancelRename();
       }
     },
-    [onCommitRename, cancelRename]
+    [onCommitRename, cancelRename],
   );
 
   // 编辑模式：显示输入框
@@ -58,7 +60,7 @@ export const TreeNodeContent = memo(function TreeNodeContent({
       <input
         className={cn(
           'h-9 flex-1 min-w-0 rounded-md border bg-background px-2 text-sm',
-          'border-input focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+          'border-input focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
         )}
         value={renamingValue}
         autoFocus
@@ -76,12 +78,15 @@ export const TreeNodeContent = memo(function TreeNodeContent({
       type="button"
       variant="ghost"
       className={cn(
-        'h-9 flex-1 min-w-0 justify-start px-2',
-        isSelected && 'bg-accent text-accent-foreground'
+        'h-9 flex-1 min-w-0 justify-start px-2 flex items-center gap-2',
+        isSelected && 'bg-accent text-accent-foreground',
       )}
       onClick={onSelect}
     >
-      <span className="truncate">{label}</span>
+      <div className="flex-1 min-w-0">
+        <span className="block truncate text-left">{label}</span>
+      </div>
+      {children ? <div className="shrink-0 flex items-center">{children}</div> : null}
     </Button>
   );
 });
