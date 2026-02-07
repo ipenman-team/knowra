@@ -61,7 +61,7 @@ export function ContextaAiComposer(props: {
         <InputGroup>
           <InputGroupTextarea
             ref={textareaRef}
-            placeholder="你可以问我关于知识库中的任何问题..."
+            placeholder="你可以问我任何问题..."
             value={props.draft}
             onChange={(e) => props.onDraftChange(e.target.value)}
             onKeyDown={(e) => {

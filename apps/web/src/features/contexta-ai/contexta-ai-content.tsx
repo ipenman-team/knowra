@@ -38,7 +38,7 @@ export function ContextaAiContent(props: {
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
 
   const [internetEnabled, setInternetEnabled] = useState(true);
-  const [spaceEnabled, setSpaceEnabled] = useState(false);
+  const [spaceEnabled, setSpaceEnabled] = useState(true);
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
   const [carryContext, setCarryContext] = useState(true);
 

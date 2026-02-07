@@ -65,11 +65,9 @@ export const contextaAiApi = {
     conversationId: string;
     message: string;
     dataSource?: {
-      // New: 信息源设置
       internetEnabled?: boolean;
       spaceEnabled?: boolean;
       spaceIds?: string[];
-      // Backward compatible
       enabled?: boolean;
       spaceId?: string | null;
     };

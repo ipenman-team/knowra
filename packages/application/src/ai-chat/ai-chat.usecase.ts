@@ -130,7 +130,7 @@ export class AiChatUseCase {
         : Boolean(params.dataSource.internetEnabled);
     const spaceEnabled =
       params.dataSource?.spaceEnabled === undefined
-        ? false
+        ? true
         : Boolean(params.dataSource.spaceEnabled);
 
     const carryContext =

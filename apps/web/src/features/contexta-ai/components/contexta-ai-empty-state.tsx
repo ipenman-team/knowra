@@ -1,5 +1,5 @@
+import { BotIcon } from '@/components/icon/bot.icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot } from 'lucide-react';
 
 export function ContextaAiEmptyState() {
   return (
@@ -7,10 +7,12 @@ export function ContextaAiEmptyState() {
       <Avatar className="h-16 w-16">
         <AvatarImage src="" />
         <AvatarFallback>
-          <Bot className="h-7 w-7" />
+          <BotIcon fill="#3b82f6" />
         </AvatarFallback>
       </Avatar>
-      <div className="text-xl font-bold tracking-tight">Hi，有什么可以帮助你的？</div>
+      <div className="text-xl font-bold tracking-tight">
+        Hi，有什么可以帮助你的？
+      </div>
     </div>
   );
 }

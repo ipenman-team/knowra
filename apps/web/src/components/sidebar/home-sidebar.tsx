@@ -23,13 +23,7 @@ import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
 import { SpaceIcon } from '@/components/icon/space.icon';
 
-import {
-  BookTextIcon,
-  BotIcon,
-  EllipsisIcon,
-  HomeIcon,
-  PlusIcon,
-} from 'lucide-react';
+import { EllipsisIcon, HomeIcon, PlusIcon } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
 import { Button } from '../ui/button';
 import {
@@ -40,6 +34,8 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
+import { BotIcon } from '../icon/bot.icon';
+import { WorkbenchIcon } from '../icon/workbench.icon';
 
 export const HomeSidebar = memo(function HomeSidebar() {
   const { setSelectedView } = usePageSelectionStore();
@@ -198,7 +194,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                 >
                   <SidebarMenuButton asChild>
                     <div className="flex items-center gap-2 cursor-pointer text-muted-foreground">
-                      <HomeIcon />
+                      <WorkbenchIcon />
                       <span className="font-bold">工作台</span>
                     </div>
                   </SidebarMenuButton>
@@ -209,7 +205,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                 >
                   <SidebarMenuButton asChild>
                     <div className="flex items-center gap-2 cursor-pointer text-muted-foreground">
-                      <BotIcon />
+                      <BotIcon fill={true} color="#525252" />
                       <span className="font-bold">ContextA AI</span>
                     </div>
                   </SidebarMenuButton>
