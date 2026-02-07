@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type SpaceSectionId = 'pages' | 'directory';
+export type SpaceSectionId = 'pages' | 'directory' | 'trash';
 
 interface SpaceSectionState {
   section: SpaceSectionId;

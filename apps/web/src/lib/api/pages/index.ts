@@ -96,6 +96,31 @@ export const pagesApi = {
     );
     return res.data;
   },
+
+  async listTrash(
+    spaceId: string,
+    params?: { skip?: number; take?: number; q?: string },
+  ) {
+    const res = await apiClient.get<PageDto[]>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/trash`,
+      { params },
+    );
+    return res.data;
+  },
+
+  async restore(spaceId: string, pageId: string) {
+    const res = await apiClient.post<{ ok: true }>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}/restore`,
+    );
+    return res.data;
+  },
+
+  async permanentRemove(spaceId: string, pageId: string) {
+    const res = await apiClient.delete<{ ok: true }>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}/permanent`,
+    );
+    return res.data;
+  },
 };
 
 export type { CreatePageInput, PageDto, SavePageInput };

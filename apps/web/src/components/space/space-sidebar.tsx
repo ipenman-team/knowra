@@ -1,12 +1,12 @@
 'use client';
 
 import { memo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import {
   useSpaces,
   useCurrentSpaceId,
   useSpaceStore,
-  useSpaceSectionStore,
 } from '@/stores';
 import {
   SidebarHeader,
@@ -44,7 +44,10 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   const spaces = useSpaces();
   const currentId = useCurrentSpaceId();
   const setCurrent = useSpaceStore((s) => s.setCurrentSpaceId);
-  const section = useSpaceSectionStore((s) => s.section);
+  const pathname = usePathname();
+
+  const isTrash = pathname.endsWith('/trash');
+  const section = isTrash ? 'trash' : 'pages';
 
   const current = spaces.find((s) => s.id === currentId) ?? spaces[0];
 
@@ -113,7 +116,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
           <SidebarGroupContent>
             <DirectoryList spaceId={current?.id ?? ''} />
             <SidebarMenu>
-              {section === 'pages' ? <PageTreeContainer /> : null}
+              <PageTreeContainer />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -121,13 +124,23 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
       <SidebarFooter>
         <Separator />
         <div className="flex justify-between text-muted-foreground items-center h-6">
-          <Button variant="ghost" size="lg">
-            <ListTreeIcon />
-          </Button>
+          <Link href={`/spaces/${currentId}`}>
+            <Button
+              variant={section === 'pages' ? 'secondary' : 'ghost'}
+              size="lg"
+            >
+              <ListTreeIcon />
+            </Button>
+          </Link>
           <Separator orientation="vertical" />
-          <Button variant="ghost" size="lg">
-            <RecycleIcon />
-          </Button>
+          <Link href={`/spaces/trash`}>
+            <Button
+              variant={section === 'trash' ? 'secondary' : 'ghost'}
+              size="lg"
+            >
+              <RecycleIcon />
+            </Button>
+          </Link>
           <Separator orientation="vertical" />
           <Button variant="ghost" size="lg">
             <BoltIcon />
