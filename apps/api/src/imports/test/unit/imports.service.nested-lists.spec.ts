@@ -37,7 +37,13 @@ describe('ImportsService markdown nested lists', () => {
         tenantId: string;
         userId: string;
         taskId: string;
-        req: { format: string; title: string; parentIds: unknown };
+        req: {
+          format: string;
+          title: string;
+          spaceId: string;
+          parentId?: string;
+          parentIds?: unknown;
+        };
         file: { buffer: Buffer; originalname: string };
       }) => Promise<void>;
     };
@@ -46,7 +52,7 @@ describe('ImportsService markdown nested lists', () => {
       tenantId: 't1',
       userId: 'u1',
       taskId: 'task1',
-      req: { format: 'markdown', title: 'Doc', parentIds: [] },
+      req: { format: 'markdown', title: 'Doc', spaceId: 's1', parentId: 'p1' },
       file: { buffer: Buffer.from(markdown, 'utf-8'), originalname: 'x.md' },
     });
 

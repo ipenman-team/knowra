@@ -11,14 +11,15 @@ import { Button } from '@/components/ui/button';
 import { ImportPageModal } from '@/features/home/components/import-page-modal';
 import { importsApi } from '@/lib/api';
 import { useTaskSubscription } from '@/hooks';
-import { useTaskStore } from '@/stores';
+import { useSelectedPageId, useTaskStore } from '@/stores';
+import { useRequiredSpaceId } from '@/hooks/use-required-space';
 import { toast } from 'sonner';
 
 type ImportKind = 'markdown' | 'pdf' | 'docx';
 
 const importHandlers: Record<
   ImportKind,
-  (args: { file: File }, options: {
+  (args: { file: File; spaceId: string; parentId?: string }, options: {
     signal?: AbortSignal;
     onUploadProgress?: (progress: number) => void;
   }) => Promise<{ ok: true; taskId: string }>
@@ -37,6 +38,8 @@ export const CreatePageMenu = memo(function CreatePageMenu() {
   const setTaskRuntime = useTaskStore((s) => s.setTaskRuntime);
   const getTaskRuntime = useTaskStore((s) => s.getTaskRuntime);
   const cleanupTaskRuntime = useTaskStore((s) => s.cleanupTaskRuntime);
+  const spaceId = useRequiredSpaceId();
+  const selectedPageId = useSelectedPageId();
   const [importOpen, setImportOpen] = useState(false);
 
   const handleCreatePage = useCallback(() => {
@@ -49,6 +52,11 @@ export const CreatePageMenu = memo(function CreatePageMenu() {
 
   const startImport = useCallback(
     async (file: File, kind: ImportKind) => {
+      if (!spaceId) {
+        toast.error('请先选择空间');
+        return;
+      }
+
       const tempId = `import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const controller = new AbortController();
       let activeId = tempId;
@@ -70,7 +78,7 @@ export const CreatePageMenu = memo(function CreatePageMenu() {
       try {
         const createImport = importHandlers[kind];
         const result = await createImport(
-          { file },
+          { file, spaceId, parentId: selectedPageId ?? undefined },
           {
             signal: controller.signal,
             onUploadProgress: handleProgress,
@@ -108,6 +116,8 @@ export const CreatePageMenu = memo(function CreatePageMenu() {
       getTaskRuntime,
       cleanupTaskRuntime,
       subscribeTaskEvents,
+      spaceId,
+      selectedPageId,
     ],
   );
 

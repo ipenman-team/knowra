@@ -9,6 +9,15 @@ export function fileNameToTitle(originalName: string | undefined): string {
   return (parsed.name || base).trim() || 'Untitled';
 }
 
+export function parseSpaceId(input: unknown): string {
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (trimmed) return trimmed;
+  }
+
+  throw new BadRequestException('spaceId is required');
+}
+
 export function parseParentIds(input: unknown): string[] {
   if (input == null) return [];
 

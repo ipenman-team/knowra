@@ -50,7 +50,13 @@ describe('ImportsService pdf nested lists', () => {
         tenantId: string;
         userId: string;
         taskId: string;
-        req: { format: string; title: string; parentIds: unknown };
+        req: {
+          format: string;
+          title: string;
+          spaceId: string;
+          parentId?: string;
+          parentIds?: unknown;
+        };
         file: { buffer: Buffer; originalname: string };
       }) => Promise<void>;
     };
@@ -59,7 +65,7 @@ describe('ImportsService pdf nested lists', () => {
       tenantId: 't1',
       userId: 'u1',
       taskId: 'task1',
-      req: { format: 'pdf', title: 'Doc', parentIds: [] },
+      req: { format: 'pdf', title: 'Doc', spaceId: 's1', parentId: 'p1' },
       file: {
         buffer: Buffer.from('%PDF-1.4 fake', 'utf-8'),
         originalname: 'x.pdf',

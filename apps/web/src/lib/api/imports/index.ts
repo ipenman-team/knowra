@@ -6,8 +6,9 @@ export const importsApi = {
   async createMarkdown(
     args: {
       file: File;
+      spaceId: string;
       title?: string;
-      parentIds?: string[];
+      parentId?: string;
     },
     options?: {
       signal?: AbortSignal;
@@ -16,10 +17,9 @@ export const importsApi = {
   ) {
     const form = new FormData();
     form.append("format", "markdown");
+    form.append("spaceId", args.spaceId);
     if (args.title) form.append("title", args.title);
-    if (args.parentIds?.length) {
-      for (const id of args.parentIds) form.append("parentIds", id);
-    }
+    if (args.parentId) form.append("parentId", args.parentId);
     form.append("file", args.file, args.file.name);
 
     const res = await apiClient.post<CreateImportResult>("/imports", form, {
@@ -38,8 +38,9 @@ export const importsApi = {
   async createPdf(
     args: {
       file: File;
+      spaceId: string;
       title?: string;
-      parentIds?: string[];
+      parentId?: string;
     },
     options?: {
       signal?: AbortSignal;
@@ -48,10 +49,9 @@ export const importsApi = {
   ) {
     const form = new FormData();
     form.append("format", "pdf");
+    form.append("spaceId", args.spaceId);
     if (args.title) form.append("title", args.title);
-    if (args.parentIds?.length) {
-      for (const id of args.parentIds) form.append("parentIds", id);
-    }
+    if (args.parentId) form.append("parentId", args.parentId);
     form.append("file", args.file, args.file.name);
 
     const res = await apiClient.post<CreateImportResult>("/imports", form, {
@@ -70,8 +70,9 @@ export const importsApi = {
   async createDocx(
     args: {
       file: File;
+      spaceId: string;
       title?: string;
-      parentIds?: string[];
+      parentId?: string;
     },
     options?: {
       signal?: AbortSignal;
@@ -80,10 +81,9 @@ export const importsApi = {
   ) {
     const form = new FormData();
     form.append("format", "docx");
+    form.append("spaceId", args.spaceId);
     if (args.title) form.append("title", args.title);
-    if (args.parentIds?.length) {
-      for (const id of args.parentIds) form.append("parentIds", id);
-    }
+    if (args.parentId) form.append("parentId", args.parentId);
     form.append("file", args.file, args.file.name);
 
     const res = await apiClient.post<CreateImportResult>("/imports", form, {

@@ -11,6 +11,7 @@ import {
   fileNameToTitle,
   normalizeDocxMarkdown,
   parseParentIds,
+  parseSpaceId,
 } from './imports.utils';
 import type { ImportRequest } from './imports.types';
 import * as fs from 'node:fs/promises';
@@ -41,6 +42,7 @@ export class ImportsService {
     if (format !== 'markdown' && format !== 'pdf' && format !== 'docx') {
       throw new BadRequestException('format not supported');
     }
+    parseSpaceId(req.spaceId);
 
     return this.taskService.create(tenantId, userId, {
       type: TaskType.IMPORT,
@@ -117,12 +119,11 @@ export class ImportsService {
       );
 
       const content = markdownToSlateValue(markdown);
-      const parentIds = parseParentIds(args.req.parentIds);
+      const parentIds = parseParentIds(args.req.parentId ?? args.req.parentIds);
       const title = (
         args.req.title?.trim() || fileNameToTitle(args.file.originalname)
       ).trim();
-
-      const spaceId = '';
+      const spaceId = parseSpaceId(args.req.spaceId);
       if (controller.signal.aborted) {
         await this.taskService.cancel(
           args.tenantId,
@@ -255,10 +256,11 @@ export class ImportsService {
       );
 
       const content = markdownToSlateValue(markdown);
-      const parentIds = parseParentIds(args.req.parentIds);
+      const parentIds = parseParentIds(args.req.parentId ?? args.req.parentIds);
       const title = (
         args.req.title?.trim() || fileNameToTitle(args.file.originalname)
       ).trim();
+      const spaceId = parseSpaceId(args.req.spaceId);
 
       if (controller.signal.aborted) {
         await this.taskService.cancel(
@@ -280,7 +282,7 @@ export class ImportsService {
       const created = await this.pageService.create(
         args.tenantId,
         {
-          spaceId: '',
+          spaceId,
           title,
           content,
           parentIds,
@@ -395,10 +397,11 @@ export class ImportsService {
       );
 
       const content = markdownToSlateValue(markdown);
-      const parentIds = parseParentIds(args.req.parentIds);
+      const parentIds = parseParentIds(args.req.parentId ?? args.req.parentIds);
       const title = (
         args.req.title?.trim() || fileNameToTitle(args.file.originalname)
       ).trim();
+      const spaceId = parseSpaceId(args.req.spaceId);
 
       if (controller.signal.aborted) {
         await this.taskService.cancel(
@@ -420,7 +423,7 @@ export class ImportsService {
       const created = await this.pageService.create(
         args.tenantId,
         {
-          spaceId: '',
+          spaceId,
           title,
           content,
           parentIds,

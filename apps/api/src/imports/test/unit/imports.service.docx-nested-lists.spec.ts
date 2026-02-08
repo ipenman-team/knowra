@@ -56,7 +56,13 @@ describe('ImportsService docx nested lists', () => {
         tenantId: string;
         userId: string;
         taskId: string;
-        req: { format: string; title: string; parentIds: unknown };
+        req: {
+          format: string;
+          title: string;
+          spaceId: string;
+          parentId?: string;
+          parentIds?: unknown;
+        };
         file: { buffer: Buffer; originalname: string };
       }) => Promise<void>;
     };
@@ -65,7 +71,7 @@ describe('ImportsService docx nested lists', () => {
       tenantId: 't1',
       userId: 'u1',
       taskId: 'task1',
-      req: { format: 'docx', title: 'Doc', parentIds: [] },
+      req: { format: 'docx', title: 'Doc', spaceId: 's1', parentId: 'p1' },
       file: { buffer: Buffer.from('PKfake', 'utf-8'), originalname: 'x.docx' },
     });
 
