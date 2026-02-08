@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { ActivityItem } from '@contexta/shared';
 import { mapActivityItems } from './activity-list-helper';
+import { Empty } from '@/components/empty';
 
 type ActivityListProps = {
   selectedDate: Date;
@@ -67,9 +68,7 @@ export function ActivityList({
               ) : activityItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="p-0">
-                    <div className="rounded-lg p-6 text-center text-sm text-muted-foreground">
-                      当天暂无动态，点击上方网格选择其他日期。
-                    </div>
+                    <Empty className="border-0 p-4" text="暂无动态" />
                   </TableCell>
                 </TableRow>
               ) : (

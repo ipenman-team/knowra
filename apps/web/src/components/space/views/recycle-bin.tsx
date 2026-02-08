@@ -27,11 +27,16 @@ import {
 import { format } from 'date-fns';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Empty } from '@/components/empty';
 
 export function RecycleBin(props: { spaceId: string }) {
-  const { data, isLoading, error, mutate: refresh } = useSWR(
-    ['pages', 'trash', props.spaceId],
-    () => pagesApi.listTrash(props.spaceId)
+  const {
+    data,
+    isLoading,
+    error,
+    mutate: refresh,
+  } = useSWR(['pages', 'trash', props.spaceId], () =>
+    pagesApi.listTrash(props.spaceId),
   );
 
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -53,7 +58,7 @@ export function RecycleBin(props: { spaceId: string }) {
         setRestoringId(null);
       }
     },
-    [props.spaceId, refresh]
+    [props.spaceId, refresh],
   );
 
   const handlePermanentDelete = useCallback(
@@ -70,7 +75,7 @@ export function RecycleBin(props: { spaceId: string }) {
         setDeletingId(null);
       }
     },
-    [props.spaceId, refresh]
+    [props.spaceId, refresh],
   );
 
   if (isLoading) {
@@ -109,7 +114,7 @@ export function RecycleBin(props: { spaceId: string }) {
             {data?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-24 text-center">
-                  回收站为空
+                  <Empty className="border-0 p-4"/>
                 </TableCell>
               </TableRow>
             ) : (
@@ -155,9 +160,12 @@ export function RecycleBin(props: { spaceId: string }) {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>确定要彻底删除吗？</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              确定要彻底删除吗？
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              此操作无法撤销。页面「{page.title || '无标题文档'}」将被永久删除。
+                              此操作无法撤销。页面「{page.title || '无标题文档'}
+                              」将被永久删除。
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

@@ -36,6 +36,8 @@ import {
 } from '../ui/dropdown-menu';
 import { BotIcon } from '../icon/bot.icon';
 import { WorkbenchIcon } from '../icon/workbench.icon';
+import { EmptyIcon } from '../icon/empty';
+import { Empty } from '../empty';
 
 export const HomeSidebar = memo(function HomeSidebar() {
   const { setSelectedView } = usePageSelectionStore();
@@ -191,9 +193,9 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     加载中…
                   </div>
                 ) : spaces.length === 0 ? (
-                  <div className="px-2 text-sm text-muted-foreground">
-                    暂无空间
-                  </div>
+                  <SidebarMenuItem>
+                    <Empty />
+                  </SidebarMenuItem>
                 ) : (
                   spaces.map((space) => (
                     <SidebarMenuItem
