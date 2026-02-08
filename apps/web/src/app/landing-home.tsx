@@ -17,16 +17,22 @@ const productShots = [
     alt: '工作台预览（占位图）',
   },
   {
+    key: 'ai',
+    label: 'AI',
+    src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/contexta-preview.jpg',
+    alt: 'AI 问答预览（占位图）',
+  },
+  {
     key: 'editor',
     label: '编辑器',
     src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/doc-editor-preview.jpg',
     alt: '编辑器预览（占位图）',
   },
   {
-    key: 'ai',
-    label: 'AI',
-    src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/contexta-preview.jpg',
-    alt: 'AI 问答预览（占位图）',
+    key: 'import',
+    label: '导入',
+    src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/import-page-preview.jpg',
+    alt: '导入预览（占位图）',
   },
 ];
 
