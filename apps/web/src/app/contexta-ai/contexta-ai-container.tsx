@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { HomeSidebar } from '@/components/sidebar';
 import { usePageStoreSync } from '@/hooks';
 import { usePageSelectionStore } from '@/stores';
 
@@ -13,6 +12,18 @@ import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { contextaAiApi } from '@/lib/api';
 import { ContainerLayout } from '@/components/layout/container-layout';
 import { toast } from 'sonner';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import { Button } from '@/components/ui/button';
+import { BotIcon } from '@/components/icon/bot.icon';
+import { PlusIcon } from 'lucide-react';
+import { ContextaAiEmptyState } from '@/features/contexta-ai/components/contexta-ai-empty-state';
 
 type UiConversation = ContextaAiConversation & {
   messagesLoaded?: boolean;
@@ -44,6 +55,7 @@ export default function ContextaAiContainer() {
     () => conversations.find((c) => c.id === activeId) ?? conversations[0],
     [activeId, conversations],
   );
+  const hasConversations = conversations.length > 0;
 
   // Load conversations list on mount
   useEffect(() => {
@@ -239,7 +251,7 @@ export default function ContextaAiContainer() {
     setConversations((prev) => {
       const next = prev.filter((c) => c.id !== id);
       setActiveId((prevActive) =>
-        prevActive === id ? next[0]?.id ?? '' : prevActive,
+        prevActive === id ? (next[0]?.id ?? '') : prevActive,
       );
       return next;
     });
@@ -255,13 +267,14 @@ export default function ContextaAiContainer() {
   }
 
   return (
-      <div className="flex h-full min-h-0 overflow-hidden">
-        <ContainerLayout
-          stateId="contexta-ai"
-          defaultWidthRem={18}
-          className="h-full min-h-0 overflow-hidden bg-transparent"
-          insetClassName="min-h-0 overflow-hidden"
-          sidebar={
+    <div className="flex h-full min-h-0 overflow-hidden">
+      <ContainerLayout
+        stateId="contexta-ai"
+        defaultWidthRem={18}
+        className="h-full min-h-0 overflow-hidden bg-transparent"
+        insetClassName="min-h-0 overflow-hidden"
+        sidebar={
+          hasConversations ? (
             <ContextaAiSidebar
               conversations={conversations}
               activeId={active?.id ?? ''}
@@ -271,38 +284,49 @@ export default function ContextaAiContainer() {
               onTogglePinConversation={handleTogglePinConversation}
               onDeleteConversation={handleDeleteConversation}
             />
-          }
-        >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            {active ? (
-              <ContextaAiContent
-                key={active.id}
-                conversationId={active.id}
-                title={active.title}
-                messages={active.messages}
-                draft={active.draft}
-                onDraftChange={(draft) =>
-                  updateConversation(active.id, (c) => ({ ...c, draft }))
-                }
-                onSetTitle={(title) => {
-                  updateConversation(active.id, (c) => ({ ...c, title }));
-                  handleRenameConversation(active.id, title);
-                }}
-                onSetMessages={(messages) =>
-                  updateConversation(active.id, (c) => ({
-                    ...c,
-                    messages,
-                    updatedAt: Date.now(),
-                  }))
-                }
-              />
-            ) : (
-              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-                暂无对话，请先新建一个对话。
-              </div>
-            )}
-          </div>
-        </ContainerLayout>
-      </div>
+          ) : null
+        }
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {active ? (
+            <ContextaAiContent
+              key={active.id}
+              conversationId={active.id}
+              title={active.title}
+              messages={active.messages}
+              draft={active.draft}
+              onDraftChange={(draft) =>
+                updateConversation(active.id, (c) => ({ ...c, draft }))
+              }
+              onSetTitle={(title) => {
+                updateConversation(active.id, (c) => ({ ...c, title }));
+                handleRenameConversation(active.id, title);
+              }}
+              onSetMessages={(messages) =>
+                updateConversation(active.id, (c) => ({
+                  ...c,
+                  messages,
+                  updatedAt: Date.now(),
+                }))
+              }
+            />
+          ) : (
+            <ContextaAiEmptyState
+              EmptyContent={
+                <>
+                  <div className="m-1 text-gray-500">开始你的第一个对话</div>
+                  <div>
+                    <Button type="button" onClick={handleNewConversation}>
+                      <PlusIcon className="h-4 w-4" />
+                      创建对话
+                    </Button>
+                  </div>
+                </>
+              }
+            />
+          )}
+        </div>
+      </ContainerLayout>
+    </div>
   );
 }
