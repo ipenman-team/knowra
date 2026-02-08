@@ -7,6 +7,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import { DailyCopyWidget } from './daily-copy-widget';
 
 type ProfileCardProps = {
   name: string;
@@ -37,9 +38,7 @@ export function ProfileCard({
             <div className="flex flex-col items-center gap-3">
               <Avatar className="h-20 w-20 border">
                 <AvatarImage src={avatarUrl ?? ''} alt={`${name} 头像`} />
-                <AvatarFallback className="text-lg">
-                  {fallback}
-                </AvatarFallback>
+                <AvatarFallback className="text-lg">{fallback}</AvatarFallback>
               </Avatar>
             </div>
           </HoverCardTrigger>
@@ -52,10 +51,11 @@ export function ProfileCard({
             </div>
           </HoverCardContent>
         </HoverCard>
-        <CardTitle className="mt-3">{name}</CardTitle>
-        <div className="text-sm text-muted-foreground">
+        <CardTitle className="mt-3">{greeting + '，' + name}</CardTitle>
+        {/* <div className="text-sm text-muted-foreground">
           {greeting}，今天也要元气满满。
-        </div>
+        </div> */}
+        <DailyCopyWidget />
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border bg-muted/40 p-4 text-center">

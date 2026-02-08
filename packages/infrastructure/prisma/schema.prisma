@@ -55,6 +55,16 @@ enum AiMessageRole {
   ASSISTANT
 }
 
+enum DailyCopyCategory {
+  CLASSIC
+  POETRY
+  CELEBRITY
+  PHILOSOPHY
+  POSITIVE
+  WARM
+  AESTHETIC
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -199,6 +209,31 @@ model Activity {
   @@index([tenantId, subjectType, subjectId, isDeleted, createdAt], map: "act_tenant_subject_del_created_idx")
   @@index([tenantId, action, isDeleted, createdAt], map: "act_tenant_action_del_created_idx")
   @@map("activities")
+}
+
+model DailyCopy {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  userId   String @map("user_id")
+
+  /// local date key, "YYYY-MM-DD"
+  day      String @map("day")
+  category DailyCopyCategory
+  content  String @db.Text
+
+  expiresAt DateTime @map("expires_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, userId, day])
+  @@index([tenantId, day])
+  @@index([tenantId, day, category])
+  @@map("daily_copies")
 }
 
 model VerificationCode {

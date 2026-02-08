@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { FilesModule } from './files/files.module';
 import { UserModule } from './user/user.module';
 import { ActivityModule } from './activity/activity.module';
+import { DailyCopyModule } from './daily-copy/daily-copy.module';
 
 @Module({
   imports: [
@@ -35,7 +36,8 @@ import { ActivityModule } from './activity/activity.module';
     AuthModule,
     UserModule,
     FilesModule,
-    ActivityModule
+    ActivityModule,
+    DailyCopyModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],
