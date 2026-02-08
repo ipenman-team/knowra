@@ -13,6 +13,7 @@ export type ActivityItem = {
   id: string;
   action: string;
   actionName?: string | null;
+  content?: string | null;
   ActivityItem: string;
   subjectType: string;
   subjectId: string;

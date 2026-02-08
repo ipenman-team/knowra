@@ -2,6 +2,7 @@ import { BadRequestException, Controller, Get, Inject, Query } from '@nestjs/com
 import { ActivityQueryUseCase } from '@contexta/application';
 import { TenantId } from '../common/tenant/tenant-id.decorator';
 import { ACTIVITY_ACTION_NAME_MAP } from './activity.tokens';
+import { formatActivityContent } from './activity-content';
 
 type ListActivitiesQuery = {
   limit?: string;
@@ -73,6 +74,7 @@ export class ActivitiesController {
       items: result.items.map((it) => ({
         ...it,
         actionName: this.actionNameMap[it.action] ?? null,
+        content: formatActivityContent(it),
       })),
     };
   }

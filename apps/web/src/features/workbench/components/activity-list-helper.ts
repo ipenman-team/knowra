@@ -21,6 +21,10 @@ export function formatActivityTime(value: string) {
 }
 
 export function formatActivityContent(item: ActivityItem) {
+  if (typeof item.content === 'string' && item.content.trim()) {
+    return item.content.trim();
+  }
+
   const metadata = item.metadata ?? {};
   const title =
     typeof metadata.title === 'string'
