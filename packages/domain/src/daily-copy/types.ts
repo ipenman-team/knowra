@@ -7,6 +7,8 @@ export type DailyCopyCategory =
   | 'WARM'
   | 'AESTHETIC';
 
+export type DailyCopyMetadata = unknown;
+
 export type DailyCopy = {
   id: string;
   tenantId: string;
@@ -15,6 +17,7 @@ export type DailyCopy = {
   day: string; // "YYYY-MM-DD" (local day key)
   category: DailyCopyCategory;
   content: string;
+  metadata?: DailyCopyMetadata | null;
 
   expiresAt: Date;
 
@@ -32,6 +35,7 @@ export type CreateDailyCopyParams = {
   day: string;
   category: DailyCopyCategory;
   content: string;
+  metadata?: DailyCopyMetadata | null;
   expiresAt: Date;
 };
 
@@ -39,4 +43,11 @@ export type FindDailyCopyParams = {
   tenantId: string;
   userId: string;
   day: string;
+};
+
+export type UpdateDailyCopyMetadataParams = {
+  tenantId: string;
+  userId: string;
+  day: string;
+  metadata: DailyCopyMetadata | null;
 };

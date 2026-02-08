@@ -221,6 +221,9 @@ model DailyCopy {
   category DailyCopyCategory
   content  String @db.Text
 
+  // extensible metadata for future fields to avoid schema churn
+  metadata Json? @db.JsonB
+
   expiresAt DateTime @map("expires_at")
 
   createdBy String @map("created_by")

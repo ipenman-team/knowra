@@ -7,6 +7,11 @@ export type DailyCopyCategory =
   | 'WARM'
   | 'AESTHETIC';
 
+export type DailyCopyMetadata = {
+  liked?: boolean;
+  [key: string]: unknown;
+};
+
 export type DailyCopyDto = {
   id: string;
   tenantId: string;
@@ -15,6 +20,7 @@ export type DailyCopyDto = {
   day: string; // "YYYY-MM-DD"
   category: DailyCopyCategory;
   content: string;
+  metadata?: DailyCopyMetadata | null;
   expiresAt: string;
 
   createdAt: string;
@@ -22,6 +28,15 @@ export type DailyCopyDto = {
 };
 
 export type GetTodayDailyCopyResponse = {
+  ok: true;
+  item: DailyCopyDto;
+};
+
+export type SetTodayDailyCopyLikeBody = {
+  liked: boolean;
+};
+
+export type SetTodayDailyCopyLikeResponse = {
   ok: true;
   item: DailyCopyDto;
 };

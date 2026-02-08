@@ -170,6 +170,7 @@ export function CreateSpaceModal(props: {
   return (
     <Modal
       open={open}
+      className="w-[700px]"
       title="创建空间"
       onOpenChange={onOpenChange}
       onConfirm={handleSubmit(handleCreate)}

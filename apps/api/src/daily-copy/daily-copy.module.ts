@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import {
   GenerateTodayDailyCopyUseCase,
+  SetTodayDailyCopyLikeUseCase,
 } from '@contexta/application';
 import { OpenAICompatibleChatProvider } from '@contexta/rag';
 import { PrismaDailyCopyRepository } from '@contexta/infrastructure';
@@ -41,7 +42,13 @@ import { DailyCopyController } from './daily-copy.controller';
         new GenerateTodayDailyCopyUseCase(repo, chat),
       inject: [DAILY_COPY_REPOSITORY, DAILY_COPY_CHAT_PROVIDER],
     },
+    {
+      provide: SetTodayDailyCopyLikeUseCase,
+      useFactory: (repo: PrismaDailyCopyRepository) =>
+        new SetTodayDailyCopyLikeUseCase(repo),
+      inject: [DAILY_COPY_REPOSITORY],
+    },
   ],
-  exports: [GenerateTodayDailyCopyUseCase],
+  exports: [GenerateTodayDailyCopyUseCase, SetTodayDailyCopyLikeUseCase],
 })
 export class DailyCopyModule {}

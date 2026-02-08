@@ -106,3 +106,39 @@
     @apply text-inherit no-underline;
   }
 }
+
+@layer utilities {
+  @keyframes icon-pop {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes icon-halo {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    30% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+  }
+
+  .animate-icon-pop {
+    animation: icon-pop 320ms ease-out;
+  }
+
+  .animate-icon-halo {
+    animation: icon-halo 480ms ease-out;
+  }
+}

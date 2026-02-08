@@ -88,6 +88,7 @@ export class GenerateTodayDailyCopyUseCase {
       day,
       category: category.key,
       content,
+      metadata: { liked: false },
       expiresAt: endOfLocalDay(now),
     };
 

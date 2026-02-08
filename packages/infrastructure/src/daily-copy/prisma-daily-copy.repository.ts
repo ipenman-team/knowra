@@ -1,8 +1,9 @@
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import type {
   CreateDailyCopyParams,
   DailyCopyRepository,
   FindDailyCopyParams,
+  UpdateDailyCopyMetadataParams,
 } from '@contexta/domain';
 
 export class PrismaDailyCopyRepository implements DailyCopyRepository {
@@ -27,8 +28,31 @@ export class PrismaDailyCopyRepository implements DailyCopyRepository {
         day: params.day,
         category: params.category,
         content: params.content,
+        metadata:
+          params.metadata == null
+            ? undefined
+            : (params.metadata as Prisma.InputJsonValue),
         expiresAt: params.expiresAt,
         createdBy: params.userId,
+        updatedBy: params.userId,
+      },
+    });
+  }
+
+  async updateMetadata(params: UpdateDailyCopyMetadataParams) {
+    return await this.prisma.dailyCopy.update({
+      where: {
+        tenantId_userId_day: {
+          tenantId: params.tenantId,
+          userId: params.userId,
+          day: params.day,
+        },
+      },
+      data: {
+        metadata:
+          params.metadata == null
+            ? undefined
+            : (params.metadata as Prisma.InputJsonValue),
         updatedBy: params.userId,
       },
     });
