@@ -1,16 +1,39 @@
 'use client';
 
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import type { CarouselApi } from '@/components/ui/carousel';
 import { cn } from '@/lib/utils';
+
+const productShots = [
+  {
+    key: 'workbench',
+    label: '工作台',
+    src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/workbench-preview.jpg',
+    alt: '工作台预览（占位图）',
+  },
+  {
+    key: 'editor',
+    label: '编辑器',
+    src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/doc-editor-preview.jpg',
+    alt: '编辑器预览（占位图）',
+  },
+  {
+    key: 'ai',
+    label: 'AI',
+    src: 'https://contexta-1259145770.cos.ap-beijing.myqcloud.com/contexta-preview.jpg',
+    alt: 'AI 问答预览（占位图）',
+  },
+];
 
 export function LandingHome() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-  const [activeShot, setActiveShot] = useState<'workbench' | 'editor' | 'ai'>('workbench');
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -19,28 +42,21 @@ export function LandingHome() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!carouselApi) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      carouselApi.scrollNext();
+    }, 3500);
+
+    return () => window.clearInterval(timer);
+  }, [carouselApi]);
+
   const enterApp = useCallback(() => {
     router.push('/login');
   }, [router]);
-
-  const shot = useMemo(() => {
-    if (activeShot === 'editor') {
-      return {
-        src: 'https://placehold.co/1400x800/png?text=Editor+Preview',
-        alt: '编辑器预览（占位图）',
-      };
-    }
-    if (activeShot === 'ai') {
-      return {
-        src: 'https://placehold.co/1400x800/png?text=AI+Q%26A+Preview',
-        alt: 'AI 问答预览（占位图）',
-      };
-    }
-    return {
-      src: 'https://placehold.co/1400x800/png?text=Workspace+Workbench+Preview',
-      alt: '工作台预览（占位图）',
-    };
-  }, [activeShot]);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -77,7 +93,7 @@ export function LandingHome() {
       </header>
 
       <main id="top">
-        <section className="mx-auto max-w-7xl px-6 py-16 lg:py-24">
+        <section id="product" className="mx-auto max-w-7xl px-6 py-16 lg:py-24">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <div>
               <div className="inline-flex items-center rounded-full border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
@@ -101,63 +117,23 @@ export function LandingHome() {
 
             <div className="relative">
               <div className="absolute -inset-6 -z-10 rounded-2xl bg-gradient-to-tr from-primary/10 via-transparent to-primary/5" />
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border bg-card">
-                <img
-                  src="https://placehold.co/900x675/png?text=Illustration"
-                  alt="插图占位"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border bg-card p-4">
-                  <div className="text-sm font-semibold">AI 问答</div>
-                  <div className="mt-1 text-xs text-muted-foreground">基于你的知识库检索回答</div>
-                </div>
-                <div className="rounded-xl border bg-card p-4">
-                  <div className="text-sm font-semibold">任务进度</div>
-                  <div className="mt-1 text-xs text-muted-foreground">可视化、可取消、可回看</div>
-                </div>
-              </div>
+              <Carousel setApi={setCarouselApi} opts={{ loop: true }} className="w-full">
+                <CarouselContent className="-ml-0">
+                  {productShots.map((shot) => (
+                    <CarouselItem key={shot.key} className="pl-0">
+                      <div className="relative aspect-[3024/1548] w-full overflow-hidden rounded-xl border bg-card">
+                        <img
+                          src={shot.src}
+                          alt={shot.alt}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             </div>
-          </div>
-        </section>
-
-        <section id="product" className="mx-auto max-w-7xl px-6 pb-12">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold">产品预览</h2>
-              <p className="mt-1 text-sm text-muted-foreground">工作台 / 编辑器 / AI 问答</p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={activeShot === 'workbench' ? 'default' : 'outline'}
-                onClick={() => setActiveShot('workbench')}
-              >
-                工作台
-              </Button>
-              <Button
-                variant={activeShot === 'editor' ? 'default' : 'outline'}
-                onClick={() => setActiveShot('editor')}
-              >
-                编辑器
-              </Button>
-              <Button
-                variant={activeShot === 'ai' ? 'default' : 'outline'}
-                onClick={() => setActiveShot('ai')}
-              >
-                AI
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-card">
-            <img
-              src={shot.src}
-              alt={shot.alt}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
           </div>
         </section>
 
@@ -172,7 +148,6 @@ export function LandingHome() {
               ['任务进度可视化', '生成任务、实时进度与可取消'],
             ].map(([title, desc]) => (
               <div key={title} className="rounded-xl border bg-card p-6">
-                <div className="mb-3 h-10 w-10 rounded-md bg-primary/10" />
                 <h3 className="text-lg font-semibold">{title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
               </div>
@@ -185,9 +160,9 @@ export function LandingHome() {
             <div>
               <h2 className="text-2xl font-semibold">三步上手</h2>
               <ol className="mt-4 space-y-3 text-muted-foreground">
-                <li>1) 导入资料：上传/粘贴/抓取</li>
-                <li>2) 自动整理：分段、标题层级、去噪</li>
-                <li>3) 提问与行动：回答、生成页面、生成任务并追踪</li>
+                <li>1 导入资料：上传/粘贴/抓取</li>
+                <li>2 自动整理：分段、标题层级、去噪</li>
+                <li>3 提问与行动：回答、生成页面、生成任务并追踪</li>
               </ol>
               <div className="mt-6 flex gap-3">
                 <Button onClick={enterApp}>免费开始</Button>
@@ -196,9 +171,9 @@ export function LandingHome() {
                 </Button>
               </div>
             </div>
-            <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-card">
+            {/* <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-card">
               <Image src="/file.svg" alt="步骤示意" fill className="object-contain p-10" />
-            </div>
+            </div> */}
           </div>
         </section>
 
