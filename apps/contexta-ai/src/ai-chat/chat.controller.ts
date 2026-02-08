@@ -15,6 +15,7 @@ import { ChatService } from './chat.service';
 type ChatBody = {
   conversationId?: unknown;
   message?: unknown;
+  attachmentIds?: unknown;
   // Backward compatible
   knowledge?: {
     enabled?: unknown;
@@ -37,6 +38,12 @@ export class ChatController {
     const conversationId =
       typeof body?.conversationId === 'string' ? body.conversationId : '';
     const message = typeof body?.message === 'string' ? body.message : '';
+    const attachmentIds = Array.isArray(body?.attachmentIds)
+      ? body?.attachmentIds
+          .filter((x) => typeof x === 'string')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [];
 
     if (!conversationId.trim()) {
       throw new BadRequestException('conversationId is required');
@@ -51,6 +58,7 @@ export class ChatController {
         conversationId,
         message,
         actorUserId: userId,
+        attachmentIds,
       });
     } catch (err) {
       if (err instanceof AiConversationNotFoundError) {
@@ -72,6 +80,12 @@ export class ChatController {
     const conversationId =
       typeof body?.conversationId === 'string' ? body.conversationId : '';
     const message = typeof body?.message === 'string' ? body.message : '';
+    const attachmentIds = Array.isArray(body?.attachmentIds)
+      ? body?.attachmentIds
+          .filter((x) => typeof x === 'string')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [];
 
     if (!conversationId.trim()) {
       throw new BadRequestException('conversationId is required');
@@ -98,12 +112,13 @@ export class ChatController {
     res.req.on('aborted', onClose);
 
     try {
-      const stream = this.chatService.answerStream({
+      const stream = await this.chatService.answerStream({
         tenantId,
         conversationId,
         message,
         actorUserId: userId,
         signal: controller.signal,
+        attachmentIds,
       });
 
       for await (const delta of stream) {

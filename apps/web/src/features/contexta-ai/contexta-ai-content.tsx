@@ -231,16 +231,19 @@ export function ContextaAiContent(props: {
     return [...messages, { role: 'assistant', content }];
   }
 
-  async function sendQuestion(q: string, options?: { updateInput?: boolean }) {
+  async function sendQuestion(
+    q: string,
+    options?: { updateInput?: boolean },
+  ): Promise<boolean> {
     const question = q.trim();
-    if (!question || loading) return;
+    if (!question || loading) return false;
 
     try {
       await persistSourcesNow();
     } catch (e) {
       const message = e instanceof Error ? e.message : '保存信息源设置失败';
       setError(message);
-      return;
+      return false;
     }
 
     abortRef.current?.abort();
@@ -268,11 +271,30 @@ export function ContextaAiContent(props: {
     // Do not pre-insert an empty assistant message; only show a bubble when data arrives.
     props.onSetMessages(baseMessages);
 
+    let attachmentIds: string[] = [];
+    if (attachments.length > 0) {
+      try {
+        const upload = await contextaAiApi.uploadAttachments({
+          conversationId: props.conversationId,
+          files: attachments,
+        });
+        attachmentIds = upload.attachments.map((a) => a.id);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : '附件上传失败';
+        setError(message);
+        setLoading(false);
+        abortRef.current = null;
+        answerRef.current = null;
+        return false;
+      }
+    }
+
     try {
       await contextaAiApi.chatStream(
         {
           conversationId: props.conversationId,
           message: question,
+          attachmentIds,
         },
         {
           onDelta: (delta) => {
@@ -284,12 +306,13 @@ export function ContextaAiContent(props: {
         },
         { signal: controller.signal },
       );
+      return true;
     } catch (e) {
       if (
         (e instanceof DOMException && e.name === 'AbortError') ||
         (hasAbortName(e) && e.name === 'AbortError')
       ) {
-        return;
+        return false;
       }
       const message = e instanceof Error ? e.message : '请求失败';
       setError(message);
@@ -297,6 +320,7 @@ export function ContextaAiContent(props: {
       props.onSetMessages(
         upsertAssistant(baseMessages, `请求失败：${message}`),
       );
+      return false;
     } finally {
       setLoading(false);
       abortRef.current = null;
@@ -308,8 +332,8 @@ export function ContextaAiContent(props: {
     const q = props.draft.trim();
     if (!q || loading) return;
 
-    await sendQuestion(q, { updateInput: true });
-    setAttachments([]);
+    const ok = await sendQuestion(q, { updateInput: true });
+    if (ok) setAttachments([]);
   }
 
   async function handleRetry() {

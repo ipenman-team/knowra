@@ -41,6 +41,14 @@ function toChatRole(role: AiMessageRole): AiChatMessage['role'] | null {
   return null;
 }
 
+function mergeKnowledgeContexts(primary?: string, extra?: string): string | undefined {
+  const parts = [primary, extra]
+    .map((v) => String(v ?? '').trim())
+    .filter(Boolean);
+  if (parts.length === 0) return undefined;
+  return parts.join('\n\n');
+}
+
 export class AiChatUseCase {
   private promptConfigProvider: PromptConfigProvider;
   private readonly knowledgeSearcher?: AiKnowledgeSearcher;
@@ -93,15 +101,19 @@ export class AiChatUseCase {
     history: AiMessage[];
     userInput: string;
     knowledgeContext?: string;
+    extraKnowledgeContext?: string;
   }): AiChatMessage[] {
     const config = this.promptConfigProvider.getConfig();
     const messages: AiChatMessage[] = [
       { role: 'system', content: this.buildSystemPrompt() },
     ];
 
-    const knowledgeContext = (params.knowledgeContext ?? '').trim();
-    if (knowledgeContext) {
-      messages.push({ role: 'system', content: knowledgeContext });
+    const mergedContext = mergeKnowledgeContexts(
+      params.knowledgeContext,
+      params.extraKnowledgeContext,
+    );
+    if (mergedContext) {
+      messages.push({ role: 'system', content: mergedContext });
     }
 
     for (const m of params.history) {
@@ -202,6 +214,7 @@ export class AiChatUseCase {
     conversationId: string;
     message: string;
     actorUserId: string;
+    extraKnowledgeContext?: string;
   }): Promise<{ content: string; model: string }> {
     if (!params.tenantId) throw new Error('tenantId is required');
     if (!params.conversationId) throw new Error('conversationId is required');
@@ -230,6 +243,11 @@ export class AiChatUseCase {
       enabled: dataSource.spaceEnabled,
       spaceIds: dataSource.spaceIds,
     });
+    const extraKnowledgeContext = (params.extraKnowledgeContext ?? '').trim();
+    const mergedKnowledgeContext = mergeKnowledgeContexts(
+      knowledge.context,
+      extraKnowledgeContext,
+    );
 
     await this.messageRepo.create({
       tenantId: params.tenantId,
@@ -240,7 +258,7 @@ export class AiChatUseCase {
       actorUserId: params.actorUserId,
     });
 
-    if (!dataSource.internetEnabled && !dataSource.spaceEnabled) {
+    if (!dataSource.internetEnabled && !dataSource.spaceEnabled && !mergedKnowledgeContext) {
       const content = '请至少开启一个信息源（互联网或空间）。';
       await this.messageRepo.create({
         tenantId: params.tenantId,
@@ -262,13 +280,14 @@ export class AiChatUseCase {
 
     if (dataSource.internetEnabled && dataSource.spaceEnabled) {
       let ragContent = '';
-      if (!knowledge.context || knowledge.itemCount === 0) {
+      if (!mergedKnowledgeContext) {
         ragContent = '未在空间知识库中检索到足够资料来回答该问题。';
       } else {
         const ragMessages = this.toProviderMessages({
           history,
           userInput: input,
           knowledgeContext: knowledge.context,
+          extraKnowledgeContext,
         });
         const ragResult = await this.chatProvider.generate(ragMessages);
         ragContent = String(ragResult?.content ?? '').trim();
@@ -278,6 +297,7 @@ export class AiChatUseCase {
         history,
         userInput: input,
         knowledgeContext: undefined,
+        extraKnowledgeContext,
       });
       const llmResult = await this.chatProvider.generate(llmMessages);
       const llmContent = String(llmResult?.content ?? '').trim();
@@ -309,7 +329,7 @@ export class AiChatUseCase {
     }
 
     if (dataSource.spaceEnabled && !dataSource.internetEnabled) {
-      if (!knowledge.context || knowledge.itemCount === 0) {
+      if (!mergedKnowledgeContext) {
         const content = '未在空间知识库中检索到足够资料来回答该问题。';
         await this.messageRepo.create({
           tenantId: params.tenantId,
@@ -331,6 +351,7 @@ export class AiChatUseCase {
         history,
         userInput: input,
         knowledgeContext: knowledge.context,
+        extraKnowledgeContext,
       });
       const ragResult = await this.chatProvider.generate(ragMessages);
       const content = String(ragResult?.content ?? '').trim();
@@ -357,6 +378,7 @@ export class AiChatUseCase {
       history,
       userInput: input,
       knowledgeContext: undefined,
+      extraKnowledgeContext,
     });
 
     const result = await this.chatProvider.generate(providerMessages);
@@ -386,6 +408,7 @@ export class AiChatUseCase {
     message: string;
     actorUserId: string;
     signal?: AbortSignal;
+    extraKnowledgeContext?: string;
   }): AsyncIterable<string> {
     const self = this;
 
@@ -419,6 +442,11 @@ export class AiChatUseCase {
         enabled: dataSource.spaceEnabled,
         spaceIds: dataSource.spaceIds,
       });
+      const extraKnowledgeContext = (params.extraKnowledgeContext ?? '').trim();
+      const mergedKnowledgeContext = mergeKnowledgeContexts(
+        knowledge.context,
+        extraKnowledgeContext,
+      );
 
       await self.messageRepo.create({
         tenantId: params.tenantId,
@@ -432,7 +460,7 @@ export class AiChatUseCase {
       let acc = '';
       const model = self.chatProvider.model;
 
-      if (!dataSource.internetEnabled && !dataSource.spaceEnabled) {
+      if (!dataSource.internetEnabled && !dataSource.spaceEnabled && !mergedKnowledgeContext) {
         const full = '请至少开启一个信息源（互联网或空间）。';
         acc += full;
         yield full;
@@ -478,7 +506,7 @@ export class AiChatUseCase {
         acc += head1;
         yield head1;
 
-        if (!knowledge.context || knowledge.itemCount === 0) {
+        if (!mergedKnowledgeContext) {
           const full = '未在空间知识库中检索到足够资料来回答该问题。';
           acc += full;
           yield full;
@@ -487,6 +515,7 @@ export class AiChatUseCase {
             history,
             userInput: input,
             knowledgeContext: knowledge.context,
+            extraKnowledgeContext,
           });
           for await (const d of streamOrGenerate(ragMessages)) {
             acc += d;
@@ -502,13 +531,14 @@ export class AiChatUseCase {
           history,
           userInput: input,
           knowledgeContext: undefined,
+          extraKnowledgeContext,
         });
         for await (const d of streamOrGenerate(llmMessages)) {
           acc += d;
           yield d;
         }
       } else if (dataSource.spaceEnabled && !dataSource.internetEnabled) {
-        if (!knowledge.context || knowledge.itemCount === 0) {
+        if (!mergedKnowledgeContext) {
           const full = '未在空间知识库中检索到足够资料来回答该问题。';
           acc += full;
           yield full;
@@ -517,6 +547,7 @@ export class AiChatUseCase {
             history,
             userInput: input,
             knowledgeContext: knowledge.context,
+            extraKnowledgeContext,
           });
           for await (const d of streamOrGenerate(ragMessages)) {
             acc += d;
@@ -528,6 +559,7 @@ export class AiChatUseCase {
           history,
           userInput: input,
           knowledgeContext: undefined,
+          extraKnowledgeContext,
         });
         for await (const d of streamOrGenerate(llmMessages)) {
           acc += d;

@@ -1,26 +1,57 @@
 import { Injectable } from '@nestjs/common';
 import { AiChatUseCase } from '@contexta/application';
+import { AttachmentsService } from '../attachments/attachments.service';
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly useCase: AiChatUseCase) {}
+  constructor(
+    private readonly useCase: AiChatUseCase,
+    private readonly attachmentsService: AttachmentsService,
+  ) {}
 
-  answer(params: {
+  async answer(params: {
     tenantId: string;
     conversationId: string;
     message: string;
     actorUserId: string;
+    attachmentIds?: string[];
   }) {
-    return this.useCase.answer(params);
+    const res = await this.attachmentsService.buildContext({
+      tenantId: params.tenantId,
+      query: params.message,
+      attachmentIds: params.attachmentIds,
+    });
+
+    return this.useCase.answer({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+      message: params.message,
+      actorUserId: params.actorUserId,
+      extraKnowledgeContext: res.context,
+    });
   }
 
-  answerStream(params: {
+  async answerStream(params: {
     tenantId: string;
     conversationId: string;
     message: string;
     actorUserId: string;
     signal?: AbortSignal;
+    attachmentIds?: string[];
   }) {
-    return this.useCase.answerStream(params);
+    const res = await this.attachmentsService.buildContext({
+      tenantId: params.tenantId,
+      query: params.message,
+      attachmentIds: params.attachmentIds,
+    });
+
+    return this.useCase.answerStream({
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+      message: params.message,
+      actorUserId: params.actorUserId,
+      signal: params.signal,
+      extraKnowledgeContext: res.context,
+    });
   }
 }

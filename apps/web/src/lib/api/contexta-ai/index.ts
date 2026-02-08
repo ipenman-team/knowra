@@ -1,5 +1,10 @@
 import { contextaAiClient, getContextaAiBaseUrl } from './client';
-import type { AiConversationDto, AiConversationSourcesDto, AiMessageDto } from './types';
+import type {
+  AiAttachmentUploadResult,
+  AiConversationDto,
+  AiConversationSourcesDto,
+  AiMessageDto,
+} from './types';
 import { ApiError, handleUnauthorized } from '../client';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -71,6 +76,7 @@ export const contextaAiApi = {
   async chat(input: {
     conversationId: string;
     message: string;
+    attachmentIds?: string[];
     dataSource?: {
       internetEnabled?: boolean;
       spaceEnabled?: boolean;
@@ -90,6 +96,7 @@ export const contextaAiApi = {
     input: {
       conversationId: string;
       message: string;
+      attachmentIds?: string[];
     },
     handlers: { onDelta: (delta: string) => void },
     options?: { signal?: AbortSignal },
@@ -186,7 +193,41 @@ export const contextaAiApi = {
       }
     }
   },
+
+  async uploadAttachments(
+    input: { conversationId: string; files: File[] },
+    options?: { signal?: AbortSignal; onUploadProgress?: (progress: number) => void },
+  ) {
+    const form = new FormData();
+    form.append('conversationId', input.conversationId);
+    for (const file of input.files) {
+      form.append('files', file, file.name);
+    }
+
+    const res = await contextaAiClient.post<AiAttachmentUploadResult>(
+      '/api/attachments',
+      form,
+      {
+        signal: options?.signal,
+        onUploadProgress: (e) => {
+          const total = e.total ?? 0;
+          if (!total) return;
+          const ratio = e.loaded / total;
+          const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+          options?.onUploadProgress?.(pct);
+        },
+      },
+    );
+
+    return res.data;
+  },
 };
 
-export type { AiConversationDto, AiConversationSourcesDto, AiMessageDto } from './types';
+export type {
+  AiAttachmentDto,
+  AiAttachmentUploadResult,
+  AiConversationDto,
+  AiConversationSourcesDto,
+  AiMessageDto,
+} from './types';
 export { getContextaAiBaseUrl } from './client';

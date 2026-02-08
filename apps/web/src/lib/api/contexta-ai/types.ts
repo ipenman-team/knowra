@@ -18,3 +18,16 @@ export type AiConversationSourcesDto = {
   spaceIds: string[];
   carryContext: boolean;
 };
+
+export type AiAttachmentDto = {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string;
+  chunkCount: number;
+};
+
+export type AiAttachmentUploadResult = {
+  ok: true;
+  attachments: AiAttachmentDto[];
+};

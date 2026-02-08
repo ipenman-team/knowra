@@ -18,6 +18,7 @@ import {
   AI_PROMPT_CONFIG_PROVIDER,
 } from './ai-chat.tokens';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
+import { AttachmentsModule } from '../attachments/attachments.module';
 import { AI_KNOWLEDGE_SEARCHER } from '../knowledge/knowledge.tokens';
 import type { AiKnowledgeSearcher } from '@contexta/application';
 import { ConversationsController } from './conversations.controller';
@@ -27,7 +28,7 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 
 @Module({
-  imports: [KnowledgeModule],
+  imports: [KnowledgeModule, AttachmentsModule],
   controllers: [ConversationsController, ChatController],
   providers: [
     {
