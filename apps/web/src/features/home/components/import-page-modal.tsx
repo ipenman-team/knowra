@@ -1,15 +1,20 @@
-"use client";
+'use client';
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from 'react';
 
-import { cn } from "@/lib/utils";
-import { Modal } from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { WordIcon } from '@/components/icon/word';
+import { PdfIcon } from '@/components/icon/pdf';
+import { MarkdownIcon } from '@/components/icon/markdown';
 
-type ImportType = "markdown" | "pdf" | "docx";
+type ImportType = 'markdown' | 'pdf' | 'docx';
 
 type ImportOption = {
   id: string;
   label: string;
+  icon: React.ReactNode;
   extensions: string;
   enabled: boolean;
   type: ImportType | null;
@@ -17,32 +22,33 @@ type ImportOption = {
 
 function OptionCard(props: {
   option: ImportOption;
-  selected: boolean;
   onSelect?: () => void;
 }) {
-  const { option, selected, onSelect } = props;
+  const { option, onSelect } = props;
 
   return (
     <button
       type="button"
       className={cn(
-        "group flex w-full flex-col items-center gap-2 rounded-lg p-3 text-left",
-        option.enabled ? "hover:bg-accent" : "opacity-40",
-        selected && option.enabled ? "bg-accent" : "",
+        'group flex w-full flex-col items-center gap-2 rounded-lg p-3 text-left',
+        option.enabled ? 'hover:bg-accent' : 'opacity-40',
       )}
       disabled={!option.enabled}
       onClick={onSelect}
     >
       <div
         className={cn(
-          "flex h-16 w-16 items-center justify-center rounded-xl border bg-background",
-          selected && option.enabled ? "ring-2 ring-ring ring-offset-2 ring-offset-background" : "",
+          'flex h-16 w-16 items-center justify-center rounded-xl bg-background',
         )}
         aria-hidden
-      />
+      >
+        {option.icon}
+      </div>
       <div className="text-center">
         <div className="text-sm font-medium">{option.label}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{option.extensions}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {option.extensions}
+        </div>
       </div>
     </button>
   );
@@ -55,7 +61,7 @@ export function ImportPageModal(props: {
   onPickPdfFile: (file: File) => void;
   onPickDocxFile: (file: File) => void;
 }) {
-  const [selected, setSelected] = useState<ImportType | null>("markdown");
+  const [selected, setSelected] = useState<ImportType | null>('markdown');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const docxInputRef = useRef<HTMLInputElement | null>(null);
@@ -63,32 +69,30 @@ export function ImportPageModal(props: {
   const options: ImportOption[] = useMemo(
     () =>
       [
-        { id: "confluence", label: "Confluence", extensions: ".zip", enabled: false, type: null },
-        {
-          id: "markdown",
-          label: "Markdown",
-          extensions: ".markdown .md .mark .txt",
+         {
+          id: 'word',
+          label: 'Word',
+          icon: <WordIcon />,
+          extensions: '.docx',
           enabled: true,
-          type: "markdown",
+          type: 'docx',
         },
         {
-          id: "pdf",
-          label: "PDF",
-          extensions: ".pdf",
+          id: 'pdf',
+          label: 'PDF',
+          icon: <PdfIcon />,
+          extensions: '.pdf',
           enabled: true,
-          type: "pdf",
+          type: 'pdf',
         },
-        { id: "markdown-zip", label: "Markdown Zip", extensions: ".zip", enabled: false, type: null },
-        { id: "html-zip", label: "HTML Zip", extensions: ".zip", enabled: false, type: null },
         {
-          id: "word",
-          label: "Word",
-          extensions: ".docx",
+          id: 'markdown',
+          label: 'Markdown',
+          extensions: '.md .txt',
           enabled: true,
-          type: "docx",
+          icon: <MarkdownIcon />,
+          type: 'markdown',
         },
-        { id: "excel", label: "Excel", extensions: ".xlsx .csv", enabled: false, type: null },
-        { id: "xmind", label: "Xmind", extensions: ".xmind .opml", enabled: false, type: null },
       ] satisfies ImportOption[],
     [],
   );
@@ -98,7 +102,7 @@ export function ImportPageModal(props: {
       open={props.open}
       title="导入页面"
       onOpenChange={(open) => {
-        if (open) setSelected("markdown");
+        if (open) setSelected('markdown');
         props.onOpenChange(open);
       }}
       footer={null}
@@ -108,16 +112,15 @@ export function ImportPageModal(props: {
           <OptionCard
             key={opt.id}
             option={opt}
-            selected={opt.type ? selected === opt.type : false}
             onSelect={
               opt.enabled && opt.type
                 ? () => {
                     setSelected(opt.type);
-                    if (opt.type === "markdown") {
+                    if (opt.type === 'markdown') {
                       fileInputRef.current?.click();
-                    } else if (opt.type === "pdf") {
+                    } else if (opt.type === 'pdf') {
                       pdfInputRef.current?.click();
-                    } else if (opt.type === "docx") {
+                    } else if (opt.type === 'docx') {
                       docxInputRef.current?.click();
                     }
                   }
@@ -134,7 +137,7 @@ export function ImportPageModal(props: {
         className="hidden"
         onChange={async (e) => {
           const file = e.target.files?.[0];
-          e.target.value = "";
+          e.target.value = '';
           if (!file) return;
 
           props.onPickMarkdownFile(file);
@@ -149,7 +152,7 @@ export function ImportPageModal(props: {
         className="hidden"
         onChange={async (e) => {
           const file = e.target.files?.[0];
-          e.target.value = "";
+          e.target.value = '';
           if (!file) return;
 
           props.onPickPdfFile(file);
@@ -164,7 +167,7 @@ export function ImportPageModal(props: {
         className="hidden"
         onChange={async (e) => {
           const file = e.target.files?.[0];
-          e.target.value = "";
+          e.target.value = '';
           if (!file) return;
 
           props.onPickDocxFile(file);
