@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
 import { AccountMenu } from '../account-menu';
@@ -23,8 +23,9 @@ import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
 import { SpaceIcon } from '@/components/icon/space.icon';
 
-import { EllipsisIcon, HomeIcon, PlusIcon } from 'lucide-react';
+import { EllipsisIcon, PlusIcon } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
+import EditSpaceModal from '../space/edit-space-modal';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -33,7 +34,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { Input } from '../ui/input';
 import { BotIcon } from '../icon/bot.icon';
 import { WorkbenchIcon } from '../icon/workbench.icon';
 
@@ -43,11 +43,11 @@ export const HomeSidebar = memo(function HomeSidebar() {
   const loading = useSpacesLoading();
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
   const [openCreate, setOpenCreate] = useState(false);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<Record<string, boolean>>({});
-  const renameInputRef = useRef<HTMLInputElement | null>(null);
-  const preventMenuFocusRef = useRef(false);
+  const updateSpaceLocal = useSpaceStore((s) => s.updateSpaceLocal);
+
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -92,51 +92,6 @@ export const HomeSidebar = memo(function HomeSidebar() {
     }));
   };
 
-  const beginRename = useCallback((space: Space) => {
-    preventMenuFocusRef.current = true;
-    setRenamingId(space.id);
-    setRenameValue(space.name ?? '');
-  }, []);
-
-  const cancelRename = useCallback(() => {
-    setRenamingId(null);
-    setRenameValue('');
-  }, []);
-
-  const commitRename = useCallback(
-    async (space: Space) => {
-      const nextName = renameValue.trim();
-      if (!nextName || nextName === space.name) {
-        cancelRename();
-        return;
-      }
-      const previousName = space.name;
-      useSpaceStore.setState((prev) => ({
-        spaces: prev.spaces.map((item) =>
-          item.id === space.id ? { ...item, name: nextName } : item,
-        ),
-      }));
-
-      try {
-        const updated = await spacesApi.rename(space.id, { name: nextName });
-        useSpaceStore.setState((prev) => ({
-          spaces: prev.spaces.map((item) =>
-            item.id === space.id ? normalizeSpace(updated) : item,
-          ),
-        }));
-      } catch (error) {
-        useSpaceStore.setState((prev) => ({
-          spaces: prev.spaces.map((item) =>
-            item.id === space.id ? { ...item, name: previousName } : item,
-          ),
-        }));
-      } finally {
-        cancelRename();
-      }
-    },
-    [cancelRename, normalizeSpace, renameValue],
-  );
-
   const toggleFavorite = useCallback(
     async (space: Space) => {
       const nextFavorite = !favoriteIds[space.id];
@@ -157,20 +112,22 @@ export const HomeSidebar = memo(function HomeSidebar() {
     [favoriteIds],
   );
 
-  const handleMenuCloseAutoFocus = useCallback((event: Event) => {
-    if (!preventMenuFocusRef.current) return;
-    event.preventDefault();
-    preventMenuFocusRef.current = false;
+  const openEditor = useCallback((space: Space) => {
+    setEditingSpaceId(space.id);
+    setOpenEdit(true);
   }, []);
 
-  useEffect(() => {
-    if (!renamingId) return;
-    const frame = requestAnimationFrame(() => {
-      renameInputRef.current?.focus();
-      renameInputRef.current?.select();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [renamingId]);
+  const handleUpdated = useCallback(
+    (updated: SpaceDto) => {
+      const normalized = normalizeSpace(updated);
+      updateSpaceLocal(updated.id, {
+        name: normalized.name,
+        color: normalized.color ?? null,
+        metadata: normalized.metadata ?? null,
+      });
+    },
+    [normalizeSpace, updateSpaceLocal],
+  );
 
   return (
     <>
@@ -249,34 +206,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                       <SidebarMenuButton asChild>
                         <div className="flex items-center gap-2 cursor-pointer text-muted-foreground text-lg">
                           <SpaceIcon color={space.color as string} />
-                          {renamingId === space.id ? (
-                            <Input
-                              autoFocus
-                              ref={renameInputRef}
-                              value={renameValue}
-                              onChange={(event) =>
-                                setRenameValue(event.target.value)
-                              }
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  void commitRename(space);
-                                }
-                                if (event.key === 'Escape') {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  cancelRename();
-                                }
-                              }}
-                              onBlur={() => void commitRename(space)}
-                              onClick={(event) => event.stopPropagation()}
-                              onPointerDown={(event) => event.stopPropagation()}
-                              className="h-7 flex-1"
-                            />
-                          ) : (
-                            <span>{space.name}</span>
-                          )}
+                          <span>{space.name}</span>
                         </div>
                       </SidebarMenuButton>
 
@@ -295,21 +225,19 @@ export const HomeSidebar = memo(function HomeSidebar() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="start"
-                          onCloseAutoFocus={handleMenuCloseAutoFocus}
                           onPointerDown={(event) => event.stopPropagation()}
                           onClick={(event) => event.stopPropagation()}
                         >
                           <DropdownMenuItem
                             onPointerDown={(event) => {
                               event.stopPropagation();
-                              preventMenuFocusRef.current = true;
                             }}
                             onSelect={(event) => {
                               event.stopPropagation();
-                              beginRename(space);
+                              openEditor(space);
                             }}
                           >
-                            重命名
+                            编辑
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -339,6 +267,18 @@ export const HomeSidebar = memo(function HomeSidebar() {
             onCreated={handleCreated}
           />
         )}
+
+        {openEdit && editingSpaceId ? (
+          <EditSpaceModal
+            open={openEdit}
+            onOpenChange={(next) => {
+              setOpenEdit(next);
+              if (!next) setEditingSpaceId(null);
+            }}
+            spaceId={editingSpaceId}
+            onUpdated={handleUpdated}
+          />
+        ) : null}
       </Sidebar>
     </>
   );

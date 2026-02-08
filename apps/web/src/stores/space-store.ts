@@ -15,6 +15,7 @@ interface SpaceState {
   currentSpaceId: string | null;
   ensureLoaded: (options?: { force?: boolean }) => Promise<void>;
   setSpaces: (spaces: Space[]) => void;
+  updateSpaceLocal: (id: string, patch: Partial<Omit<Space, 'id'>>) => void;
   setCurrentSpaceId: (id: string | null) => void;
   invalidate: () => void;
 }
@@ -30,6 +31,11 @@ export const useSpaceStore = create<SpaceState>((set, get) => ({
   invalidate: () => set({ loaded: false }),
 
   setSpaces: (spaces) => set({ spaces }),
+
+  updateSpaceLocal: (id, patch) =>
+    set((state) => ({
+      spaces: state.spaces.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    })),
 
   setCurrentSpaceId: (id) => set({ currentSpaceId: id }),
 

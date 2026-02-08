@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+
 import { Modal } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,20 +19,14 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { spacesApi } from '@/lib/api';
-import { useMeStore } from '@/stores';
-import type { SpaceDto } from '@/lib/api/spaces/types';
-import { toast } from 'sonner';
-import { Textarea } from '../ui/textarea';
-import { SpaceIcon } from '../icon/space.icon';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { SpaceIcon } from '@/components/icon/space.icon';
 
-const IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const IDENTIFIER_LENGTH = 8;
+import { spacesApi } from '@/lib/api';
+import type { SpaceDto } from '@/lib/api';
+import { useMeStore } from '@/stores';
+
 const SPACE_COLORS = [
   { label: 'lime', value: '#a3e635' },
   { label: 'green', value: '#4ade80' },
@@ -51,43 +47,25 @@ const SPACE_COLORS = [
 
 const DEFAULT_COLOR = SPACE_COLORS.find((x) => x.label === 'blue')?.value;
 
-const generateIdentifier = (length = IDENTIFIER_LENGTH) => {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const values = new Uint32Array(length);
-    crypto.getRandomValues(values);
-    return Array.from(
-      values,
-      (value) => IDENTIFIER_CHARS[value % IDENTIFIER_CHARS.length],
-    ).join('');
-  }
-
-  let result = '';
-  for (let i = 0; i < length; i += 1) {
-    result +=
-      IDENTIFIER_CHARS[Math.floor(Math.random() * IDENTIFIER_CHARS.length)];
-  }
-  return result;
-};
-
-export function CreateSpaceModal(props: {
+export function EditSpaceModal(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: (space: SpaceDto) => void;
+  spaceId: string;
+  onUpdated?: (space: SpaceDto) => void;
 }) {
-  const { open, onOpenChange, onCreated } = props;
+  const { open, onOpenChange, spaceId, onUpdated } = props;
+
   const tenant = useMeStore((s) => s.tenant);
   const isPersonalTenant = tenant?.type === 'PERSONAL';
+
   const nameId = useId();
   const identifierId = useId();
   const typeId = useId();
   const descriptionId = useId();
-  const wasOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (open) {
-      console.log('tenant', tenant);
-    }
-  }, [open, tenant]);
+  const wasOpenRef = useRef(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detail, setDetail] = useState<SpaceDto | null>(null);
 
   const {
     register,
@@ -124,16 +102,36 @@ export function CreateSpaceModal(props: {
   const colorValue = watch('color');
 
   useEffect(() => {
-    if (open && !wasOpenRef.current) {
-      const currentIdentifier = getValues('identifier');
-      if (!currentIdentifier?.trim()) {
-        setValue('identifier', generateIdentifier(), { shouldValidate: true });
-      }
+    if (!open) {
+      wasOpenRef.current = false;
+      return;
     }
-    wasOpenRef.current = open;
-  }, [getValues, open, setValue]);
 
-  const handleCreate = async (values: {
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
+
+    (async () => {
+      setLoadingDetail(true);
+      try {
+        const fetched = await spacesApi.get(spaceId);
+        setDetail(fetched);
+
+        reset({
+          name: fetched.name ?? '',
+          identifier: (fetched.identifier ?? '').trim(),
+          type: (isPersonalTenant ? 'PERSONAL' : (fetched.type as any)) || 'ORG',
+          description: (fetched.description ?? '') || '',
+          color: (fetched.color ?? DEFAULT_COLOR) || DEFAULT_COLOR,
+        });
+      } catch {
+        toast.error('加载空间信息失败');
+      } finally {
+        setLoadingDetail(false);
+      }
+    })();
+  }, [isPersonalTenant, open, reset, spaceId]);
+
+  const handleUpdate = async (values: {
     name: string;
     identifier: string;
     type: 'PERSONAL' | 'ORG';
@@ -143,42 +141,42 @@ export function CreateSpaceModal(props: {
     const trimmedName = values.name?.trim();
     const trimmedIdentifier = values.identifier?.trim();
     const trimmedColor = values.color?.trim();
+
     if (!trimmedName || !trimmedIdentifier) return;
+
     try {
-      const created = await spacesApi.create({
+      const updated = await spacesApi.update(spaceId, {
         name: trimmedName,
         identifier: trimmedIdentifier,
         type: isPersonalTenant ? 'PERSONAL' : values.type,
-        description: values.description?.trim() || undefined,
-        color: trimmedColor || undefined,
+        description: values.description?.trim() || null,
+        color: trimmedColor || null,
       });
-      toast.success('创建成功');
-      onCreated?.(created as SpaceDto);
+
+      toast.success('更新成功');
+      onUpdated?.(updated as SpaceDto);
       onOpenChange(false);
-      reset({
-        name: '',
-        identifier: '',
-        type: isPersonalTenant ? 'PERSONAL' : 'ORG',
-        description: '',
-        color: DEFAULT_COLOR,
-      });
-    } catch (e) {
-      // ignore for now
+    } catch {
+      toast.error('更新失败');
     }
   };
+
+  const confirmDisabled =
+    loadingDetail ||
+    isSubmitting ||
+    !nameValue?.trim() ||
+    !identifierValue?.trim() ||
+    !colorValue?.trim();
+
+  const currentColor = getValues('color') || detail?.color || DEFAULT_COLOR;
 
   return (
     <Modal
       open={open}
-      title="创建空间"
+      title="编辑空间"
       onOpenChange={onOpenChange}
-      onConfirm={handleSubmit(handleCreate)}
-      confirmDisabled={
-        isSubmitting ||
-        !nameValue?.trim() ||
-        !identifierValue?.trim() ||
-        !colorValue?.trim()
-      }
+      onConfirm={handleSubmit(handleUpdate)}
+      confirmDisabled={confirmDisabled}
     >
       <FieldGroup className="gap-4">
         <Field data-invalid={!!errors.name}>
@@ -191,7 +189,7 @@ export function CreateSpaceModal(props: {
                 <Popover>
                   <PopoverTrigger asChild>
                     <InputGroupButton aria-label="选择颜色" size="icon-sm">
-                      <SpaceIcon color={colorValue || DEFAULT_COLOR} />
+                      <SpaceIcon color={currentColor || DEFAULT_COLOR} />
                     </InputGroupButton>
                   </PopoverTrigger>
                   <PopoverContent
@@ -233,10 +231,10 @@ export function CreateSpaceModal(props: {
                 placeholder="输入空间名称"
                 required
                 aria-invalid={!!errors.name}
+                disabled={loadingDetail}
                 {...register('name', {
                   required: '请输入空间名称',
-                  validate: (value) =>
-                    value?.trim() ? true : '请输入空间名称',
+                  validate: (value) => (value?.trim() ? true : '请输入空间名称'),
                 })}
               />
             </InputGroup>
@@ -255,6 +253,7 @@ export function CreateSpaceModal(props: {
               placeholder="大写字母或数字，最长15"
               required
               aria-invalid={!!errors.identifier}
+              disabled={loadingDetail}
               {...register('identifier', {
                 required: '请输入空间标识',
                 maxLength: { value: 15, message: '空间标识最多15个字符' },
@@ -285,6 +284,7 @@ export function CreateSpaceModal(props: {
               <select
                 id={typeId}
                 className="block w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                disabled={loadingDetail}
                 {...register('type')}
               >
                 <option value="PERSONAL">个人</option>
@@ -304,6 +304,7 @@ export function CreateSpaceModal(props: {
               className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
               rows={4}
               aria-invalid={!!errors.description}
+              disabled={loadingDetail}
               {...register('description')}
             />
             <FieldError errors={[errors.description]} />
@@ -314,4 +315,4 @@ export function CreateSpaceModal(props: {
   );
 }
 
-export default CreateSpaceModal;
+export default EditSpaceModal;

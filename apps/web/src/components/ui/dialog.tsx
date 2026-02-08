@@ -157,7 +157,7 @@ function Modal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "w-[92vw] max-w-[560px] gap-6 rounded-2xl p-6 shadow-xl sm:rounded-2xl sm:p-8",
+          "w-[92vw] gap-6 rounded-2xl p-6 shadow-xl sm:rounded-2xl sm:p-8",
           className
         )}
       >
