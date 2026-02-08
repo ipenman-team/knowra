@@ -96,13 +96,7 @@ export const AccountMenu = memo(function AccountMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ProfileModal
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        nickname={nickname}
-        avatarUrl={avatarUrl}
-        profile={profile}
-      />
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
       <SettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
