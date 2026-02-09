@@ -6,6 +6,7 @@ export const SpaceIcon = (props: IconProps = {}) => {
     ...props,
     color: props.color ?? '#60a5fa',
   };
+
   return (
     <Icon
       viewBox="0 0 1024 1024"

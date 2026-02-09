@@ -16,7 +16,15 @@ export const Icon = ({
   stroke,
   ...props
 }: IconProps) => {
-  const mergedStyle: CSSProperties | undefined = style;
+  const resolvedWidth = width ?? size;
+  const resolvedHeight = height ?? size;
+
+  const mergedStyle: CSSProperties = {
+    ...style,
+    ...(resolvedWidth && { width: resolvedWidth }),
+    ...(resolvedHeight && { height: resolvedHeight }),
+  };
+
   const fillMode = typeof fill === 'boolean' ? fill : undefined;
   const fillValue = typeof fill === 'string' ? fill : undefined;
 
@@ -37,12 +45,12 @@ export const Icon = ({
 
   return (
     <svg
-      width={width ?? size}
-      height={height ?? size}
+      {...props}
+      width={resolvedWidth}
+      height={resolvedHeight}
       fill={resolvedFill}
       stroke={resolvedStroke}
       style={mergedStyle}
-      {...props}
     />
   );
 };

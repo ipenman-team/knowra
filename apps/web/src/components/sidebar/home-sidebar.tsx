@@ -16,6 +16,7 @@ import {
   SidebarMenuAction,
   SidebarGroupLabel,
   SidebarGroupContent,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { spacesApi } from '@/lib/api';
 import type { SpaceDto } from '@/lib/api';
@@ -41,6 +42,7 @@ import { Empty } from '../empty';
 
 export const HomeSidebar = memo(function HomeSidebar() {
   const { navigateToView, navigateToSpace } = useNavigation();
+  const { state } = useSidebar();
   const spaces = useSpaces();
   const loading = useSpacesLoading();
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
@@ -50,6 +52,8 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
   const [openEdit, setOpenEdit] = useState(false);
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
+
+  const isCollapsed = state === 'collapsed';
 
   const handleSelectView = useCallback(
     (id: ViewId) => {
@@ -67,8 +71,8 @@ export const HomeSidebar = memo(function HomeSidebar() {
   const normalizeSpace = useCallback((space: SpaceDto): Space => {
     const metadata =
       space.metadata &&
-      typeof space.metadata === 'object' &&
-      !Array.isArray(space.metadata)
+        typeof space.metadata === 'object' &&
+        !Array.isArray(space.metadata)
         ? (space.metadata as Record<string, unknown>)
         : null;
 
@@ -144,10 +148,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   key="workbench"
                   onClick={() => handleSelectView('workbench')}
                 >
-                  <SidebarMenuButton asChild>
-                    <div className="flex items-center gap-2 cursor-pointer text-muted-foreground">
-                      <WorkbenchIcon />
-                      <span className="font-bold">工作台</span>
+                  <SidebarMenuButton asChild tooltip="工作台">
+                    <div className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}>
+                      <WorkbenchIcon size={isCollapsed ? '1.5rem' : '1rem'} />
+                      {!isCollapsed && <span className="truncate">工作台</span>}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -155,10 +159,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   key="contexta-ai"
                   onClick={() => handleSelectView('contexta-ai')}
                 >
-                  <SidebarMenuButton asChild>
-                    <div className="flex items-center gap-2 cursor-pointer text-muted-foreground">
-                      <BotIcon fill={true} color="#525252" />
-                      <span className="font-bold">ContextA AI</span>
+                  <SidebarMenuButton asChild tooltip="ContextA AI">
+                    <div className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}>
+                      <BotIcon fill color="#525252"  size={isCollapsed ? '1.5rem' : '1rem'} />
+                      {!isCollapsed && <span className="truncate">ContextA AI</span>}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -166,21 +170,34 @@ export const HomeSidebar = memo(function HomeSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
           <SidebarGroup className="flex-1 min-h-0">
-            <SidebarGroupLabel>
-              <div className="flex justify-between flex-1 items-center">
-                空间
-                <Button
-                  variant="ghost"
-                  className="h-6 w-6"
-                  size="icon"
-                  onClick={() => setOpenCreate(true)}
-                >
-                  <PlusIcon />
-                </Button>
-              </div>
-            </SidebarGroupLabel>
+            {
+              !isCollapsed && (<SidebarGroupLabel>
+                <div className="flex justify-between flex-1 items-center">
+                  空间
+                  <Button
+                    variant="ghost"
+                    className="h-6 w-6"
+                    size="icon"
+                    onClick={() => setOpenCreate(true)}
+                  >
+                    <PlusIcon />
+                  </Button>
+                </div>
+              </SidebarGroupLabel>)
+            }
             <SidebarGroupContent className="min-h-0 overflow-y-auto">
               <SidebarMenu>
+                {/* 折叠状态下显示「+」创建按钮 */}
+                {isCollapsed && (
+                  <SidebarMenuItem onClick={() => setOpenCreate(true)}>
+                    <SidebarMenuButton asChild tooltip="创建">
+                      <div className="flex items-center gap-2 cursor-pointer text-muted-foreground justify-center">
+                        <PlusIcon />
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+
                 {loading ? (
                   <div className="px-2 text-sm text-muted-foreground">
                     加载中…
@@ -194,61 +211,61 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     <SidebarMenuItem
                       key={space.id}
                       onClick={() => {
-                        // 使用 Navigation Service 直接跳转
-                        // store 会通过 RouteSync 自动同步
                         navigateToSpace(space.id);
                       }}
                     >
-                      <SidebarMenuButton asChild>
-                        <div className="flex items-center gap-2 cursor-pointer text-muted-foreground text-lg">
-                          <SpaceIcon color={space.color as string} />
-                          <span>{space.name}</span>
+                      <SidebarMenuButton asChild tooltip={space.name}>
+                        <div className={`flex items-center gap-2 cursor-pointer text-muted-foreground text-lg ${isCollapsed && 'justify-center'}`}>
+                          <SpaceIcon color={space.color as string} size={isCollapsed ? '1.5rem' : '1rem'} />
+                          {!isCollapsed && <span className="truncate">{space.name}</span>}
                         </div>
                       </SidebarMenuButton>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <SidebarMenuAction
-                            showOnHover
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                            }}
-                            aria-label="更多"
+                      {!isCollapsed && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <SidebarMenuAction
+                              showOnHover
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
+                              aria-label="更多"
+                            >
+                              <EllipsisIcon />
+                            </SidebarMenuAction>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
                           >
-                            <EllipsisIcon />
-                          </SidebarMenuAction>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="start"
-                          onPointerDown={(event) => event.stopPropagation()}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <DropdownMenuItem
-                            onPointerDown={(event) => {
-                              event.stopPropagation();
-                            }}
-                            onSelect={(event) => {
-                              event.stopPropagation();
-                              openEditor(space);
-                            }}
-                          >
-                            编辑
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onPointerDown={(event) => {
-                              event.stopPropagation();
-                            }}
-                            onSelect={(event) => {
-                              event.stopPropagation();
-                              void toggleFavorite(space);
-                            }}
-                          >
-                            {favoriteIds[space.id] ? '取消收藏' : '收藏'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem
+                              onPointerDown={(event) => {
+                                event.stopPropagation();
+                              }}
+                              onSelect={(event) => {
+                                event.stopPropagation();
+                                openEditor(space);
+                              }}
+                            >
+                              编辑
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onPointerDown={(event) => {
+                                event.stopPropagation();
+                              }}
+                              onSelect={(event) => {
+                                event.stopPropagation();
+                                void toggleFavorite(space);
+                              }}
+                            >
+                              {favoriteIds[space.id] ? '取消收藏' : '收藏'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </SidebarMenuItem>
                   ))
                 )}
