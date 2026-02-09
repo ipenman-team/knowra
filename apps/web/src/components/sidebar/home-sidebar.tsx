@@ -37,7 +37,6 @@ import {
 } from '../ui/dropdown-menu';
 import { BotIcon } from '../icon/bot.icon';
 import { WorkbenchIcon } from '../icon/workbench.icon';
-import { EmptyIcon } from '../icon/empty';
 import { Empty } from '../empty';
 
 export const HomeSidebar = memo(function HomeSidebar() {
@@ -55,10 +54,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
   const isCollapsed = state === 'collapsed';
 
+  const iconSize = isCollapsed ? '1.25rem' : '1rem';
+
   const handleSelectView = useCallback(
     (id: ViewId) => {
-      // 使用 Navigation Service 直接跳转
-      // store 会通过 RouteSync 自动同步
       navigateToView(id);
     },
     [navigateToView],
@@ -71,8 +70,8 @@ export const HomeSidebar = memo(function HomeSidebar() {
   const normalizeSpace = useCallback((space: SpaceDto): Space => {
     const metadata =
       space.metadata &&
-        typeof space.metadata === 'object' &&
-        !Array.isArray(space.metadata)
+      typeof space.metadata === 'object' &&
+      !Array.isArray(space.metadata)
         ? (space.metadata as Record<string, unknown>)
         : null;
 
@@ -149,8 +148,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   onClick={() => handleSelectView('workbench')}
                 >
                   <SidebarMenuButton asChild tooltip="工作台">
-                    <div className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}>
-                      <WorkbenchIcon size={isCollapsed ? '1.5rem' : '1rem'} />
+                    <div
+                      className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
+                    >
+                      <WorkbenchIcon size={iconSize} />
                       {!isCollapsed && <span className="truncate">工作台</span>}
                     </div>
                   </SidebarMenuButton>
@@ -160,9 +161,13 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   onClick={() => handleSelectView('contexta-ai')}
                 >
                   <SidebarMenuButton asChild tooltip="ContextA AI">
-                    <div className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}>
-                      <BotIcon fill color="#525252"  size={isCollapsed ? '1.5rem' : '1rem'} />
-                      {!isCollapsed && <span className="truncate">ContextA AI</span>}
+                    <div
+                      className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
+                    >
+                      <BotIcon fill color="#525252" size={iconSize} />
+                      {!isCollapsed && (
+                        <span className="truncate">ContextA AI</span>
+                      )}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -170,8 +175,8 @@ export const HomeSidebar = memo(function HomeSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
           <SidebarGroup className="flex-1 min-h-0">
-            {
-              !isCollapsed && (<SidebarGroupLabel>
+            {!isCollapsed && (
+              <SidebarGroupLabel>
                 <div className="flex justify-between flex-1 items-center">
                   空间
                   <Button
@@ -183,11 +188,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     <PlusIcon />
                   </Button>
                 </div>
-              </SidebarGroupLabel>)
-            }
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent className="min-h-0 overflow-y-auto">
               <SidebarMenu>
-                {/* 折叠状态下显示「+」创建按钮 */}
                 {isCollapsed && (
                   <SidebarMenuItem onClick={() => setOpenCreate(true)}>
                     <SidebarMenuButton asChild tooltip="创建">
@@ -215,9 +219,16 @@ export const HomeSidebar = memo(function HomeSidebar() {
                       }}
                     >
                       <SidebarMenuButton asChild tooltip={space.name}>
-                        <div className={`flex items-center gap-2 cursor-pointer text-muted-foreground text-lg ${isCollapsed && 'justify-center'}`}>
-                          <SpaceIcon color={space.color as string} size={isCollapsed ? '1.5rem' : '1rem'} />
-                          {!isCollapsed && <span className="truncate">{space.name}</span>}
+                        <div
+                          className={`flex items-center gap-2 cursor-pointer text-muted-foreground text-lg ${isCollapsed && 'justify-center'}`}
+                        >
+                          <SpaceIcon
+                            color={space.color as string}
+                            size={iconSize}
+                          />
+                          {!isCollapsed && (
+                            <span className="truncate">{space.name}</span>
+                          )}
                         </div>
                       </SidebarMenuButton>
 
