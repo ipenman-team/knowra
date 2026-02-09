@@ -38,9 +38,9 @@ export const getGreeting = (date: Date) => {
 
 export const getActivityLevel = (count: number) => {
   if (count <= 0) return 0;
-  if (count === 1) return 1;
-  if (count <= 2) return 2;
-  if (count <= 4) return 3;
+  if (count <= 10) return 1;
+  if (count <= 20) return 2;
+  if (count <= 40) return 3;
   return 4;
 };
 

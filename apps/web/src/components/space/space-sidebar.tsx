@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -46,14 +46,32 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   const setCurrent = useSpaceStore((s) => s.setCurrentSpaceId);
   const pathname = usePathname();
 
-  const isTrash = pathname.endsWith('/trash');
+  const routeSpaceId = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments[0] !== 'spaces') return null;
+    const segment = segments[1];
+    if (!segment || segment === 'trash') return null;
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return segment;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (routeSpaceId && routeSpaceId !== currentId) {
+      setCurrent(routeSpaceId);
+    }
+  }, [currentId, routeSpaceId, setCurrent]);
+
+  const activeSpaceId = routeSpaceId ?? currentId;
+  const isTrash = pathname.startsWith('/spaces/trash');
   const section = isTrash ? 'trash' : 'pages';
 
-  const current = spaces.find((s) => s.id === currentId) ?? spaces[0];
-
-  const handleBack = useCallback(() => {
-    router.push('/workbench');
-  }, [router]);
+  const current =
+    spaces.find((s) => s.id === activeSpaceId) ??
+    spaces.find((s) => s.id === currentId) ??
+    spaces[0];
 
   const handleSelectSpace = useCallback(
     (id?: string) => {
@@ -66,18 +84,6 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="sidebar" className="h-full">
-      <SidebarHeader>
-        <div className="flex items-center justify-between p-3">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <ChevronLeft />
-            <span>返回首页</span>
-          </button>
-        </div>
-      </SidebarHeader>
-
       <SidebarContent className="min-h-0 flex-1 overflow-auto">
         <SidebarGroup>
           <SidebarGroupContent>
@@ -114,7 +120,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
             </div>
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <DirectoryList spaceId={current?.id ?? ''} />
+            <DirectoryList spaceId={activeSpaceId ?? ''} />
             <SidebarMenu>
               <PageTreeContainer />
             </SidebarMenu>
@@ -124,7 +130,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
       <SidebarFooter>
         <Separator />
         <div className="flex justify-between text-muted-foreground items-center h-6">
-          <Link href={`/spaces/${currentId}`}>
+          <Link href={`/spaces/${encodeURIComponent(activeSpaceId ?? currentId ?? '')}`}>
             <Button
               variant={section === 'pages' ? 'secondary' : 'ghost'}
               size="lg"

@@ -13,9 +13,7 @@ export function PageContainer(props: {}) {
   const currentSpaceId = useCurrentSpaceId();
   const pagesLoading = useTreePagesLoading(currentSpaceId);
 
-  // 初始加载状态：没有选中页面，且空间或页面树正在加载
   const isInitialLoading = !selectedPageId && (spacesLoading || pagesLoading || pageLoading);
-  // 真正的空状态：没有选中页面，且已完成加载
   const isEmpty = !selectedPageId && !spacesLoading && !pagesLoading && !pageLoading;
 
   if (isInitialLoading) {
