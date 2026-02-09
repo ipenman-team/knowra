@@ -45,8 +45,40 @@ if [ ! -f ".env.prod" ]; then
   exit 1
 fi
 
+set -a
+# shellcheck disable=SC1091
+source ./.env.prod
+set +a
+
 echo "📦 构建镜像..."
 $COMPOSE -f docker-compose.prod.yml build
+
+echo ""
+echo "▶️  启动数据库..."
+$COMPOSE -f docker-compose.prod.yml up -d postgres
+
+echo ""
+echo "⏳ 等待数据库就绪..."
+DB_READY=0
+for i in {1..30}; do
+  if $COMPOSE -f docker-compose.prod.yml exec -T postgres pg_isready -U "${DB_USER:-contexta}" -d "${DB_NAME:-contexta}" > /dev/null 2>&1; then
+    DB_READY=1
+    break
+  fi
+  sleep 2
+done
+if [ "$DB_READY" -eq 1 ]; then
+  echo "✅ 数据库就绪"
+else
+  echo "⚠️  数据库未就绪，尝试继续迁移"
+fi
+
+echo ""
+echo "🗄️  执行数据库迁移..."
+if ! $COMPOSE -f docker-compose.prod.yml run --rm --no-deps api bash -lc "cd /app && pnpm -F @contexta/infrastructure prisma:migrate:deploy"; then
+  echo "⚠️  数据库迁移失败，请检查日志"
+  echo "   运行: $COMPOSE -f docker-compose.prod.yml logs --tail=200 api"
+fi
 
 echo ""
 echo "▶️  启动容器..."
@@ -74,13 +106,6 @@ fi
 echo ""
 echo "⏳ 等待服务启动... (约20秒)"
 sleep 20
-
-echo ""
-echo "🗄️  执行数据库迁移..."
-if ! $COMPOSE -f docker-compose.prod.yml exec -T api bash -lc "cd /app && pnpm -F @contexta/infrastructure prisma:migrate:deploy"; then
-  echo "⚠️  数据库迁移失败，请检查日志"
-  echo "   运行: $COMPOSE -f docker-compose.prod.yml logs --tail=200 api"
-fi
 
 echo ""
 echo "🌐 健康检查..."

@@ -10,6 +10,11 @@ services:
       - "127.0.0.1:54321:5432"
     volumes:
       - contexta_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-contexta} -d ${DB_NAME:-contexta}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     restart: unless-stopped
 
   api:
@@ -27,7 +32,8 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-contexta}:${DB_PASSWORD:-contexta}@postgres:5432/${DB_NAME:-contexta}?schema=public
       PORT: ${API_PORT:-3001}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   contexta-ai:
@@ -45,7 +51,8 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-contexta}:${DB_PASSWORD:-contexta}@postgres:5432/${DB_NAME:-contexta}?schema=public
       PORT: ${CONTEXTA_AI_PORT:-3002}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   web:

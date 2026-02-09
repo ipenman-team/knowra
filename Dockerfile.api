@@ -13,6 +13,10 @@ LABEL org.opencontainers.image.revision=${GIT_COMMIT}
 ENV COREPACK_NPM_REGISTRY=${COREPACK_NPM_REGISTRY}
 ENV npm_config_registry=${NPM_REGISTRY}
 
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable
 
 COPY . .
