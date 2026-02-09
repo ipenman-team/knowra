@@ -1,13 +1,18 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { memo, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   useSpaces,
   useCurrentSpaceId,
-  useSpaceStore,
 } from '@/stores';
+import {
+  useNavigation,
+  useSpaceRoute,
+  buildSpaceUrl,
+  buildTrashUrl,
+} from '@/lib/navigation';
 import {
   SidebarHeader,
   SidebarContent,
@@ -40,29 +45,13 @@ import DirectoryList from './directory-list';
 import { SpaceIcon } from '../icon/space.icon';
 
 export const SpaceSidebar = memo(function SpaceSidebar() {
-  const router = useRouter();
+  const { navigateToSpace } = useNavigation();
   const spaces = useSpaces();
   const currentId = useCurrentSpaceId();
-  const setCurrent = useSpaceStore((s) => s.setCurrentSpaceId);
   const pathname = usePathname();
 
-  const routeSpaceId = useMemo(() => {
-    const segments = pathname.split('/').filter(Boolean);
-    if (segments[0] !== 'spaces') return null;
-    const segment = segments[1];
-    if (!segment || segment === 'trash') return null;
-    try {
-      return decodeURIComponent(segment);
-    } catch {
-      return segment;
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (routeSpaceId && routeSpaceId !== currentId) {
-      setCurrent(routeSpaceId);
-    }
-  }, [currentId, routeSpaceId, setCurrent]);
+  // 使用新的 route parser 解析当前空间 ID
+  const routeSpaceId = useSpaceRoute();
 
   const activeSpaceId = routeSpaceId ?? currentId;
   const isTrash = pathname.startsWith('/spaces/trash');
@@ -76,10 +65,11 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   const handleSelectSpace = useCallback(
     (id?: string) => {
       if (!id) return;
-      setCurrent(id);
-      router.push(`/spaces/${encodeURIComponent(id)}`);
+      // 使用 Navigation Service 直接跳转
+      // store 会通过 RouteSync 自动同步
+      navigateToSpace(id);
     },
-    [router, setCurrent],
+    [navigateToSpace],
   );
 
   return (
@@ -130,7 +120,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
       <SidebarFooter>
         <Separator />
         <div className="flex justify-between text-muted-foreground items-center h-6">
-          <Link href={`/spaces/${encodeURIComponent(activeSpaceId ?? currentId ?? '')}`}>
+          <Link href={buildSpaceUrl(activeSpaceId ?? currentId ?? '')}>
             <Button
               variant={section === 'pages' ? 'secondary' : 'ghost'}
               size="lg"
@@ -139,7 +129,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
             </Button>
           </Link>
           <Separator orientation="vertical" />
-          <Link href={`/spaces/trash`}>
+          <Link href={buildTrashUrl()}>
             <Button
               variant={section === 'trash' ? 'secondary' : 'ghost'}
               size="lg"

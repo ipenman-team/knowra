@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { MeStoreInit } from "@/components/app/me-store-init";
+import { RouteSync } from "@/components/app/route-sync";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`min-h-dvh bg-background font-sans text-foreground antialiased`}>
         <MeStoreInit />
+        <RouteSync />
         {children}
         <Toaster position='top-center' />
       </body>

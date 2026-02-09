@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo } from 'react';
 import { buildPageTreeFromFlatPages } from '@contexta/shared';
 import {
   usePageSelectionStore,
@@ -14,6 +13,7 @@ import {
 } from '@/stores';
 import { useRequiredSpaceId } from '@/hooks/use-required-space';
 import type { PageDto } from '@/lib/api';
+import { usePageRoute } from '@/lib/navigation/route-parsers';
 
 type DirectoryListProps = {
   spaceId: string;
@@ -40,8 +40,6 @@ export default function DirectoryList({
   routingEnabled = true,
   onLoaded,
 }: DirectoryListProps) {
-  const router = useRouter();
-  const pathname = usePathname();
   const ensuredSpaceId = useRequiredSpaceId();
   const { setPageTreeNodes } = usePageTreeStore();
   const { setSelectedPage } = usePageSelectionStore();
@@ -52,23 +50,8 @@ export default function DirectoryList({
   const loading = useTreePagesLoading(activeSpaceId);
   const hasMore = useTreePagesHasMore(activeSpaceId);
 
-  const isSpacesRoute = pathname.startsWith('/spaces/');
-  const isTrashRoute = pathname.startsWith('/spaces/trash');
-  const skipNextPushRef = useRef(false);
-  const routePageId = useMemo(() => {
-    if (!routingEnabled || !activeSpaceId) return null;
-    const prefix = `/spaces/${encodeURIComponent(activeSpaceId)}/pages/`;
-    if (!pathname.startsWith(prefix)) return null;
-    const rest = pathname.slice(prefix.length);
-    if (!rest) return null;
-    const id = rest.split('/')[0];
-    if (!id) return null;
-    try {
-      return decodeURIComponent(id);
-    } catch {
-      return id;
-    }
-  }, [activeSpaceId, pathname, routingEnabled]);
+  // 使用新的 route parser 从 URL 解析当前页面 ID
+  const routePageId = usePageRoute();
 
   const treeParams = useMemo(
     () => ({ query, parentId, onlyRoots, take: pageSize }),
@@ -134,16 +117,19 @@ export default function DirectoryList({
 
   useEffect(() => {
     setPageTreeNodes(nodes);
+
+    // 如果 URL 中有页面 ID，同步到 store（更新 title）
+    // NOTE: pageId 本身已经由 RouteSync 同步，这里只是更新 title
     if (routingEnabled && routePageId) {
       if (selectedPageId !== routePageId) {
         const match = pages.find((page) => page.id === routePageId);
-        skipNextPushRef.current = true;
         setSelectedPage(routePageId, match?.title ?? '');
       }
       if (nodes.length) onLoaded?.(pages);
       return;
     }
 
+    // 如果没有选中页面，自动选中第一个
     if (!nodes.length) return;
     selectFirstNode(pages);
     onLoaded?.(pages);
@@ -165,28 +151,9 @@ export default function DirectoryList({
     void loadMoreTree(activeSpaceId as string);
   }, [activeSpaceId, autoLoadAll, hasMore, loadMoreTree, loading]);
 
-  useEffect(() => {
-    if (!routingEnabled) return;
-    if (!isSpacesRoute) return;
-    if (isTrashRoute) return;
-    if (!activeSpaceId || !selectedPageId) return;
-    if (!pages.some((page) => page.id === selectedPageId)) return;
-    if (skipNextPushRef.current) {
-      skipNextPushRef.current = false;
-      return;
-    }
-    const target = `/spaces/${encodeURIComponent(activeSpaceId)}/pages/${encodeURIComponent(selectedPageId)}`;
-    if (pathname !== target) router.push(target);
-  }, [
-    activeSpaceId,
-    isSpacesRoute,
-    isTrashRoute,
-    pages,
-    pathname,
-    router,
-    routingEnabled,
-    selectedPageId,
-  ]);
+  // NOTE: URL 同步逻辑已移除
+  // 路由跳转现在通过 Navigation Service 在用户操作时直接触发
+  // 参见: tree-item.tsx 的 handleSelect 函数
 
   return <div />;
 }

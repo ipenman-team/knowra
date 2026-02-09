@@ -15,6 +15,7 @@ import {
   useUIStateStore,
 } from '@/stores';
 import type { PageDto } from '@/lib/api';
+import { useNavigation, useSpaceRoute } from '@/lib/navigation';
 
 interface PageTreeItemProps<T> extends TreeRenderContext<T> {
   onCreateChildPage?: (node: TreeNode<T>) => void;
@@ -34,13 +35,19 @@ export const PageTreeItem = memo(
     const isSelected = useIsPageSelected(node.id);
     const isMenuOpen = useNodeMenuState(node.id);
 
+    const { navigateToPage } = useNavigation();
+    const currentSpaceId = useSpaceRoute();
     const { setSelectedPage } = usePageSelectionStore();
     const { setOpenMenuNodeId, startRename, setDeleteTarget } =
       useUIStateStore();
 
     const handleSelect = useCallback(() => {
-      setSelectedPage(node.id, node.label);
-    }, [node.id, node.label, setSelectedPage]);
+      // 使用新的 Navigation Service 直接跳转 URL
+      // 状态会通过 RouteSync 自动同步
+      if (currentSpaceId) {
+        navigateToPage(currentSpaceId, node.id);
+      }
+    }, [currentSpaceId, navigateToPage, node.id]);
 
     const handleToggleMenu = useCallback(() => {
       setOpenMenuNodeId(isMenuOpen ? null : node.id);
@@ -55,9 +62,12 @@ export const PageTreeItem = memo(
 
     const handleRename = useCallback(() => {
       setOpenMenuNodeId(null);
-      setSelectedPage(node.id, node.label);
+      // 使用 Navigation Service 选中页面
+      if (currentSpaceId) {
+        navigateToPage(currentSpaceId, node.id);
+      }
       startRename(node.id, node.label);
-    }, [node.id, node.label, setOpenMenuNodeId, setSelectedPage, startRename]);
+    }, [currentSpaceId, navigateToPage, node.id, node.label, setOpenMenuNodeId, startRename]);
 
     const handleDelete = useCallback(() => {
       setOpenMenuNodeId(null);

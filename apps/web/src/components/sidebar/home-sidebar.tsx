@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
 import { AccountMenu } from '../account-menu';
+import { useNavigation } from '@/lib/navigation';
 import {
   Sidebar,
   SidebarHeader,
@@ -18,7 +19,6 @@ import {
 } from '@/components/ui/sidebar';
 import { spacesApi } from '@/lib/api';
 import type { SpaceDto } from '@/lib/api';
-import { useRouter } from 'next/navigation';
 import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
 import { SpaceIcon } from '@/components/icon/space.icon';
@@ -40,7 +40,7 @@ import { EmptyIcon } from '../icon/empty';
 import { Empty } from '../empty';
 
 export const HomeSidebar = memo(function HomeSidebar() {
-  const { setSelectedView } = usePageSelectionStore();
+  const { navigateToView, navigateToSpace } = useNavigation();
   const spaces = useSpaces();
   const loading = useSpacesLoading();
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
@@ -51,20 +51,13 @@ export const HomeSidebar = memo(function HomeSidebar() {
   const [openEdit, setOpenEdit] = useState(false);
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
 
-  const router = useRouter();
-
   const handleSelectView = useCallback(
     (id: ViewId) => {
-      setSelectedView(id);
-      const target =
-        id === 'workbench'
-          ? '/workbench'
-          : id === 'settings'
-            ? '/settings'
-            : '/contexta-ai';
-      router.push(target);
+      // 使用 Navigation Service 直接跳转
+      // store 会通过 RouteSync 自动同步
+      navigateToView(id);
     },
-    [router, setSelectedView],
+    [navigateToView],
   );
 
   useEffect(() => {
@@ -201,8 +194,9 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     <SidebarMenuItem
                       key={space.id}
                       onClick={() => {
-                        useSpaceStore.setState({ currentSpaceId: space.id });
-                        router.push(`/spaces/${encodeURIComponent(space.id)}`);
+                        // 使用 Navigation Service 直接跳转
+                        // store 会通过 RouteSync 自动同步
+                        navigateToSpace(space.id);
                       }}
                     >
                       <SidebarMenuButton asChild>

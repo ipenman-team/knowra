@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, use } from 'react';
 import SpaceMain from '@/components/space/space-main';
 import { usePageSelectionStore, useSpaceStore } from '@/stores';
 
 export default function SpacePageItem({
   params,
 }: {
-  params: { id: string; pageId: string };
+  params: Promise<{ id: string; pageId: string }>;
 }) {
-  const { id, pageId } = params;
+  const { id, pageId } = use(params);
   const selected = usePageSelectionStore((s) => s.selected);
   const setSelectedPage = usePageSelectionStore((s) => s.setSelectedPage);
   const setCurrent = useSpaceStore((s) => s.setCurrentSpaceId);
