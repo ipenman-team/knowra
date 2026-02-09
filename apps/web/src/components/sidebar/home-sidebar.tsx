@@ -131,8 +131,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
     <>
       <Sidebar collapsible="icon" variant="sidebar" className="h-full">
         <SidebarHeader>
-          <div className="flex justify-between p-3">
-            <div>{/* flex 占位 */}</div>
+          <div
+            className={`flex p-3 ${isCollapsed ? 'justify-center' : 'justify-between'}`}
+          >
+            {!isCollapsed && <div>{/* flex 占位 */}</div>}
             <div>
               <AccountMenu />
             </div>

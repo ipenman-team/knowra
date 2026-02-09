@@ -45,7 +45,6 @@ export function HomeScreen(
     }
   }, [props.initialSelectedPageId, props.initialSelectedViewId, setSelectedPage, setSelectedView]);
 
-  // NOTE: URL 同步现在由全局的 RouteSync 组件处理（见 app/layout.tsx）
   usePageStoreSync();
   return (
     <ContainerLayout isRoot sidebar={<HomeSidebar />}>

@@ -25,7 +25,7 @@ export const ContainerLayout = memo(function ContainerLayout({
     'className' | 'children'
   >;
 }) {
-  const fallbackStateId = isRoot ? 'home' : stateId;
+  const fallbackStateId = isRoot ? 'root' : stateId;
 
   if (isRoot) {
     className = 'h-dvh overflow-hidden bg-background text-foreground';
