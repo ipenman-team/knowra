@@ -1,3 +1,5 @@
+"use client";
+
 import { create } from 'zustand';
 import type { PageDto } from '@/lib/api';
 import type { PageVersionDto } from '@/lib/api/pages/types';

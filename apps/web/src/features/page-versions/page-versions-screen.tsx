@@ -1,39 +1,59 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 
-import { parseContentToSlateValue, SlateEditor } from "@/components/shared/slate-editor";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { pageVersionsApi } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import type { PageVersionDetailDto, PageVersionDto } from "@/lib/api/pages/types";
+import {
+  parseContentToSlateValue,
+  SlateEditor,
+} from '@/components/shared/slate-editor';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { pageVersionsApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import type {
+  PageVersionDetailDto,
+  PageVersionDto,
+} from '@/lib/api/pages/types';
+import Link from 'next/link';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { useRequiredSpaceId } from '@/hooks/use-required-space';
+import { useSpaceStore } from '@/stores';
 
 function formatTime(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   });
 }
 
 function formatYmd(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "";
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '';
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
 export function PageVersionsScreen(props: { pageId: string }) {
   const pageId = props.pageId;
-
+  const spaceId = useRequiredSpaceId() as string;
+  const space = useSpaceStore((s) => s.spaces.find((sp) => sp.id === spaceId));
   const [versions, setVersions] = useState<PageVersionDto[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null,
+  );
 
   const [detail, setDetail] = useState<PageVersionDetailDto | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -87,23 +107,41 @@ export function PageVersionsScreen(props: { pageId: string }) {
   }, [pageId, selectedVersionId]);
 
   const editorValue = useMemo(() => {
-    if (!detail) return parseContentToSlateValue("");
+    if (!detail) return parseContentToSlateValue('');
     return parseContentToSlateValue(detail.content);
   }, [detail]);
 
-  const title = detail?.title?.trim() || "无标题文档";
+  const title = detail?.title?.trim() || '无标题文档';
 
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
       <aside className="w-72 border-r bg-muted/30">
         <div className="flex h-dvh flex-col gap-3 overflow-auto p-3">
-          <div className="px-2 py-1 text-xs font-medium tracking-wide text-muted-foreground">
-            历史版本
+          <div>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href={`/spaces/${spaceId}`}>
+                      {space?.name}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <BreadcrumbPage>历史版本</BreadcrumbPage>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
           <Separator />
 
           {versionsLoading ? (
-            <div className="px-2 py-2 text-sm text-muted-foreground">加载中…</div>
+            <div className="px-2 py-2 text-sm text-muted-foreground">
+              加载中…
+            </div>
           ) : versions.length ? (
             <div className="space-y-1">
               {versions.map((v) => {
@@ -114,17 +152,21 @@ export function PageVersionsScreen(props: { pageId: string }) {
                     type="button"
                     variant="ghost"
                     className={cn(
-                      "h-auto w-full justify-start px-2 py-2 text-left",
-                      active && "bg-accent text-accent-foreground",
+                      'h-auto w-full justify-start px-2 py-2 text-left',
+                      active && 'bg-accent text-accent-foreground',
                     )}
                     onClick={() => setSelectedVersionId(v.id)}
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{v.title || "无标题文档"}</div>
+                      <div className="truncate text-sm font-medium">
+                        {v.title || '无标题文档'}
+                      </div>
                       <div
                         className={cn(
-                          "mt-0.5 text-xs",
-                          active ? "text-accent-foreground/70" : "text-muted-foreground",
+                          'mt-0.5 text-xs',
+                          active
+                            ? 'text-accent-foreground/70'
+                            : 'text-muted-foreground',
                         )}
                       >
                         {formatYmd(v.createdAt)} {formatTime(v.createdAt)}
@@ -135,7 +177,9 @@ export function PageVersionsScreen(props: { pageId: string }) {
               })}
             </div>
           ) : (
-            <div className="px-2 py-2 text-sm text-muted-foreground">暂无版本</div>
+            <div className="px-2 py-2 text-sm text-muted-foreground">
+              暂无版本
+            </div>
           )}
         </div>
       </aside>
@@ -143,8 +187,12 @@ export function PageVersionsScreen(props: { pageId: string }) {
       <main className="flex-1 overflow-auto">
         <div className="sticky top-0 z-20 border-b bg-background">
           <div className="flex h-12 items-center px-6 lg:px-11">
-            <div className="truncate text-sm font-medium">{detail ? title : "历史版本"}</div>
-            {detailLoading ? <div className="ml-3 text-xs text-muted-foreground">加载中…</div> : null}
+            <div className="truncate text-sm font-medium">
+              {detail ? title : '历史版本'}
+            </div>
+            {detailLoading ? (
+              <div className="ml-3 text-xs text-muted-foreground">加载中…</div>
+            ) : null}
           </div>
         </div>
 
@@ -170,7 +218,7 @@ export function PageVersionsScreen(props: { pageId: string }) {
             </div>
           ) : (
             <div className="mx-auto w-full max-w-5xl pt-6 text-sm text-muted-foreground">
-              {selectedVersionId ? "加载中…" : "请选择一个版本"}
+              {selectedVersionId ? '加载中…' : '请选择一个版本'}
             </div>
           )}
         </div>

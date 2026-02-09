@@ -11,7 +11,6 @@ import {
   usePageTreeStore,
 } from '@/stores';
 import {
-  EllipsisIcon,
   PencilLineIcon,
   SendIcon,
   UserRoundPlusIcon,
@@ -28,6 +27,7 @@ import {
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { toast } from 'sonner';
+import { PageHeaderMoreMenu } from './page-header-more-menu';
 
 function formatRelativeDateTime(timestamp: string | null): string | null {
   if (!timestamp) return null;
@@ -153,9 +153,7 @@ export const PageHeader = () => {
               <PencilLineIcon />
               编辑
             </Button>
-            <Button variant="link">
-              <EllipsisIcon />
-            </Button>
+            <PageHeaderMoreMenu pageId={activePage?.id ?? null} />
           </div>
         ) : (
           <div className="flex items-center gap-2">

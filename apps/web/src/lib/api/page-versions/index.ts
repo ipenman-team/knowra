@@ -11,6 +11,7 @@ const inflightVersionDetail = new Map<string, Promise<PageVersionDetailDto>>();
 export const pageVersionsApi = {
   async listVersions(pageId: string) {
     const existing = inflightVersions.get(pageId);
+    console.log(123, existing);
     if (existing) return existing;
 
     const req = apiClient
