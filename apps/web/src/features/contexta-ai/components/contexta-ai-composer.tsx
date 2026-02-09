@@ -39,6 +39,7 @@ export function ContextaAiComposer(props: {
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isComposingRef = useRef(false);
 
   useLayoutEffect(() => {
     const el = textareaRef.current;
@@ -64,8 +65,21 @@ export function ContextaAiComposer(props: {
             placeholder="你可以问我任何问题..."
             value={props.draft}
             onChange={(e) => props.onDraftChange(e.target.value)}
+            onCompositionStart={() => {
+              isComposingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              isComposingRef.current = false;
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
+                if (
+                  isComposingRef.current ||
+                  (e.nativeEvent as { isComposing?: boolean }).isComposing ||
+                  e.keyCode === 229
+                ) {
+                  return;
+                }
                 e.preventDefault();
                 void props.onSend();
               }
