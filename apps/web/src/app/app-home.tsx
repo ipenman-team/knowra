@@ -10,7 +10,7 @@ import { MainContent } from '@/features/home/components/main-content';
 import { useMeStore, useSpaceStore } from '@/stores';
 import { usePageSelectionStore } from '@/stores';
 
-import { usePageStoreSync, useUrlSync } from '@/hooks';
+import { usePageStoreSync } from '@/hooks';
 
 import type { ViewId } from '@/features/home/types';
 
@@ -45,7 +45,7 @@ export function HomeScreen(
     }
   }, [props.initialSelectedPageId, props.initialSelectedViewId, setSelectedPage, setSelectedView]);
 
-  useUrlSync();
+  // NOTE: URL 同步现在由全局的 RouteSync 组件处理（见 app/layout.tsx）
   usePageStoreSync();
   return (
     <ContainerLayout isRoot sidebar={<HomeSidebar />}>
