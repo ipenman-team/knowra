@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/tenant/tenant.middleware';
 import { AiChatModule } from './ai-chat/ai-chat.module';
 import { ActivityModule } from './activity/activity.module';
+import { ShareModule } from './share/share.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ActivityModule } from './activity/activity.module';
     PrismaModule,
     AiChatModule,
     ActivityModule,
+    ShareModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],

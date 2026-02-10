@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -16,6 +17,7 @@ import {
   CreateShareUseCase,
   GetLatestShareSnapshotUseCase,
   GetShareAccessUseCase,
+  GetShareByIdUseCase,
   ListSharesUseCase,
   UpdateShareStatusUseCase,
 } from '@contexta/application';
@@ -48,6 +50,7 @@ export class ShareController {
     private readonly latestSnapshotUseCase: GetLatestShareSnapshotUseCase,
     private readonly accessUseCase: GetShareAccessUseCase,
     private readonly accessLogUseCase: CreateShareAccessLogUseCase,
+    private readonly getByIdUseCase: GetShareByIdUseCase,
   ) {}
 
   @Post()
@@ -107,6 +110,34 @@ export class ShareController {
       items: result.items.map((item) => sanitizeShare(item)),
       total: result.total,
     };
+  }
+
+  @Get(':shareId')
+  async getById(
+    @TenantId() tenantId: string,
+    @Param('shareId') shareId: string,
+  ) {
+    const share = await this.getByIdUseCase.get({ tenantId, shareId });
+    if (!share) throw new NotFoundException('Share not found');
+    return { ok: true, share: sanitizeShare(share) };
+  }
+
+  @Post(':shareId/revoke')
+  async revoke(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('shareId') shareId: string,
+  ) {
+    if (!userId) throw new UnauthorizedException('unauthorized');
+
+    await this.updateStatusUseCase.update({
+      tenantId,
+      shareId,
+      status: 'REVOKED',
+      actorUserId: userId,
+    });
+
+    return { ok: true };
   }
 
   @Post(':shareId/status')

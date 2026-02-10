@@ -5,9 +5,6 @@ import {
   CreateShareUseCase,
   GetLatestShareSnapshotUseCase,
   GetShareAccessUseCase,
-  GetShareByIdUseCase,
-  ListSharesUseCase,
-  UpdateShareStatusUseCase,
 } from '@contexta/application';
 import {
   PrismaShareAccessLogRepository,
@@ -46,16 +43,6 @@ import { ShareController } from './share.controller';
       inject: [SHARE_REPOSITORY],
     },
     {
-      provide: ListSharesUseCase,
-      useFactory: (repo: PrismaShareRepository) => new ListSharesUseCase(repo),
-      inject: [SHARE_REPOSITORY],
-    },
-    {
-      provide: UpdateShareStatusUseCase,
-      useFactory: (repo: PrismaShareRepository) => new UpdateShareStatusUseCase(repo),
-      inject: [SHARE_REPOSITORY],
-    },
-    {
       provide: CreateShareSnapshotUseCase,
       useFactory: (
         shareRepo: PrismaShareRepository,
@@ -72,11 +59,6 @@ import { ShareController } from './share.controller';
     {
       provide: GetShareAccessUseCase,
       useFactory: (repo: PrismaShareRepository) => new GetShareAccessUseCase(repo),
-      inject: [SHARE_REPOSITORY],
-    },
-    {
-      provide: GetShareByIdUseCase,
-      useFactory: (repo: PrismaShareRepository) => new GetShareByIdUseCase(repo),
       inject: [SHARE_REPOSITORY],
     },
     {
