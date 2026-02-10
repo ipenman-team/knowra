@@ -1,7 +1,3 @@
-export * from './ai-chat';
-export * from './activity';
-export * from './daily-copy';
-export * from './share';
 export type {
   Share,
   ShareType,
@@ -18,9 +14,7 @@ export type {
   CreateShareSnapshotParams,
   GetLatestShareSnapshotParams,
   CreateShareAccessLogParams,
-} from './share';
-export type {
-  ShareRepository,
-  ShareSnapshotRepository,
-  ShareAccessLogRepository,
-} from './share';
+} from './types';
+export type { ShareRepository } from './ports/share.repository';
+export type { ShareSnapshotRepository } from './ports/share-snapshot.repository';
+export type { ShareAccessLogRepository } from './ports/share-access-log.repository';

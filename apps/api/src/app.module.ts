@@ -14,6 +14,7 @@ import { FilesModule } from './files/files.module';
 import { UserModule } from './user/user.module';
 import { ActivityModule } from './activity/activity.module';
 import { DailyCopyModule } from './daily-copy/daily-copy.module';
+import { ShareModule } from './share/share.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { DailyCopyModule } from './daily-copy/daily-copy.module';
     FilesModule,
     ActivityModule,
     DailyCopyModule,
+    ShareModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],
@@ -47,4 +49,3 @@ export class AppModule implements NestModule {
     consumer.apply(TenantMiddleware).forRoutes('*');
   }
 }
-

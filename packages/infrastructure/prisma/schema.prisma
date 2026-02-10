@@ -65,6 +65,24 @@ enum DailyCopyCategory {
   AESTHETIC
 }
 
+enum ShareType {
+  PAGE
+  SPACE
+  AI_CONVERSATION
+  CUSTOM
+}
+
+enum ShareStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum ShareVisibility {
+  PUBLIC
+  RESTRICTED
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -237,6 +255,80 @@ model DailyCopy {
   @@index([tenantId, day])
   @@index([tenantId, day, category])
   @@map("daily_copies")
+}
+
+model ExternalShare {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+
+  type      ShareType @map("type")
+  targetId  String    @map("target_id")
+  status    ShareStatus @default(ACTIVE) @map("status")
+  visibility ShareVisibility @default(PUBLIC) @map("visibility")
+
+  publicId  String  @unique @map("public_id")
+  tokenHash String? @unique @map("token_hash")
+  expiresAt DateTime? @map("expires_at")
+  passwordHash String? @map("password_hash")
+  extraData Json? @db.JsonB @map("extra_data")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  snapshots ShareSnapshot[]
+  accessLogs ShareAccessLog[]
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([tenantId, targetId])
+  @@map("external_shares")
+}
+
+model ShareSnapshot {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  shareId  String @map("share_id")
+
+  payload  Json   @db.JsonB
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  share ExternalShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, shareId])
+  @@map("share_snapshots")
+}
+
+model ShareAccessLog {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  shareId  String @map("share_id")
+
+  ip        String?
+  userAgent String? @map("user_agent")
+  accessedAt DateTime @default(now()) @map("accessed_at")
+  extraData  Json? @db.JsonB @map("extra_data")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  share ExternalShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, shareId, accessedAt])
+  @@map("share_access_logs")
 }
 
 model VerificationCode {
