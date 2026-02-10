@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api';
 
 import { LoginAgreement } from './login-agreement';
 import { LoginSupportLinks } from './login-support-links';
+import { messageService } from '@/components/ui/sonner';
 
 export function EmailCodeLoginForm() {
   const router = useRouter();
@@ -24,7 +25,6 @@ export function EmailCodeLoginForm() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [agreeError, setAgreeError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [sentHint, setSentHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -53,7 +53,6 @@ export function EmailCodeLoginForm() {
     setEmailError(null);
     setCodeError(null);
     setAgreeError(null);
-    setSentHint(null);
 
     if (!isValidEmail(email)) {
       setEmailError('请输入正确的邮箱地址');
@@ -77,8 +76,7 @@ export function EmailCodeLoginForm() {
         typeof (data as any).cooldownSeconds === 'number'
           ? (data as any).cooldownSeconds
           : 60;
-
-      setSentHint('验证码已发送');
+      messageService.success('验证码已发送');
       setCooldown(Math.max(0, Math.floor(cooldownSeconds)));
     } finally {
       setSending(false);
@@ -189,8 +187,6 @@ export function EmailCodeLoginForm() {
         </div>
         {codeError ? (
           <div className="text-xs text-destructive">{codeError}</div>
-        ) : sentHint ? (
-          <div className="text-xs text-muted-foreground">{sentHint}</div>
         ) : null}
       </div>
 
@@ -205,7 +201,9 @@ export function EmailCodeLoginForm() {
         error={agreeError}
       />
 
-      {apiError ? <div className="text-sm text-destructive">{apiError}</div> : null}
+      {apiError ? (
+        <div className="text-sm text-destructive">{apiError}</div>
+      ) : null}
 
       <Button
         type="button"

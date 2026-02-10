@@ -2,7 +2,7 @@ import '@/lib/wdyr'; // Must be first import for why-did-you-render
 
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
+import { Message } from "@/components/ui/sonner";
 import { MeStoreInit } from "@/components/app/me-store-init";
 import { RouteSync } from "@/components/app/route-sync";
 
@@ -22,7 +22,7 @@ export default function RootLayout({
         <MeStoreInit />
         <RouteSync />
         {children}
-        <Toaster position='top-center' />
+        <Message position='top-center' />
       </body>
     </html>
   );

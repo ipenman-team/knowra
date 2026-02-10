@@ -25,8 +25,6 @@ import {
 } from '@/components/ui/sidebar';
 import {
   BoltIcon,
-  BookTextIcon,
-  ChevronLeft,
   ListTreeIcon,
   RecycleIcon,
 } from 'lucide-react';
@@ -90,7 +88,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
                     </SelectTrigger>
                     <SelectContent>
                       {spaces.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
+                        <SelectItem key={s.id} value={s.id} className='truncate'>
                           {s.name}
                         </SelectItem>
                       ))}
