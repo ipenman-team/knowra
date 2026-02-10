@@ -86,6 +86,7 @@ export type ListSharesParams = {
   targetId?: string | null;
   status?: ShareStatus | null;
   visibility?: ShareVisibility | null;
+  spaceId?: string | null;
   createdBy?: string | null;
   skip?: number | null;
   take?: number | null;

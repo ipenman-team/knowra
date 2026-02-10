@@ -11,6 +11,7 @@ export interface ShareDto {
   expiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  createdBy: string;
   hasPassword?: boolean;
 }
 
@@ -35,7 +36,7 @@ export const sharesApi = {
     return res.data.share;
   },
 
-  list: async (params: { targetId: string; type: string }) => {
+  list: async (params: { targetId?: string; type?: string; spaceId?: string }) => {
     const res = await apiClient.get<{ ok: boolean; items: ShareDto[]; total: number }>('/shares', { params });
     return res.data.items;
   },

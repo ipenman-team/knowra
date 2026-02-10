@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { PageShareList } from '@/components/share/page-share-list';
-import { ShareDto } from '@/lib/api';
+import { sharesApi, ShareDto } from '@/lib/api';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function PageSharePage() {
   const params = useParams();
@@ -14,44 +14,20 @@ export default function PageSharePage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    async function fetchShares() {
-      try {
-        setLoading(true);
-        // Mock data for layout visualization
-        setShares([
-            {
-                id: '1',
-                tenantId: 'mock-tenant',
-                type: 'PAGE',
-                targetId: 'page-1',
-                status: 'ACTIVE',
-                visibility: 'PUBLIC',
-                publicId: 'mock-public-1',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                hasPassword: true
-            },
-            {
-                id: '2',
-                tenantId: 'mock-tenant',
-                type: 'PAGE',
-                targetId: 'page-2',
-                status: 'REVOKED',
-                visibility: 'PUBLIC',
-                publicId: 'mock-public-2',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                hasPassword: false
-            }
-        ]);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+  const fetchShares = async () => {
+    try {
+      setLoading(true);
+      const data = await sharesApi.list({ spaceId });
+      setShares(data);
+    } catch (error) {
+      console.error(error);
+      toast.error('获取共享列表失败');
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     fetchShares();
   }, [spaceId]);
 
@@ -59,6 +35,23 @@ export default function PageSharePage() {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleRevoke = async (share: ShareDto) => {
+    try {
+      await sharesApi.update(share.id, { status: 'REVOKED' });
+      toast.success('已停止共享');
+      fetchShares();
+    } catch (error) {
+      console.error(error);
+      toast.error('操作失败');
+    }
+  };
+
+  const handleCopyLink = (share: ShareDto) => {
+    const url = `${window.location.origin}/share/${share.publicId}`;
+    navigator.clipboard.writeText(url);
+    toast.success('链接已复制');
   };
 
   return (
@@ -78,6 +71,8 @@ export default function PageSharePage() {
                  shares={shares} 
                  selectedIds={selectedIds}
                  onToggleSelect={handleToggleSelect}
+                 onRevoke={handleRevoke}
+                 onCopyLink={handleCopyLink}
                />
             </div>
         </div>

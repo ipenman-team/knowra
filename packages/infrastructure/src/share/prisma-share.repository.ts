@@ -107,6 +107,22 @@ export class PrismaShareRepository implements ShareRepository {
       createdBy: params.createdBy ?? undefined,
     };
 
+    if (params.spaceId) {
+      const pages = await this.prisma.page.findMany({
+        where: {
+          tenantId: params.tenantId,
+          spaceId: params.spaceId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+      const pageIds = pages.map((p) => p.id);
+      where.targetId = { in: pageIds };
+      if (!params.type) {
+        where.type = 'PAGE';
+      }
+    }
+
     const skip = Math.max(Number(params.skip ?? 0), 0);
     const take = Math.max(Number(params.take ?? 50), 1);
 

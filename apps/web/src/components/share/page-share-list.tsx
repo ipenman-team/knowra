@@ -26,9 +26,11 @@ interface PageShareListProps {
   shares: ShareDto[];
   onToggleSelect: (id: string) => void;
   selectedIds: string[];
+  onRevoke?: (share: ShareDto) => void;
+  onCopyLink?: (share: ShareDto) => void;
 }
 
-export function PageShareList({ shares, onToggleSelect, selectedIds }: PageShareListProps) {
+export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, onCopyLink }: PageShareListProps) {
   const allSelected = shares.length > 0 && selectedIds.length === shares.length;
 
   return (
@@ -62,19 +64,18 @@ export function PageShareList({ shares, onToggleSelect, selectedIds }: PageShare
                     onCheckedChange={() => onToggleSelect(share.id)}
                   />
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="truncate font-medium max-w-[200px]">{share.type === 'PAGE' ? '文档' : '空间'}</span>
+                    <span className="truncate font-medium max-w-[200px]">{}</span>
                     {share.hasPassword && <Lock className="w-3 h-3 text-muted-foreground" />}
                     {share.visibility === 'PUBLIC' && <Globe className="w-3 h-3 text-muted-foreground" />}
                   </div>
                 </div>
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {/* Mock user for now */}
-                {share.tenantId}
+                <span className="text-xs">{share.createdBy}</span>
               </TableCell>
               <TableCell>
                 <Badge variant={share.status === 'ACTIVE' ? 'secondary' : 'outline'} className={share.status === 'ACTIVE' ? 'bg-green-100 text-green-800 hover:bg-green-100' : 'text-muted-foreground'}>
-                  {share.status === 'ACTIVE' ? '已发布' : '已失效'}
+                  {share.status === 'ACTIVE' ? '共享中' : '已失效'}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
@@ -89,9 +90,9 @@ export function PageShareList({ shares, onToggleSelect, selectedIds }: PageShare
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>复制链接</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCopyLink?.(share)}>复制链接</DropdownMenuItem>
                       <DropdownMenuItem>设置</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">停止共享</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => onRevoke?.(share)}>停止共享</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

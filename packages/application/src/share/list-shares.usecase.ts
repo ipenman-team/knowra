@@ -15,6 +15,7 @@ export class ListSharesUseCase {
       targetId: params.targetId ?? null,
       status: params.status ?? null,
       visibility: params.visibility ?? null,
+      spaceId: params.spaceId ?? null,
       createdBy: params.createdBy ?? null,
       skip,
       take,

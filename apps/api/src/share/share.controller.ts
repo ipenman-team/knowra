@@ -103,6 +103,7 @@ export class ShareController {
       targetId: query.targetId ?? null,
       status: query.status ?? null,
       visibility: query.visibility ?? null,
+      spaceId: query.spaceId ?? null,
       createdBy: query.createdBy ?? null,
       skip: query.skip ?? null,
       take: query.take ?? null,

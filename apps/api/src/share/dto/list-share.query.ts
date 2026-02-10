@@ -5,6 +5,7 @@ export type ListShareQuery = {
   targetId?: string;
   status?: ShareStatus;
   visibility?: ShareVisibility;
+  spaceId?: string;
   createdBy?: string;
   skip?: number;
   take?: number;
