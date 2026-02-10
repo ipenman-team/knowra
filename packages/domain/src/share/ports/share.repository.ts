@@ -2,6 +2,7 @@ import type {
   CreateShareParams,
   GetShareByIdParams,
   GetShareByPublicIdParams,
+  GetShareByTargetIdParams,
   ListSharesParams,
   ListSharesResult,
   Share,
@@ -11,6 +12,7 @@ import type {
 export interface ShareRepository {
   create(params: CreateShareParams): Promise<Share>;
   getById(params: GetShareByIdParams): Promise<Share | null>;
+  getByTargetId(params: GetShareByTargetIdParams): Promise<Share | null>;
   getByPublicId(params: GetShareByPublicIdParams): Promise<Share | null>;
   list(params: ListSharesParams): Promise<ListSharesResult>;
   updateStatus(params: UpdateShareStatusParams): Promise<Share>;

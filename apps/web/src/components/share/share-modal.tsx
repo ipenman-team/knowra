@@ -17,6 +17,7 @@ import {
 import { sharesApi, ShareDto } from '@/lib/api';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useRequiredSpaceId } from '@/hooks/use-required-space';
 
 export const ShareModal = memo(function ShareModal({
   open,
@@ -31,6 +32,7 @@ export const ShareModal = memo(function ShareModal({
   type: 'PAGE';
   title: string;
 }) {
+  const spaceId = useRequiredSpaceId();
   const [share, setShare] = useState<ShareDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -40,11 +42,10 @@ export const ShareModal = memo(function ShareModal({
   const fetchShare = useCallback(async () => {
     try {
       setLoading(true);
-      const shares = await sharesApi.list({ targetId, type });
-      const activeShare = shares.find((s) => s.status === 'ACTIVE');
-      setShare(activeShare || null);
-      if (activeShare) {
-        setUiMode(activeShare.hasPassword ? 'password' : 'public');
+      const share = await sharesApi.getByTargetId(targetId);
+      setShare(share || null);
+      if (share) {
+        setUiMode(share.hasPassword ? 'password' : 'public');
       }
     } catch (err) {
       console.error(err);
@@ -66,6 +67,8 @@ export const ShareModal = memo(function ShareModal({
         targetId,
         type,
         visibility: 'PUBLIC',
+        scopeType: 'SPACE',
+        scopeId: spaceId,
       });
       setShare(newShare);
       toast.success('已开启分享');
@@ -101,38 +104,38 @@ export const ShareModal = memo(function ShareModal({
 
   const handleAccessChange = async (value: string) => {
     if (!share) return;
-    
+
     setUiMode(value as 'public' | 'password');
 
     if (value === 'public') {
-        if (share.hasPassword) {
-            // Remove password immediately if switching to public
-             setLoading(true);
-             try {
-                const updated = await sharesApi.update(share.id, { password: null });
-                setShare(updated);
-                toast.success('已切换为公开访问');
-             } catch {
-                toast.error('切换失败');
-                setUiMode('password'); // Revert on error
-             } finally {
-                setLoading(false);
-             }
+      if (share.hasPassword) {
+        // Remove password immediately if switching to public
+        setLoading(true);
+        try {
+          const updated = await sharesApi.update(share.id, { password: null });
+          setShare(updated);
+          toast.success('已切换为公开访问');
+        } catch {
+          toast.error('切换失败');
+          setUiMode('password'); // Revert on error
+        } finally {
+          setLoading(false);
         }
+      }
     } else {
-        // Switching to password mode. 
-        // If already has password, do nothing (just show UI).
-        // If not, we wait for user to input password and click save.
+      // Switching to password mode. 
+      // If already has password, do nothing (just show UI).
+      // If not, we wait for user to input password and click save.
     }
   };
 
   const handleSavePassword = async () => {
     if (!share) return;
     if (!passwordInput.trim()) {
-        toast.error('密码不能为空');
-        return;
+      toast.error('密码不能为空');
+      return;
     }
-    
+
     try {
       setSavingPassword(true);
       const updated = await sharesApi.update(share.id, { password: passwordInput });
@@ -205,26 +208,26 @@ export const ShareModal = memo(function ShareModal({
 
             {uiMode === 'password' && (
               <div className="rounded-md border p-3 bg-muted/30 space-y-2">
-                 <div className="text-sm font-medium">
-                    {share.hasPassword ? '修改密码' : '设置密码'}
-                 </div>
-                 <div className="flex gap-2">
-                    <Input 
-                        type="text" 
-                        placeholder={share.hasPassword ? '输入新密码' : '设置访问密码'} 
-                        value={passwordInput}
-                        onChange={e => setPasswordInput(e.target.value)}
-                        className="flex-1"
-                    />
-                    <Button 
-                        onClick={handleSavePassword} 
-                        disabled={savingPassword || !passwordInput.trim()}
-                        size="sm"
-                    >
-                        {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        保存
-                    </Button>
-                 </div>
+                <div className="text-sm font-medium">
+                  {share.hasPassword ? '修改密码' : '设置密码'}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder={share.hasPassword ? '输入新密码' : '设置访问密码'}
+                    value={passwordInput}
+                    onChange={e => setPasswordInput(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleSavePassword}
+                    disabled={savingPassword || !passwordInput.trim()}
+                    size="sm"
+                  >
+                    {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    保存
+                  </Button>
+                </div>
               </div>
             )}
 

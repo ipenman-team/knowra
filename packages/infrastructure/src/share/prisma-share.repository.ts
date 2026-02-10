@@ -7,8 +7,11 @@ import type {
   ShareRepository,
   UpdateShareStatusParams,
 } from '@contexta/domain';
+import { GetShareByTargetIdParams } from 'packages/domain/src/share/types';
 
 function toDomain(row: {
+  scopeType?: string | null;
+  scopeId?: string | null;
   id: string;
   tenantId: string;
   type: string;
@@ -47,11 +50,25 @@ function toDomain(row: {
 }
 
 export class PrismaShareRepository implements ShareRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) { }
+
+  async getByTargetId(params: GetShareByTargetIdParams): Promise<Share | null> {
+    const row = await this.prisma.externalShare.findFirst({
+      where: {
+        tenantId: params.tenantId,
+        targetId: params.targetId,
+        isDeleted: false,
+      },
+    });
+
+    return row ? toDomain(row) : null;
+  }
 
   async create(params: CreateShareParams): Promise<Share> {
     const created = await this.prisma.externalShare.create({
       data: {
+        scopeType: params.scopeType,
+        scopeId: params.scopeId,
         tenantId: params.tenantId,
         type: params.type,
         targetId: params.targetId,

@@ -2,7 +2,7 @@ import type { ListSharesParams, ListSharesResult, ShareRepository } from '@conte
 import { clampNumber, normalizeRequiredText } from './utils';
 
 export class ListSharesUseCase {
-  constructor(private readonly repo: ShareRepository) {}
+  constructor(private readonly repo: ShareRepository) { }
 
   async list(params: ListSharesParams): Promise<ListSharesResult> {
     const tenantId = normalizeRequiredText('tenantId', params.tenantId);
@@ -15,7 +15,8 @@ export class ListSharesUseCase {
       targetId: params.targetId ?? null,
       status: params.status ?? null,
       visibility: params.visibility ?? null,
-      spaceId: params.spaceId ?? null,
+      scopeId: params.scopeId ?? null,
+      scopeType: params.scopeType ?? null,
       createdBy: params.createdBy ?? null,
       skip,
       take,

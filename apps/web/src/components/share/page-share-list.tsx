@@ -21,9 +21,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import _ from 'lodash';
 
 interface PageShareListProps {
-  shares: ShareDto[];
+  shares: (ShareDto & { name: string })[];
   onToggleSelect: (id: string) => void;
   selectedIds: string[];
   onRevoke?: (share: ShareDto) => void;
@@ -33,6 +34,7 @@ interface PageShareListProps {
 export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, onCopyLink }: PageShareListProps) {
   const allSelected = shares.length > 0 && selectedIds.length === shares.length;
 
+  const sharesMap = _.keyBy(shares, x => x.targetId);
   return (
     <div className="w-full">
       <Table>
@@ -40,7 +42,7 @@ export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, o
           <TableRow>
             <TableHead className="w-[400px]">
               <div className="flex items-center gap-3">
-                <Checkbox 
+                <Checkbox
                   checked={allSelected}
                   onCheckedChange={() => {
                     // Logic to toggle all would go here
@@ -49,7 +51,7 @@ export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, o
                 <span>名称</span>
               </div>
             </TableHead>
-            <TableHead>作者</TableHead>
+            <TableHead>共享人</TableHead>
             <TableHead>状态</TableHead>
             <TableHead className="text-right">更新时间</TableHead>
           </TableRow>
@@ -59,14 +61,12 @@ export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, o
             <TableRow key={share.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedIds.includes(share.id)}
                     onCheckedChange={() => onToggleSelect(share.id)}
                   />
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="truncate font-medium max-w-[200px]">{}</span>
-                    {share.hasPassword && <Lock className="w-3 h-3 text-muted-foreground" />}
-                    {share.visibility === 'PUBLIC' && <Globe className="w-3 h-3 text-muted-foreground" />}
+                    <span className="truncate font-medium max-w-[200px]">{sharesMap[share.targetId]?.name}</span>
                   </div>
                 </div>
               </TableCell>
@@ -100,11 +100,11 @@ export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, o
             </TableRow>
           ))}
           {shares.length === 0 && (
-             <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                    暂无共享页面
-                </TableCell>
-             </TableRow>
+            <TableRow>
+              <TableCell colSpan={4} className="h-24 text-center">
+                暂无共享页面
+              </TableCell>
+            </TableRow>
           )}
         </TableBody>
       </Table>

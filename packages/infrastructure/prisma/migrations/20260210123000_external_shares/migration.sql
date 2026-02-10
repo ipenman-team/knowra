@@ -73,3 +73,13 @@ CREATE INDEX "share_access_logs_tenant_id_share_id_accessed_at_idx" ON "share_ac
 ALTER TABLE "share_snapshots" ADD CONSTRAINT "share_snapshots_share_id_fkey" FOREIGN KEY ("share_id") REFERENCES "external_shares"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "share_access_logs" ADD CONSTRAINT "share_access_logs_share_id_fkey" FOREIGN KEY ("share_id") REFERENCES "external_shares"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateEnum
+CREATE TYPE "ShareScopeType" AS ENUM ('TENANT', 'SPACE');
+
+-- AlterTable
+ALTER TABLE "external_shares" ADD COLUMN     "scope_id" TEXT,
+ADD COLUMN     "scope_type" "ShareScopeType";
+
+-- CreateIndex
+CREATE INDEX "external_shares_tenant_id_scope_type_scope_id_idx" ON "external_shares"("tenant_id", "scope_type", "scope_id");

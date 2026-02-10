@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { PageVersionStatus, type Prisma } from '@prisma/client';
+import { Page, PageVersionStatus, type Prisma } from '@prisma/client';
 import { ActivityRecorderUseCase } from '@contexta/application';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePageDto } from './dto/create-page.dto';
@@ -763,5 +763,17 @@ export class PageService {
           `Failed to record activity(page.purge): ${(e as Error)?.message ?? e}`,
         );
       });
+  }
+
+  public async getPagesByIds(tenantId: string, spaceId: string, ids: string[]): Promise<Page[]> {
+    return this.prisma.page.findMany({
+      where: {
+        tenantId,
+        spaceId,
+        id: {
+          in: ids,
+        },
+      },
+    });
   }
 }

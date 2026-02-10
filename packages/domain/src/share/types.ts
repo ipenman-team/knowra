@@ -4,9 +4,13 @@ export type ShareStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
 
 export type ShareVisibility = 'PUBLIC' | 'RESTRICTED';
 
+export type ShareScopeType = 'SPACE' | 'TENANT';
+
 export type Share = {
   id: string;
   tenantId: string;
+  scopeType?: ShareScopeType;
+  scopeId?: string;
   type: ShareType;
   targetId: string;
   status: ShareStatus;
@@ -53,6 +57,8 @@ export type ShareAccessLog = {
 export type CreateShareParams = {
   tenantId: string;
   type: ShareType;
+  scopeType?: ShareScopeType;
+  scopeId?: string;
   targetId: string;
   status: ShareStatus;
   visibility: ShareVisibility;
@@ -76,6 +82,11 @@ export type GetShareByIdParams = {
   shareId: string;
 };
 
+export type GetShareByTargetIdParams = {
+  tenantId: string;
+  targetId: string;
+};
+
 export type GetShareByPublicIdParams = {
   publicId: string;
 };
@@ -84,6 +95,8 @@ export type ListSharesParams = {
   tenantId: string;
   type?: ShareType | null;
   targetId?: string | null;
+  scopeId?: string | null;
+  scopeType?: ShareScopeType | null;
   status?: ShareStatus | null;
   visibility?: ShareVisibility | null;
   spaceId?: string | null;

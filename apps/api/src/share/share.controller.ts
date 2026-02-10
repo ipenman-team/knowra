@@ -30,6 +30,8 @@ import { UpdateShareStatusDto } from './dto/update-share-status.dto';
 import { CreateShareSnapshotDto } from './dto/create-share-snapshot.dto';
 import { AccessShareDto } from './dto/access-share.dto';
 import { ListResponse, Response } from '@contexta/shared';
+import { Page } from '@prisma/client';
+import { Share } from '@contexta/domain';
 
 function sanitizeShare<T extends { tokenHash?: unknown; passwordHash?: unknown }>(
   share: T,
@@ -55,7 +57,7 @@ export class ShareController {
     private readonly accessLogUseCase: CreateShareAccessLogUseCase,
     private readonly getByIdUseCase: GetShareByIdUseCase,
     private readonly pageService: PageService,
-  ) {}
+  ) { }
 
   @Post()
   async create(
@@ -67,6 +69,8 @@ export class ShareController {
     if (!body?.type) throw new BadRequestException('type is required');
     if (!body?.targetId) throw new BadRequestException('targetId is required');
     if (!body?.visibility) throw new BadRequestException('visibility is required');
+    if (!body.scopeType) throw new BadRequestException('scopeType is required');
+    if (!body.scopeId) throw new BadRequestException('scopeId is required');
 
     const expiresAtRaw = body.expiresAt ?? null;
     let expiresAt: Date | null = null;
@@ -83,6 +87,8 @@ export class ShareController {
     const res = await this.createUseCase.create({
       tenantId,
       type: body.type,
+      scopeType: body.scopeType,
+      scopeId: body.scopeId,
       targetId: body.targetId,
       visibility: body.visibility,
       status: body.status ?? 'ACTIVE',
@@ -104,28 +110,41 @@ export class ShareController {
       targetId: query.targetId ?? null,
       status: query.status ?? null,
       visibility: query.visibility ?? null,
-      spaceId: query.spaceId ?? null,
+      scopeId: query.scopeId ?? null,
+      scopeType: query.scopeType ?? null,
       createdBy: query.createdBy ?? null,
       skip: query.skip ?? null,
       take: query.take ?? null,
     });
 
-    return new ListResponse(
+    const pages = await this.pageService.getPagesByIds(tenantId, query.scopeId as string, result.items.map((item) => item.targetId));
+
+    return new ListResponse<Omit<Share, "tokenHash" | "passwordHash">, { pages: Page[] }>(
       result.items.map((item) => sanitizeShare(item)),
-      undefined,
+      { pages },
       { total: result.total },
     );
   }
 
-  @Get(':shareId')
-  async getById(
+  @Get(':targetId')
+  async getByTargetId(
     @TenantId() tenantId: string,
-    @Param('shareId') shareId: string,
+    @Param('targetId') targetId: string,
   ) {
-    const share = await this.getByIdUseCase.get({ tenantId, shareId });
+    const share = await this.getByIdUseCase.getByTargetId({ tenantId, targetId });
     if (!share) throw new NotFoundException('Share not found');
     return new Response(sanitizeShare(share));
   }
+
+  // @Get(':shareId')
+  // async getById(
+  //   @TenantId() tenantId: string,
+  //   @Param('shareId') shareId: string,
+  // ) {
+  //   const share = await this.getByIdUseCase.get({ tenantId, shareId });
+  //   if (!share) throw new NotFoundException('Share not found');
+  //   return new Response(sanitizeShare(share));
+  // }
 
   @Post(':shareId/revoke')
   async revoke(

@@ -1,6 +1,7 @@
 import type { Share, ShareRepository, ShareStatus, ShareType, ShareVisibility } from '@contexta/domain';
 import * as crypto from 'node:crypto';
 import { normalizeRequiredText } from './utils';
+import { ShareScopeType } from '@contexta/domain/src/share/types';
 
 function makePublicId(): string {
   return crypto.randomBytes(8).toString('base64url');
@@ -26,6 +27,8 @@ export class CreateShareUseCase {
   async create(params: {
     tenantId: string;
     type: ShareType;
+    scopeType?: ShareScopeType;
+    scopeId?: string;
     targetId: string;
     visibility: ShareVisibility;
     status?: ShareStatus | null;
@@ -76,6 +79,8 @@ export class CreateShareUseCase {
       type,
       targetId,
       status,
+      scopeType: params.scopeType,
+      scopeId: params.scopeId,
       visibility,
       publicId,
       tokenHash,
