@@ -78,21 +78,24 @@ export function usePageTreeCRUD() {
     usePageTreeStore();
   const { setSelectedPage } = usePageSelectionStore();
 
-  // 创建根页面
-  const createPage = useCallback(async () => {
-    if (creatingPage || !spaceId) return;
-    try {
-      setCreatingPage(true);
-      const page = await pagesApi.create({
-        title: '无标题文档',
-        spaceId,
-      });
-      setSelectedPage(page.id, page.title);
-      upsertTreePage(spaceId, page);
-    } finally {
-      setCreatingPage(false);
-    }
-  }, [creatingPage, setCreatingPage, setSelectedPage, spaceId, upsertTreePage]);
+  const createPage = useCallback(
+    async (parentId?: string) => {
+      if (creatingPage || !spaceId) return;
+      try {
+        setCreatingPage(true);
+        const page = await pagesApi.create({
+          title: '无标题文档',
+          spaceId,
+          parentId,
+        });
+        setSelectedPage(page.id, page.title);
+        upsertTreePage(spaceId, page);
+      } finally {
+        setCreatingPage(false);
+      }
+    },
+    [creatingPage, setCreatingPage, setSelectedPage, spaceId, upsertTreePage],
+  );
 
   // 提交重命名
   const commitRename = useCallback(

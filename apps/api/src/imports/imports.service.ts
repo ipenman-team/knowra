@@ -119,7 +119,7 @@ export class ImportsService {
       );
 
       const content = markdownToSlateValue(markdown);
-      const parentIds = parseParentIds(args.req.parentId ?? args.req.parentIds);
+      const parentIds = parseParentIds(args.req.parentId);
       const title = (
         args.req.title?.trim() || fileNameToTitle(args.file.originalname)
       ).trim();
@@ -147,7 +147,7 @@ export class ImportsService {
           spaceId,
           title,
           content,
-          parentIds,
+          parentId: parentIds?.[0],
         },
         args.userId,
       );
@@ -285,7 +285,7 @@ export class ImportsService {
           spaceId,
           title,
           content,
-          parentIds,
+          parentId: parentIds?.[0],
         },
         args.userId,
       );
@@ -426,7 +426,7 @@ export class ImportsService {
           spaceId,
           title,
           content,
-          parentIds,
+          parentId: parentIds?.[0],
         },
         args.userId,
       );

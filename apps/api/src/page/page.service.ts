@@ -19,6 +19,7 @@ import {
   DefaultPageTitle,
   PageActivityAction,
 } from './constant';
+import _ from 'lodash';
 
 @Injectable()
 export class PageService {
@@ -105,7 +106,18 @@ export class PageService {
     const actor = userId?.trim() || 'system';
 
     const normalizedContent = this.normalizePageContent(input.content);
-    const parentIds = input.parentIds ?? [];
+    const parentId = input.parentId || '';
+    const parentIds: string[] = [];
+    if (!parentId) {
+      const parent = await this.prisma.page.findFirst({
+        where: { id: parentId, tenantId, isDeleted: false },
+      });
+      if (parent) {
+        parentIds.push(parentId, ...(parent.parentIds ?? []));
+      }
+    } else {
+      parentIds.push(parentId as string);
+    }
 
     const created = await this.prisma.page.create({
       data: {

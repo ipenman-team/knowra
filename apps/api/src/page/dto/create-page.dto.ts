@@ -4,5 +4,5 @@ export type CreatePageDto = {
   spaceId: string;
   title: string;
   content?: Prisma.JsonValue;
-  parentIds?: string[];
+  parentId?: string;
 };

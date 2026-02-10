@@ -50,11 +50,11 @@ export type CreatePageInput = {
   spaceId: string;
   title: string;
   content?: PageContent;
-  parentIds?: string[];
+  parentId?: string;
 };
 
 export type SavePageInput = {
   title?: string;
   content?: PageContent;
-  parentIds?: string[];
+  parentId?: string;
 };
