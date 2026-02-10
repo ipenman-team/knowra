@@ -29,6 +29,7 @@ import { ListShareQuery } from './dto/list-share.query';
 import { UpdateShareStatusDto } from './dto/update-share-status.dto';
 import { CreateShareSnapshotDto } from './dto/create-share-snapshot.dto';
 import { AccessShareDto } from './dto/access-share.dto';
+import { ListResponse, Response } from '@contexta/shared';
 
 function sanitizeShare<T extends { tokenHash?: unknown; passwordHash?: unknown }>(
   share: T,
@@ -92,7 +93,7 @@ export class ShareController {
       actorUserId: userId,
     });
 
-    return { ok: true, share: sanitizeShare(res.share), token: res.token };
+    return new Response({ share: sanitizeShare(res.share), token: res.token });
   }
 
   @Get()
@@ -109,11 +110,11 @@ export class ShareController {
       take: query.take ?? null,
     });
 
-    return {
-      ok: true,
-      items: result.items.map((item) => sanitizeShare(item)),
-      total: result.total,
-    };
+    return new ListResponse(
+      result.items.map((item) => sanitizeShare(item)),
+      undefined,
+      { total: result.total },
+    );
   }
 
   @Get(':shareId')
@@ -123,7 +124,7 @@ export class ShareController {
   ) {
     const share = await this.getByIdUseCase.get({ tenantId, shareId });
     if (!share) throw new NotFoundException('Share not found');
-    return { ok: true, share: sanitizeShare(share) };
+    return new Response(sanitizeShare(share));
   }
 
   @Post(':shareId/revoke')
@@ -141,7 +142,7 @@ export class ShareController {
       actorUserId: userId,
     });
 
-    return { ok: true };
+    return new Response({ ok: true });
   }
 
   @Post(':shareId/status')
@@ -161,7 +162,7 @@ export class ShareController {
       actorUserId: userId,
     });
 
-    return { ok: true, share: sanitizeShare(share) };
+    return new Response(sanitizeShare(share));
   }
 
   @Post(':shareId/snapshots')
@@ -180,7 +181,7 @@ export class ShareController {
       actorUserId: userId,
     });
 
-    return { ok: true, snapshot };
+    return new Response(snapshot);
   }
 
   @Post('public/:publicId/access')
@@ -248,10 +249,9 @@ export class ShareController {
       actorUserId: userId?.trim() || 'guest',
     });
 
-    return {
-      ok: true,
+    return new Response({
       share: sanitizeShare(share),
       snapshot,
-    };
+    });
   }
 }

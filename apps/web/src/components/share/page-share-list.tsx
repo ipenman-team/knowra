@@ -46,7 +46,7 @@ export function PageShareList({ shares, onToggleSelect, selectedIds, onRevoke, o
                     // Logic to toggle all would go here
                   }}
                 />
-                <span>所有文档</span>
+                <span>名称</span>
               </div>
             </TableHead>
             <TableHead>作者</TableHead>

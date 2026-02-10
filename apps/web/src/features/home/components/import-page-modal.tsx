@@ -101,6 +101,7 @@ export function ImportPageModal(props: {
     <Modal
       open={props.open}
       title="导入页面"
+      className="w-[600px]"
       onOpenChange={(open) => {
         if (open) setSelected('markdown');
         props.onOpenChange(open);

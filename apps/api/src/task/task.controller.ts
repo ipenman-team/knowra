@@ -4,6 +4,7 @@ import { concat, from, map, type Observable } from 'rxjs';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { TaskRuntimeService } from './task.runtime.service';
 import { TaskService } from './task.service';
+import { Response } from '@contexta/shared';
 
 @Controller('tasks')
 export class TaskController {
@@ -13,8 +14,8 @@ export class TaskController {
   ) {}
 
   @Get(':id')
-  get(@TenantId() tenantId: string, @Param('id') id: string) {
-    return this.taskService.get(tenantId, id);
+  async get(@TenantId() tenantId: string, @Param('id') id: string) {
+    return new Response(await this.taskService.get(tenantId, id));
   }
 
   @Sse(':id/events')
@@ -42,6 +43,6 @@ export class TaskController {
       actor,
       'Cancelled',
     );
-    return { ok: true, task };
+    return new Response(task);
   }
 }

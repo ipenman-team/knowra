@@ -3,6 +3,7 @@ import { ActivityQueryUseCase } from '@contexta/application';
 import { TenantId } from '../common/tenant/tenant-id.decorator';
 import { ACTIVITY_ACTION_NAME_MAP } from './activity.tokens';
 import { formatActivityContent } from './activity-content';
+import { ListResponse, Response } from '@contexta/shared';
 
 type ListActivitiesQuery = {
   limit?: string;
@@ -69,14 +70,18 @@ export class ActivitiesController {
       to: toOptionalDate(query.to),
     });
 
-    return {
-      ...result,
-      items: result.items.map((it) => ({
+    return new ListResponse(
+      result.items.map((it) => ({
         ...it,
         actionName: this.actionNameMap[it.action] ?? null,
         content: formatActivityContent(it),
       })),
-    };
+      undefined,
+      {
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
+      },
+    );
   }
 
   @Get('stats/daily')
@@ -87,14 +92,16 @@ export class ActivitiesController {
     const from = parseRequiredIsoDateOnly('from', query.from);
     const to = parseRequiredIsoDateOnly('to', query.to);
 
-    return await this.queryUseCase.dailyStats({
-      tenantId,
-      from,
-      to,
-      actorUserId: query.actorUserId ?? null,
-      action: query.action ?? null,
-      subjectType: query.subjectType ?? null,
-      subjectId: query.subjectId ?? null,
-    });
+    return new Response(
+      await this.queryUseCase.dailyStats({
+        tenantId,
+        from,
+        to,
+        actorUserId: query.actorUserId ?? null,
+        action: query.action ?? null,
+        subjectType: query.subjectType ?? null,
+        subjectId: query.subjectId ?? null,
+      }),
+    );
   }
 }

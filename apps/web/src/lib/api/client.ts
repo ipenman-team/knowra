@@ -65,7 +65,29 @@ function notifyApiError(message: string, status?: number, code?: string): void {
 }
 
 apiClient.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    const body = res.data;
+    if (body && typeof body === 'object' && 'data' in body) {
+      // Check if it is a ListResponse with meta
+      const { data, meta, references } = body;
+      if (Array.isArray(data) && meta) {
+        res.data = { items: data, ...meta, references };
+      } else {
+        // Unwrap data
+        res.data = data;
+        // Attach references if present and data is an object
+        if (
+          references &&
+          typeof res.data === 'object' &&
+          res.data !== null &&
+          !Array.isArray(res.data)
+        ) {
+          (res.data as any).references = references;
+        }
+      }
+    }
+    return res;
+  },
   (error: unknown) => {
     if (axios.isAxiosError(error)) {
       const axiosError: AxiosError = error;

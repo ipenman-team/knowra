@@ -11,6 +11,7 @@ import { memoryStorage } from 'multer';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import type { ImportRequest } from './imports.types';
 import { ImportsService } from './imports.service';
+import { Response as ApiResponse } from '@contexta/shared';
 
 @Controller('imports')
 export class ImportsController {
@@ -76,6 +77,6 @@ export class ImportsController {
       throw new BadRequestException('format not supported');
     }
 
-    return { ok: true, taskId: task.id };
+    return new ApiResponse({ taskId: task.id });
   }
 }

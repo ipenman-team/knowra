@@ -13,6 +13,7 @@ import {
 } from '@contexta/application';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { SetDailyCopyLikeDto } from './dto/set-daily-copy-like.dto';
+import { Response } from '@contexta/shared';
 
 @Controller('daily-copies')
 export class DailyCopyController {
@@ -29,7 +30,7 @@ export class DailyCopyController {
     if (!userId) throw new UnauthorizedException('unauthorized');
 
     const item = await this.generateUseCase.generateToday({ tenantId, userId });
-    return { ok: true, item };
+    return new Response(item);
   }
 
   @Put('today/like')
@@ -51,6 +52,6 @@ export class DailyCopyController {
 
     if (!item) throw new NotFoundException('daily copy not found');
 
-    return { ok: true, item };
+    return new Response(item);
   }
 }

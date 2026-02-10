@@ -28,6 +28,7 @@
     "@contexta/domain": "workspace:*",
     "@contexta/infrastructure": "workspace:*",
     "@contexta/rag": "workspace:*",
+    "@contexta/shared": "workspace:^",
     "@contexta/slate-converters": "workspace:*",
     "@contexta/utils": "workspace:*",
     "@nestjs/common": "^11.0.1",

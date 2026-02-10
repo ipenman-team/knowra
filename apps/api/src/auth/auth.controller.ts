@@ -9,6 +9,7 @@ import {
 } from '../common/http/access-token-cookie';
 import { AuthService } from './auth.service';
 import type { Request, Response } from 'express';
+import { Response as ApiResponse } from '@contexta/shared';
 
 type SendVerificationCodeBody = {
   channel: string;
@@ -48,11 +49,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('verification-codes/send')
-  sendVerificationCode(
+  async sendVerificationCode(
     @UserId() userId: string | undefined,
     @Body() body: SendVerificationCodeBody,
   ) {
-    return this.authService.sendVerificationCode(body, { userId });
+    return new ApiResponse(
+      await this.authService.sendVerificationCode(body, { userId }),
+    );
   }
 
   @Post('login-or-register-by-code')
@@ -69,7 +72,7 @@ export class AuthController {
       accessToken,
       buildAccessTokenCookieOptions(req, ACCESS_TOKEN_COOKIE_MAX_AGE_MS),
     );
-    return data;
+    return new ApiResponse(data);
   }
 
   @Post('login-by-password')
@@ -86,7 +89,7 @@ export class AuthController {
       accessToken,
       buildAccessTokenCookieOptions(req, ACCESS_TOKEN_COOKIE_MAX_AGE_MS),
     );
-    return data;
+    return new ApiResponse(data);
   }
 
   @Post('logout')
@@ -98,7 +101,7 @@ export class AuthController {
   ) {
     // clear cookie
     res.cookie(ACCESS_TOKEN_COOKIE_NAME, '', buildAccessTokenCookieOptions(req, 0));
-    return this.authService.logout({ sessionId, userId });
+    return new ApiResponse(null);
   }
 
   @Post('switch-tenant')
@@ -125,15 +128,17 @@ export class AuthController {
             buildAccessTokenCookieOptions(req, ACCESS_TOKEN_COOKIE_MAX_AGE_MS),
           );
         }
-        return result;
+        return new ApiResponse(result);
       });
   }
 
   @Post('password/reset')
-  resetPassword(
+  async resetPassword(
     @UserId() userId: string | undefined,
     @Body() body: ResetPasswordBody,
   ) {
-    return this.authService.resetPasswordByEmail(body, { userId });
+    return new ApiResponse(
+      await this.authService.resetPasswordByEmail(body, { userId }),
+    );
   }
 }

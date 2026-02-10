@@ -18,7 +18,7 @@
     "lint:contexta-ai": "eslint apps/contexta-ai packages",
     "lint:web": "pnpm -F @contexta/web lint",
     "format": "prettier -w .",
-    "dev": "pnpm dev:web & pnpm dev:api",
+    "dev": "pnpm dev:web & pnpm dev:api & pnpm dev:contexta-ai",
     "typecheck": "tsc -b && pnpm -F @contexta/web typecheck",
     "dev:web": "pnpm -F @contexta/web dev",
     "build:web": "pnpm -F @contexta/web build",

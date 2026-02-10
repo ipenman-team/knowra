@@ -14,6 +14,7 @@ import os from 'os';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { unlinkSync } from 'fs';
+import { Response } from '@contexta/shared';
 
 @Controller('files')
 export class FilesController {
@@ -45,6 +46,6 @@ export class FilesController {
             originPath: `${body.from}/${file?.originalname}`
         });
         unlinkSync(file?.path as string);
-        return { ok: true, data: result };
+        return new Response(result);
     }
 }

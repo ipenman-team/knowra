@@ -158,10 +158,10 @@ export const ShareModal = memo(function ShareModal({
 
   return (
     <Modal
+      className="w-[600px]"
       open={open}
       onOpenChange={onOpenChange}
       title="分享页面"
-      description={`将 "${title}" 分享给外部用户`}
       footer={null}
     >
       <div className="space-y-6">

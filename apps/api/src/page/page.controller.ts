@@ -15,6 +15,7 @@ import { PageService } from './page.service';
 import { RagIndexService } from '../rag/rag.index.service';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
+import { ListResponse, Response } from '@contexta/shared';
 
 @Controller('spaces/:spaceId/pages')
 export class PageController {
@@ -24,33 +25,45 @@ export class PageController {
   ) {}
 
   @Post()
-  create(
+  async create(
     @TenantId() tenantId: string,
     @Param('spaceId') spaceId: string,
     @UserId() userId: string | undefined,
     @Body() body: CreatePageDto,
   ) {
-    return this.pageService.create(tenantId, { ...body, spaceId }, userId);
-  }
-
-  @Put(':id')
-  save(
-    @TenantId() tenantId: string,
-    @UserId() userId: string | undefined,
-    @Param('id') id: string,
-    @Body() body: SavePageDto,
-  ) {
-    return this.pageService.save(tenantId, id, body, userId);
+    return new Response(
+      await this.pageService.create(tenantId, { ...body, spaceId }, userId),
+    );
   }
 
   @Post(':id/rename')
-  rename(
+  async rename(
     @TenantId() tenantId: string,
-    @UserId() userId: string | undefined,
     @Param('id') id: string,
     @Body() body: { title: string },
   ) {
-    return this.pageService.rename(tenantId, id, body, userId);
+    return new Response(
+      await this.pageService.rename(tenantId, id, body),
+    );
+  }
+
+  @Put(':id')
+  async save(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() body: SavePageDto,
+  ) {
+    const page = await this.pageService.save(tenantId, id, body);
+    if (body.publish) {
+      // async index
+      this.ragIndexService
+        .startIndexPublished({
+          tenantId,
+          pageId: page.id,
+          pageVersionId: page.latestPublishedVersionId!,
+        });
+    }
+    return new Response(page);
   }
 
   @Post(':id/publish')
@@ -70,80 +83,101 @@ export class PageController {
         pageVersionId: published.versionId,
       });
 
-      return published;
+      return new Response(published);
     })();
   }
 
   @Get(':id/versions')
-  listVersions(@Param('id') id: string, @TenantId() tenantId: string) {
-    return this.pageService.listVersions(id, tenantId);
+  async listVersions(@Param('id') id: string, @TenantId() tenantId: string) {
+    return new ListResponse(
+      await this.pageService.listVersions(id, tenantId),
+    );
   }
 
   @Get(':id/versions/:versionId')
-  getVersion(
+  async getVersion(
     @Param('id') id: string,
     @Param('versionId') versionId: string,
     @TenantId() tenantId: string,
   ) {
-    return this.pageService.getVersion(id, versionId, tenantId);
+    return new Response(
+      await this.pageService.getVersion(id, versionId, tenantId),
+    );
   }
 
   @Delete(':id')
-  remove(
+  async remove(
     @Param('id') id: string,
     @TenantId() tenantId: string,
     @UserId() userId: string | undefined,
   ) {
-    return this.pageService.remove(id, tenantId, userId);
+    return new Response(
+      await this.pageService.remove(id, tenantId, userId),
+    );
   }
 
   @Get('tree')
-  listTree(
+  async listTree(
     @TenantId() tenantId: string,
     @Param('spaceId') spaceId: string,
     @Query() query: ListPageTreeQuery,
   ) {
-    return this.pageService.listTree(tenantId, spaceId, query);
+    const result = await this.pageService.listTree(tenantId, spaceId, query);
+    return new ListResponse(
+      result.items,
+      undefined,
+      { nextCursor: result.nextCursor, hasMore: result.hasMore },
+    );
   }
 
   @Get('trash')
-  listTrash(
+  async listTrash(
     @TenantId() tenantId: string,
     @Param('spaceId') spaceId: string,
     @Query() query: ListPageQuery,
   ) {
-    return this.pageService.listTrash(tenantId, spaceId, query);
+    return new ListResponse(
+      await this.pageService.listTrash(tenantId, spaceId, query),
+    );
   }
 
   @Post(':id/restore')
-  restore(
+  async restore(
     @TenantId() tenantId: string,
     @UserId() userId: string | undefined,
     @Param('id') id: string,
   ) {
-    return this.pageService.restore(tenantId, id, userId);
+    return new Response(
+      await this.pageService.restore(tenantId, id, userId),
+    );
   }
 
   @Delete(':id/permanent')
-  permanentRemove(
+  async permanentRemove(
     @TenantId() tenantId: string,
     @UserId() userId: string | undefined,
     @Param('id') id: string,
   ) {
-    return this.pageService.permanentRemove(id, tenantId, userId);
+    return new Response(
+      await this.pageService.permanentRemove(id, tenantId, userId),
+    );
   }
 
   @Get(':id')
-  get(@Param('id') id: string, @TenantId() tenantId: string) {
-    return this.pageService.get(id, tenantId);
+  async get(@Param('id') id: string, @TenantId() tenantId: string) {
+    return new Response(
+      await this.pageService.get(id, tenantId),
+    );
   }
 
   @Get()
-  list(
+  async list(
     @TenantId() tenantId: string,
     @Param('spaceId') spaceId: string,
     @Query() query: ListPageQuery,
   ) {
-    return this.pageService.list(tenantId, spaceId, query);
+    return new ListResponse(
+      await this.pageService.list(tenantId, spaceId, query),
+    );
   }
 }

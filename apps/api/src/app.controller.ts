@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
+import { Response } from '@contexta/shared';
 
 @Controller()
 export class AppController {
@@ -11,20 +12,18 @@ export class AppController {
   }
 
   @Get('ping')
-  ping(): { ok: true; message: string; ts: string } {
-    return {
-      ok: true,
+  ping() {
+    return new Response({
       message: 'pong',
       ts: new Date().toISOString(),
-    };
+    });
   }
 
   @Get('health')
-  health(): { ok: true; message: string; ts: string } {
-    return {
-      ok: true,
+  health() {
+    return new Response({
       message: 'healthy',
       ts: new Date().toISOString(),
-    };
+    });
   }
 }
