@@ -333,6 +333,33 @@ export class PageService {
     return this.pageVersionService.getVersion(pageId, versionId, tenantId);
   }
 
+  async getPublishedPage(
+    id: string,
+    tenantId: string,
+  ): Promise<PageDto | null> {
+    if (!id) throw new BadRequestException('id is required');
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+
+    const page = await this.prisma.page.findFirst({
+      where: { id, tenantId, isDeleted: false },
+    });
+    if (!page) return null;
+
+    if (!page.latestPublishedVersionId) return null;
+
+    const version = await this.prisma.pageVersion.findUnique({
+      where: { id: page.latestPublishedVersionId },
+    });
+    if (!version) return null;
+
+    return {
+      ...page,
+      title: version.title,
+      content: version.content as Prisma.JsonValue,
+      updatedAt: version.updatedAt,
+    };
+  }
+
   async remove(
     id: string,
     tenantId: string,

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PageModule } from '../page/page.module';
 import {
   CreateShareAccessLogUseCase,
   CreateShareSnapshotUseCase,
@@ -23,6 +24,7 @@ import {
 import { ShareController } from './share.controller';
 
 @Module({
+  imports: [PageModule],
   controllers: [ShareController],
   providers: [
     {

@@ -5,7 +5,6 @@ import { SpaceDirectoryView, SpacePagesView } from '@/components/space/views';
 
 export default function SpaceMain(props: { spaceId: string }) {
   const section = useSpaceSection();
-
   if (section === 'directory') {
     return <SpaceDirectoryView spaceId={props.spaceId} />;
   }

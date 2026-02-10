@@ -13,6 +13,7 @@ import {
 import {
   PencilLineIcon,
   SendIcon,
+  Share2Icon,
   UserRoundPlusIcon,
   XIcon,
 } from 'lucide-react';
@@ -28,6 +29,8 @@ import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { toast } from 'sonner';
 import { PageHeaderMoreMenu } from './page-header-more-menu';
+import { useState } from 'react';
+import { ShareModal } from '../share/share-modal';
 
 function formatRelativeDateTime(timestamp: string | null): string | null {
   if (!timestamp) return null;
@@ -45,6 +48,7 @@ function formatRelativeDateTime(timestamp: string | null): string | null {
 }
 
 export const PageHeader = () => {
+  const [shareOpen, setShareOpen] = useState(false);
   const activePage = useActivePage();
   const setPageMode = usePageContentStore((s) => s.setPageMode);
   const pageMode = usePageContentStore((s) => s.pageMode);
@@ -147,6 +151,15 @@ export const PageHeader = () => {
             <Button
               variant="link"
               disabled={!activePage}
+              onClick={() => setShareOpen(true)}
+              className="gap-1"
+            >
+              <Share2Icon className="w-4 h-4" />
+              分享
+            </Button>
+            <Button
+              variant="link"
+              disabled={!activePage}
               onClick={() => setPageMode('edit')}
               className="gap-1"
             >
@@ -154,6 +167,15 @@ export const PageHeader = () => {
               编辑
             </Button>
             <PageHeaderMoreMenu pageId={activePage?.id ?? null} />
+            {activePage && (
+              <ShareModal
+                open={shareOpen}
+                onOpenChange={setShareOpen}
+                targetId={activePage.id}
+                type="PAGE"
+                title={activePage.title || '无标题文档'}
+              />
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -163,9 +185,6 @@ export const PageHeader = () => {
               disabled={!activePage || pageSaving || pagePublishing}
             >
               <SendIcon /> 发布
-            </Button>
-            <Button variant="ghost">
-              <UserRoundPlusIcon />分享
             </Button>
             <Separator orientation="vertical" className="h-5" />
             <Button

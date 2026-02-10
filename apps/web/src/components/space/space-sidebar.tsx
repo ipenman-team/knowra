@@ -41,6 +41,7 @@ import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import DirectoryList from './directory-list';
 import { SpaceIcon } from '../icon/space.icon';
+import { SettingsSidebarContent } from './settings-sidebar-content';
 
 export const SpaceSidebar = memo(function SpaceSidebar() {
   const { navigateToSpace } = useNavigation();
@@ -48,12 +49,15 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   const currentId = useCurrentSpaceId();
   const pathname = usePathname();
 
-  // 使用新的 route parser 解析当前空间 ID
   const routeSpaceId = useSpaceRoute();
 
   const activeSpaceId = routeSpaceId ?? currentId;
   const isTrash = pathname.startsWith('/spaces/trash');
-  const section = isTrash ? 'trash' : 'pages';
+  
+  const isSettings = pathname.includes('/page-share') || 
+                     pathname.includes('/settings')
+
+  const section = isTrash ? 'trash' : isSettings ? 'settings' : 'pages';
 
   const current =
     spaces.find((s) => s.id === activeSpaceId) ??
@@ -72,49 +76,54 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="sidebar" className="h-full">
-      <SidebarContent className="min-h-0 flex-1 overflow-auto">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <div className="p-3">
-              <div className="flex items-center gap-3">
-                <SpaceIcon size={20} color={current?.color as string} />
-                <div className="flex-1">
-                  <Select
-                    value={current?.id ?? ''}
-                    onValueChange={handleSelectSpace}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="选择空间" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {spaces.map((s) => (
-                        <SelectItem key={s.id} value={s.id} className='truncate'>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+      {section === 'settings' ? (
+        <SettingsSidebarContent spaceId={activeSpaceId ?? ''} pathname={pathname} />
+      ) : (
+        <SidebarContent className="min-h-0 flex-1 overflow-auto">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="p-3">
+                <div className="flex items-center gap-3">
+                  <SpaceIcon size={20} color={current?.color as string} />
+                  <div className="flex-1">
+                    <Select
+                      value={current?.id ?? ''}
+                      onValueChange={handleSelectSpace}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="选择空间" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {spaces.map((s) => (
+                          <SelectItem key={s.id} value={s.id} className='truncate'>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            <div className="flex justify-between flex-1">
-              页面
-              <CreatePageMenu />
-            </div>
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <DirectoryList spaceId={activeSpaceId ?? ''} />
-            <SidebarMenu>
-              <PageTreeContainer />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>
+              <div className="flex justify-between flex-1">
+                页面
+                <CreatePageMenu />
+              </div>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <DirectoryList spaceId={activeSpaceId ?? ''} />
+              <SidebarMenu>
+                <PageTreeContainer />
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      )}
+
       <SidebarFooter>
         <Separator />
         <div className="flex justify-between text-muted-foreground items-center h-6">
@@ -136,9 +145,14 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
             </Button>
           </Link>
           <Separator orientation="vertical" />
-          <Button variant="ghost" size="lg">
-            <BoltIcon />
-          </Button>
+          <Link href={`/spaces/${activeSpaceId ?? currentId ?? ''}/page-share`}>
+            <Button 
+                variant={section === 'settings' ? 'secondary' : 'ghost'}
+                size="lg"
+            >
+              <BoltIcon />
+            </Button>
+          </Link>
         </div>
       </SidebarFooter>
     </Sidebar>

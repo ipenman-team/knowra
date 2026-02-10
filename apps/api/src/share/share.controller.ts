@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -21,6 +22,7 @@ import {
   ListSharesUseCase,
   UpdateShareStatusUseCase,
 } from '@contexta/application';
+import { PageService } from '../page/page.service';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { CreateShareDto } from './dto/create-share.dto';
 import { ListShareQuery } from './dto/list-share.query';
@@ -51,6 +53,7 @@ export class ShareController {
     private readonly accessUseCase: GetShareAccessUseCase,
     private readonly accessLogUseCase: CreateShareAccessLogUseCase,
     private readonly getByIdUseCase: GetShareByIdUseCase,
+    private readonly pageService: PageService,
   ) {}
 
   @Post()
@@ -186,16 +189,54 @@ export class ShareController {
     @Req() req: Request,
     @UserId() userId: string | undefined,
   ) {
-    const share = await this.accessUseCase.getAccess({
-      publicId,
-      token: body?.token ?? null,
-      password: body?.password ?? null,
-    });
+    let share;
+    try {
+      share = await this.accessUseCase.getAccess({
+        publicId,
+        token: body?.token ?? null,
+        password: body?.password ?? null,
+      });
+    } catch (e: any) {
+      const msg = e.message;
+      if (msg === 'password required' || msg === 'password invalid') {
+        throw new UnauthorizedException(msg);
+      }
+      if (msg === 'share not found') {
+        throw new NotFoundException(msg);
+      }
+      if (msg === 'share not active' || msg === 'share expired') {
+        throw new ForbiddenException(msg);
+      }
+      throw e;
+    }
 
-    const snapshot = await this.latestSnapshotUseCase.getLatest({
+    let snapshot = await this.latestSnapshotUseCase.getLatest({
       tenantId: share.tenantId,
       shareId: share.id,
     });
+
+    if (share.type === 'PAGE') {
+      const page = await this.pageService.getPublishedPage(
+        share.targetId,
+        share.tenantId,
+      );
+      if (page) {
+        snapshot = {
+          id: `live-${page.latestPublishedVersionId}`,
+          tenantId: share.tenantId,
+          shareId: share.id,
+          payload: {
+            title: page.title,
+            content: page.content,
+          },
+          createdBy: 'system',
+          updatedBy: 'system',
+          isDeleted: false,
+          createdAt: page.updatedAt,
+          updatedAt: page.updatedAt,
+        };
+      }
+    }
 
     await this.accessLogUseCase.create({
       tenantId: share.tenantId,

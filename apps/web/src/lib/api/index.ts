@@ -7,6 +7,7 @@ export { tasksApi } from './tasks';
 export { spacesApi } from './spaces';
 export { workbenchApi } from './workbench';
 export { dailyCopiesApi } from './daily-copies';
+export { sharesApi, type ShareDto } from './shares';
 export type { CreatePageInput, PageDto, SavePageInput } from './pages';
 export type { TaskDto as ApiTaskDto } from './tasks';
 export type { SpaceDto } from './spaces/types';
