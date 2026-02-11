@@ -30,8 +30,8 @@ export function PageHeaderExportMenu(props: {
     void (async () => {
       try {
         await exportPageAsMarkdown({
-          pageId: props.pageId,
-          spaceId: props.spaceId,
+          pageId: props.pageId as string,
+          spaceId: props.spaceId as string,
           title: props.title ?? undefined,
         });
         toast.success('已导出 Markdown');
