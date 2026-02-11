@@ -49,6 +49,38 @@ export const pagesApi = {
     return res.data;
   },
 
+  async export(
+    spaceId: string,
+    pageId: string,
+    params?: { format?: string },
+  ) {
+    const res = await apiClient.get<string>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}/export`,
+      {
+        params,
+        responseType: 'text',
+        headers: { Accept: 'text/markdown' },
+      },
+    );
+    return res.data;
+  },
+
+  async exportPage(
+    spaceId: string,
+    pageId: string,
+    params?: { format?: string },
+  ) {
+    const res = await apiClient.get<string>(
+      `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}/export`,
+      {
+        params,
+        responseType: 'text',
+        headers: { Accept: 'text/markdown' },
+      },
+    );
+    return res.data;
+  },
+
   async create(input: CreatePageInput) {
     const res = await apiClient.post<PageDto>(
       `/spaces/${input.spaceId}/pages`,

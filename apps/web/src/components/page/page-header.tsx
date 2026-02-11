@@ -166,7 +166,11 @@ export const PageHeader = () => {
               <PencilLineIcon />
               编辑
             </Button>
-            <PageHeaderMoreMenu pageId={activePage?.id ?? null} />
+            <PageHeaderMoreMenu
+              pageId={activePage?.id ?? null}
+              spaceId={activePage?.spaceId ?? null}
+              title={activePage?.title ?? pageTitle ?? null}
+            />
             {activePage && (
               <ShareModal
                 open={shareOpen}
