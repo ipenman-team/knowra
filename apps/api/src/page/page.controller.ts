@@ -1,13 +1,17 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Post,
   Put,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response as ExpressResponse } from 'express';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { CreatePageDto } from './dto/create-page.dto';
 import { SavePageDto } from './dto/save-page.dto';
@@ -16,12 +20,15 @@ import { RagIndexService } from '../rag/rag.index.service';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
 import { ListResponse, Response } from '@contexta/shared';
+import { ExportPageUseCase } from '@contexta/application';
+import { ExportPageQuery } from './dto/export-page.query';
 
 @Controller('spaces/:spaceId/pages')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
     private readonly ragIndexService: RagIndexService,
+    private readonly exportPageUseCase: ExportPageUseCase,
   ) {}
 
   @Post()
@@ -161,6 +168,32 @@ export class PageController {
     return new Response(
       await this.pageService.permanentRemove(id, tenantId, userId),
     );
+  }
+
+  @Get(':id/export')
+  async export(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('spaceId') spaceId: string,
+    @Param('id') id: string,
+    @Query() query: ExportPageQuery,
+    @Res({ passthrough: true }) res: ExpressResponse,
+  ) {
+    const format = (query?.format ?? 'markdown').toLowerCase();
+    if (format !== 'markdown') throw new BadRequestException('format not supported');
+
+    const result = await this.exportPageUseCase.export({
+      tenantId,
+      userId,
+      spaceId,
+      pageId: id,
+      format: 'markdown',
+    });
+
+    if (!result) throw new NotFoundException('page not found');
+
+    res.setHeader('Content-Type', `${result.contentType}; charset=utf-8`);
+    return result.content;
   }
 
   @Get(':id')

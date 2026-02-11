@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@contexta/domain": "workspace:*",
-    "@contexta/shared": "workspace:*"
+    "@contexta/shared": "workspace:*",
+    "@contexta/slate-converters": "workspace:*"
   }
 }

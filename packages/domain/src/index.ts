@@ -1,6 +1,7 @@
 export * from './ai-chat';
 export * from './activity';
 export * from './daily-copy';
+export * from './page';
 export * from './share';
 export type {
   Share,
@@ -24,3 +25,4 @@ export type {
   ShareSnapshotRepository,
   ShareAccessLogRepository,
 } from './share';
+export type { PageExportRepository, ExportPageData, GetPageForExportParams } from './page';
