@@ -12,9 +12,9 @@ export function PublicPageViewer({ share, snapshot }: { share: ShareDto; snapsho
   const slateValue = parseContentToSlateValue(content);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <SharePageHeader title={title} publishedAt={publishedAt} />
-      <div className="mx-auto w-full max-w-5xl space-y-4 pt-10 px-6 pb-20 flex-1">
+      <div className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto space-y-4 px-6 pb-20 pt-10">
         <div className="space-y-2">
           <EditorTitleDisplay title={title} />
         </div>

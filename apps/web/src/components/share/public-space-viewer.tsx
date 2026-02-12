@@ -127,7 +127,7 @@ export function PublicSpaceViewer({
 
   if (!payload) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+      <div className="flex h-screen items-center justify-center text-muted-foreground">
         共享数据异常，无法加载空间内容。
       </div>
     );
@@ -135,7 +135,7 @@ export function PublicSpaceViewer({
 
   if (!pages.length) {
     return (
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
         <SharePageHeader title={payload.space.name} publishedAt={snapshot?.createdAt} />
         <div className="flex flex-1 items-center justify-center text-muted-foreground">
           此共享空间暂无可展示页面。
@@ -145,9 +145,9 @@ export function PublicSpaceViewer({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <SharePageHeader title={payload.space.name} />
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+      <div className="flex min-h-0 flex-1 overflow-hidden flex-col md:flex-row">
         <aside className="flex w-full shrink-0 flex-col border-b bg-muted/20 md:w-72 md:border-b-0 md:border-r">
           <div className="h-64 flex-1 overflow-auto p-2 md:h-auto">
             <Tree<SpaceShareSnapshotPage>
@@ -197,7 +197,7 @@ export function PublicSpaceViewer({
           </div>
         </aside>
 
-        <main className="min-h-0 flex-1 overflow-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-5xl space-y-4 px-6 pb-20 pt-8">
             <EditorTitleDisplay title={selectedPage?.title ?? '无标题文档'} />
             <SlateEditor
