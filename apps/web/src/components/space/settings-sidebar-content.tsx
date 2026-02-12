@@ -8,7 +8,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { FileText, FolderKanban } from 'lucide-react';
+import { FileText, FolderKanban, LayoutTemplate } from 'lucide-react';
 import Link from 'next/link';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useSpaceStore } from '@/stores';
@@ -56,6 +56,14 @@ export function SettingsSidebarContent({ spaceId, pathname }: { spaceId: string,
                                     <Link href={`/spaces/${spaceId}/space-share`}>
                                         <FolderKanban className="w-4 h-4" />
                                         <span>空间共享</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={isActive('/site-builder')}>
+                                    <Link href={`/spaces/${spaceId}/site-builder`}>
+                                        <LayoutTemplate className="w-4 h-4" />
+                                        <span>展示页构建</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

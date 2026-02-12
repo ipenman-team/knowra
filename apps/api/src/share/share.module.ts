@@ -88,5 +88,11 @@ import { ShareController } from './share.controller';
       inject: [SHARE_ACCESS_LOG_REPOSITORY],
     },
   ],
+  exports: [
+    CreateShareUseCase,
+    ListSharesUseCase,
+    UpdateShareStatusUseCase,
+    CreateShareSnapshotUseCase,
+  ],
 })
 export class ShareModule {}

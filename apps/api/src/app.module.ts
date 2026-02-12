@@ -15,6 +15,7 @@ import { UserModule } from './user/user.module';
 import { ActivityModule } from './activity/activity.module';
 import { DailyCopyModule } from './daily-copy/daily-copy.module';
 import { ShareModule } from './share/share.module';
+import { SiteBuilderModule } from './site-builder/site-builder.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ShareModule } from './share/share.module';
     ActivityModule,
     DailyCopyModule,
     ShareModule,
+    SiteBuilderModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],
