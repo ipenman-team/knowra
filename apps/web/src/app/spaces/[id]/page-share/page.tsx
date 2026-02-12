@@ -56,7 +56,7 @@ export default function PageSharePage() {
   };
 
   const handleCopyLink = (share: ShareDto) => {
-    const url = `${window.location.origin}/share/${share.publicId}`;
+    const url = `${window.location.origin}/share/p/${share.publicId}`;
     navigator.clipboard.writeText(url);
     toast.success('链接已复制');
   };

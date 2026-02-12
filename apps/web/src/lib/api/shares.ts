@@ -62,6 +62,11 @@ export const sharesApi = {
     return res.data.share;
   },
 
+  createSnapshot: async (shareId: string, payload: unknown) => {
+    const res = await apiClient.post(`/shares/${shareId}/snapshots`, { payload });
+    return res.data;
+  },
+
   getPublicAccess: async (publicId: string, password?: string) => {
     const res = await apiClient.post<{
       ok: boolean;

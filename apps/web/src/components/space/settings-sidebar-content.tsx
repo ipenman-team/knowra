@@ -8,7 +8,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { FileText } from 'lucide-react';
+import { FileText, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useSpaceStore } from '@/stores';
@@ -40,14 +40,22 @@ export function SettingsSidebarContent({ spaceId, pathname }: { spaceId: string,
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>设置</SidebarGroupLabel>
+                    <SidebarGroupLabel>共享</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild isActive={isActive('/page-share')}>
                                     <Link href={`/spaces/${spaceId}/page-share`}>
                                         <FileText className="w-4 h-4" />
-                                        <span>页面分享</span>
+                                        <span>页面共享</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={isActive('/space-share')}>
+                                    <Link href={`/spaces/${spaceId}/space-share`}>
+                                        <FolderKanban className="w-4 h-4" />
+                                        <span>空间共享</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

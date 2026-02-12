@@ -776,4 +776,87 @@ export class PageService {
       },
     });
   }
+
+  public async getPublishedPagesByIds(
+    tenantId: string,
+    ids: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      content: Prisma.JsonValue;
+      parentIds: string[];
+      updatedAt: Date;
+    }>
+  > {
+    const orderedIds = Array.from(
+      new Set(
+        ids
+          .map((id) => id?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    if (!orderedIds.length) return [];
+
+    const pages = await this.prisma.page.findMany({
+      where: {
+        tenantId,
+        isDeleted: false,
+        id: { in: orderedIds },
+      },
+      select: {
+        id: true,
+        parentIds: true,
+        latestPublishedVersionId: true,
+      },
+    });
+
+    const versionIds = pages
+      .map((page) => page.latestPublishedVersionId)
+      .filter((id): id is string => Boolean(id));
+    if (!versionIds.length) return [];
+
+    const versions = await this.prisma.pageVersion.findMany({
+      where: {
+        tenantId,
+        isDeleted: false,
+        id: { in: versionIds },
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        updatedAt: true,
+      },
+    });
+
+    const pageById = new Map(pages.map((page) => [page.id, page]));
+    const versionById = new Map(versions.map((version) => [version.id, version]));
+
+    const result: Array<{
+      id: string;
+      title: string;
+      content: Prisma.JsonValue;
+      parentIds: string[];
+      updatedAt: Date;
+    }> = [];
+
+    for (const id of orderedIds) {
+      const page = pageById.get(id);
+      if (!page?.latestPublishedVersionId) continue;
+
+      const version = versionById.get(page.latestPublishedVersionId);
+      if (!version) continue;
+
+      result.push({
+        id: page.id,
+        title: version.title,
+        content: version.content as Prisma.JsonValue,
+        parentIds: page.parentIds,
+        updatedAt: version.updatedAt,
+      });
+    }
+
+    return result;
+  }
 }

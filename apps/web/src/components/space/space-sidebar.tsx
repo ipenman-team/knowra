@@ -54,7 +54,8 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   const activeSpaceId = routeSpaceId ?? currentId;
   const isTrash = pathname.startsWith('/spaces/trash');
   
-  const isSettings = pathname.includes('/page-share') || 
+  const isSettings = pathname.includes('/page-share') ||
+                     pathname.includes('/space-share') ||
                      pathname.includes('/settings')
 
   const section = isTrash ? 'trash' : isSettings ? 'settings' : 'pages';

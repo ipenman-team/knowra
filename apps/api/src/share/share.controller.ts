@@ -45,6 +45,102 @@ function sanitizeShare<T extends { tokenHash?: unknown; passwordHash?: unknown }
   return rest;
 }
 
+type SpaceSnapshotSpace = {
+  id: string;
+  name?: string;
+  description?: string | null;
+  color?: string | null;
+};
+
+type StoredSpaceSnapshotPayload = {
+  space: SpaceSnapshotSpace;
+  defaultPageId?: string | null;
+  pageIds: string[];
+};
+
+function toTrimmedString(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const value = input.trim();
+  return value ? value : null;
+}
+
+function collectPageIdsFromPayload(payload: unknown): string[] {
+  if (!payload || typeof payload !== 'object') return [];
+
+  const raw = payload as {
+    pageIds?: unknown;
+    pages?: unknown;
+  };
+
+  const ids: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (id: unknown) => {
+    const value = toTrimmedString(id);
+    if (!value || seen.has(value)) return;
+    seen.add(value);
+    ids.push(value);
+  };
+
+  if (Array.isArray(raw.pageIds)) {
+    raw.pageIds.forEach(push);
+  }
+
+  if (Array.isArray(raw.pages)) {
+    for (const item of raw.pages) {
+      if (typeof item === 'string') {
+        push(item);
+        continue;
+      }
+      if (item && typeof item === 'object') {
+        push((item as { id?: unknown }).id);
+      }
+    }
+  }
+
+  return ids;
+}
+
+function normalizeSpaceSnapshotPayloadForStore(
+  payload: unknown,
+  fallbackSpaceId: string,
+): StoredSpaceSnapshotPayload {
+  const raw = payload && typeof payload === 'object'
+    ? (payload as {
+        space?: unknown;
+        defaultPageId?: unknown;
+      })
+    : null;
+
+  const rawSpace = raw?.space && typeof raw.space === 'object'
+    ? (raw.space as {
+        id?: unknown;
+        name?: unknown;
+        description?: unknown;
+        color?: unknown;
+      })
+    : null;
+
+  const pageIds = collectPageIdsFromPayload(payload);
+  const defaultPageIdCandidate = toTrimmedString(raw?.defaultPageId);
+  const defaultPageId = defaultPageIdCandidate && pageIds.includes(defaultPageIdCandidate)
+    ? defaultPageIdCandidate
+    : (pageIds[0] ?? null);
+
+  const spaceId = toTrimmedString(rawSpace?.id) ?? fallbackSpaceId;
+
+  return {
+    space: {
+      id: spaceId,
+      name: toTrimmedString(rawSpace?.name) ?? undefined,
+      description: toTrimmedString(rawSpace?.description),
+      color: toTrimmedString(rawSpace?.color),
+    },
+    defaultPageId,
+    pageIds,
+  };
+}
+
 @Controller('shares')
 export class ShareController {
   constructor(
@@ -193,10 +289,23 @@ export class ShareController {
   ) {
     if (!userId) throw new UnauthorizedException('unauthorized');
 
+    const share = await this.getByIdUseCase.get({ tenantId, shareId });
+    if (!share) throw new NotFoundException('share not found');
+
+    let snapshotPayload: unknown = body?.payload ?? null;
+    if (share.type === 'PAGE') {
+      snapshotPayload = { pageId: share.targetId };
+    } else if (share.type === 'SPACE') {
+      snapshotPayload = normalizeSpaceSnapshotPayloadForStore(
+        body?.payload ?? null,
+        share.targetId,
+      );
+    }
+
     const snapshot = await this.createSnapshotUseCase.create({
       tenantId,
       shareId,
-      payload: body?.payload ?? null,
+      payload: snapshotPayload,
       actorUserId: userId,
     });
 
@@ -257,6 +366,41 @@ export class ShareController {
           updatedAt: page.updatedAt,
         };
       }
+    } else if (share.type === 'SPACE' && snapshot) {
+      const stored = normalizeSpaceSnapshotPayloadForStore(
+        snapshot.payload,
+        share.targetId,
+      );
+      const pages = await this.pageService.getPublishedPagesByIds(
+        share.tenantId,
+        stored.pageIds,
+      );
+
+      const defaultPageId =
+        stored.defaultPageId &&
+        pages.some((page) => page.id === stored.defaultPageId)
+          ? stored.defaultPageId
+          : (pages[0]?.id ?? null);
+
+      snapshot = {
+        ...snapshot,
+        payload: {
+          space: {
+            id: stored.space.id,
+            name: stored.space.name ?? '共享空间',
+            description: stored.space.description ?? null,
+            color: stored.space.color ?? null,
+          },
+          defaultPageId,
+          pages: pages.map((page) => ({
+            id: page.id,
+            title: page.title,
+            parentIds: page.parentIds,
+            content: page.content,
+            updatedAt: page.updatedAt,
+          })),
+        },
+      };
     }
 
     await this.accessLogUseCase.create({
