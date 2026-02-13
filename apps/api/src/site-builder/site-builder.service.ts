@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import {
   CreateShareSnapshotUseCase,
@@ -6,15 +10,18 @@ import {
   ListSharesUseCase,
   UpdateShareStatusUseCase,
 } from '@contexta/application';
-import type { Share } from '@contexta/domain';
+import type { Share, ShareStatus } from '@contexta/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { PageService } from '../page/page.service';
 import type { PublishSiteBuilderDto } from './dto/publish-site-builder.dto';
 import type {
+  SiteBuilderBranding,
   PublishSiteBuilderResult,
   SiteBuilderBlogMenuConfig,
   SiteBuilderBlogSource,
   SiteBuilderConfigV1,
+  SiteBuilderCustomMenuConfig,
+  SiteBuilderCustomMenuType,
   SiteBuilderGetResult,
   SiteBuilderMenus,
   SiteBuilderMetadata,
@@ -23,6 +30,9 @@ import type {
 const SITE_BUILDER_KIND = 'SPACE_SITE';
 const SITE_BUILDER_TARGET_SUFFIX = ':site-builder';
 const MAX_PAGE_LIST_LIMIT = 20;
+const MAX_CUSTOM_MENUS = 20;
+const MAX_MENU_LABEL_LENGTH = 40;
+const MAX_LOGO_URL_LENGTH = 2 * 1024 * 1024;
 
 function isObjectLike(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null && !Array.isArray(input);
@@ -38,9 +48,12 @@ function clamp(input: number, min: number, max: number): number {
   return Math.min(Math.max(input, min), max);
 }
 
-function parseDateFromInput(input: string | Date | null | undefined): Date | null {
+function parseDateFromInput(
+  input: string | Date | null | undefined,
+): Date | null {
   if (input == null) return null;
-  if (input instanceof Date) return Number.isFinite(input.getTime()) ? input : null;
+  if (input instanceof Date)
+    return Number.isFinite(input.getTime()) ? input : null;
   if (typeof input === 'string') {
     const value = input.trim();
     if (!value) return null;
@@ -79,6 +92,38 @@ function defaultConfig(actorUserId: string): SiteBuilderConfigV1 {
       },
       contact: { enabled: false, pageId: null },
     },
+    customMenus: [
+      {
+        id: 'menu-home',
+        label: 'Home',
+        type: 'SINGLE_PAGE',
+        style: 'card',
+        pageId: null,
+        pageIds: [],
+        pageCovers: {},
+      },
+      {
+        id: 'menu-about',
+        label: 'About',
+        type: 'SINGLE_PAGE',
+        style: 'card',
+        pageId: null,
+        pageIds: [],
+        pageCovers: {},
+      },
+      {
+        id: 'menu-contact',
+        label: 'Contact',
+        type: 'SINGLE_PAGE',
+        style: 'card',
+        pageId: null,
+        pageIds: [],
+        pageCovers: {},
+      },
+    ],
+    branding: {
+      logoUrl: null,
+    },
     updatedAt: now,
     updatedBy: actorUserId,
   };
@@ -96,22 +141,26 @@ export class SiteBuilderService {
   ) {}
 
   async get(tenantId: string, spaceId: string): Promise<SiteBuilderGetResult> {
-    const space = await this.getSpaceOrThrow(tenantId, spaceId);
-    const metadata = this.readSiteBuilderMetadata(space.metadata);
-    const share = await this.findActiveSiteShare(tenantId, spaceId);
+    await this.getSpaceOrThrow(tenantId, spaceId);
+    const activeShare = await this.findActiveSiteShare(tenantId, spaceId);
+    const latestShare =
+      activeShare ?? (await this.findLatestSiteShare(tenantId, spaceId));
+    const metadata = this.readSiteBuilderMetadataFromShareExtraData(
+      latestShare?.extraData,
+    );
 
     return {
       draft: metadata.draft ?? null,
       published: metadata.published ?? null,
       publishedAt: metadata.publishedAt ?? null,
       publishedBy: metadata.publishedBy ?? null,
-      share: share
+      share: activeShare
         ? {
-            id: share.id,
-            publicId: share.publicId,
-            status: share.status,
-            visibility: share.visibility,
-            expiresAt: share.expiresAt?.toISOString() ?? null,
+            id: activeShare.id,
+            publicId: activeShare.publicId,
+            status: activeShare.status,
+            visibility: activeShare.visibility,
+            expiresAt: activeShare.expiresAt?.toISOString() ?? null,
           }
         : null,
     };
@@ -123,15 +172,42 @@ export class SiteBuilderService {
     actorUserId: string,
     inputConfig: unknown,
   ): Promise<SiteBuilderConfigV1> {
-    const space = await this.getSpaceOrThrow(tenantId, spaceId);
-    const metadata = this.readSiteBuilderMetadata(space.metadata);
+    await this.getSpaceOrThrow(tenantId, spaceId);
     const config = this.normalizeConfig(inputConfig, actorUserId);
+    const latestShare = await this.findLatestSiteShare(tenantId, spaceId);
+    const metadata = this.readSiteBuilderMetadataFromShareExtraData(
+      latestShare?.extraData,
+    );
 
     const nextMetadata = {
       ...metadata,
       draft: config,
     };
-    await this.updateSpaceSiteBuilderMetadata(space.id, actorUserId, space.metadata, nextMetadata);
+
+    if (!latestShare || latestShare.status === 'EXPIRED') {
+      await this.createShareUseCase.create({
+        tenantId,
+        type: 'CUSTOM',
+        targetId: buildSiteShareTargetId(spaceId),
+        visibility: 'PUBLIC',
+        status: 'REVOKED',
+        scopeType: 'SPACE',
+        scopeId: spaceId,
+        expiresAt: null,
+        password: null,
+        tokenEnabled: false,
+        extraData: this.buildSiteShareExtraData(null, spaceId, nextMetadata),
+        actorUserId,
+      });
+      return config;
+    }
+
+    await this.persistSiteBuilderMetadataToShare({
+      share: latestShare,
+      spaceId,
+      actorUserId,
+      metadata: nextMetadata,
+    });
 
     return config;
   }
@@ -143,7 +219,12 @@ export class SiteBuilderService {
     body: PublishSiteBuilderDto,
   ): Promise<PublishSiteBuilderResult> {
     const space = await this.getSpaceOrThrow(tenantId, spaceId);
-    const metadata = this.readSiteBuilderMetadata(space.metadata);
+    const activeShare = await this.findActiveSiteShare(tenantId, spaceId);
+    const latestShare =
+      activeShare ?? (await this.findLatestSiteShare(tenantId, spaceId));
+    const metadata = this.readSiteBuilderMetadataFromShareExtraData(
+      latestShare?.extraData,
+    );
 
     const draft = metadata.draft
       ? this.normalizeConfig(metadata.draft, actorUserId)
@@ -163,8 +244,8 @@ export class SiteBuilderService {
       publishedAt,
     };
 
-    let share = await this.findActiveSiteShare(tenantId, spaceId);
-    if (!share) {
+    let share = activeShare ?? latestShare;
+    if (!share || share.status === 'EXPIRED') {
       const parsedExpiresAt = parseDateFromInput(body.expiresAt ?? null);
       if (body.expiresAt != null && !parsedExpiresAt) {
         throw new BadRequestException('expiresAt invalid');
@@ -181,13 +262,27 @@ export class SiteBuilderService {
         expiresAt: parsedExpiresAt,
         password: body.password ?? null,
         tokenEnabled: body.tokenEnabled ?? false,
-        extraData: {
-          kind: SITE_BUILDER_KIND,
-          spaceId,
-        },
+        extraData: this.buildSiteShareExtraData(null, spaceId, {
+          ...metadata,
+          draft,
+          published: draft,
+          publishedAt,
+          publishedBy: actorUserId,
+        }),
         actorUserId,
       });
       share = created.share;
+    } else if (share.status !== 'ACTIVE') {
+      await this.updateShareStatusUseCase.update({
+        tenantId,
+        shareId: share.id,
+        status: 'ACTIVE',
+        actorUserId,
+      });
+      share = {
+        ...share,
+        status: 'ACTIVE',
+      };
     }
 
     await this.createShareSnapshotUseCase.create({
@@ -204,7 +299,13 @@ export class SiteBuilderService {
       publishedAt,
       publishedBy: actorUserId,
     };
-    await this.updateSpaceSiteBuilderMetadata(space.id, actorUserId, space.metadata, nextMetadata);
+
+    await this.persistSiteBuilderMetadataToShare({
+      share,
+      spaceId,
+      actorUserId,
+      metadata: nextMetadata,
+    });
 
     return {
       publicId: share.publicId,
@@ -218,29 +319,40 @@ export class SiteBuilderService {
     spaceId: string,
     actorUserId: string,
   ): Promise<{ ok: true; revoked: boolean }> {
-    const space = await this.getSpaceOrThrow(tenantId, spaceId);
-    const share = await this.findActiveSiteShare(tenantId, spaceId);
+    await this.getSpaceOrThrow(tenantId, spaceId);
+    const activeShare = await this.findActiveSiteShare(tenantId, spaceId);
+    const latestShare =
+      activeShare ?? (await this.findLatestSiteShare(tenantId, spaceId));
 
-    if (share) {
+    if (activeShare) {
       await this.updateShareStatusUseCase.update({
         tenantId,
-        shareId: share.id,
+        shareId: activeShare.id,
         status: 'REVOKED',
         actorUserId,
       });
     }
 
-    const metadata = this.readSiteBuilderMetadata(space.metadata);
-    const nextMetadata: SiteBuilderMetadata = {
-      ...metadata,
-      publishedAt: null,
-      publishedBy: null,
-    };
-    await this.updateSpaceSiteBuilderMetadata(space.id, actorUserId, space.metadata, nextMetadata);
+    const metadata = this.readSiteBuilderMetadataFromShareExtraData(
+      latestShare?.extraData,
+    );
+    if (latestShare) {
+      const nextMetadata: SiteBuilderMetadata = {
+        ...metadata,
+        publishedAt: null,
+        publishedBy: null,
+      };
+      await this.persistSiteBuilderMetadataToShare({
+        share: latestShare,
+        spaceId,
+        actorUserId,
+        metadata: nextMetadata,
+      });
+    }
 
     return {
       ok: true,
-      revoked: Boolean(share),
+      revoked: Boolean(activeShare),
     };
   }
 
@@ -248,28 +360,45 @@ export class SiteBuilderService {
     tenantId: string,
     spaceId: string,
   ): Promise<Share | null> {
+    const found = await this.findSiteShares(tenantId, spaceId, 'ACTIVE');
+    return found[0] ?? null;
+  }
+
+  private async findLatestSiteShare(
+    tenantId: string,
+    spaceId: string,
+  ): Promise<Share | null> {
+    const found = await this.findSiteShares(tenantId, spaceId, null);
+    return found[0] ?? null;
+  }
+
+  private async findSiteShares(
+    tenantId: string,
+    spaceId: string,
+    status: ShareStatus | null,
+  ): Promise<Share[]> {
     const targetId = buildSiteShareTargetId(spaceId);
     const result = await this.listSharesUseCase.list({
       tenantId,
       type: 'CUSTOM',
       targetId,
-      status: 'ACTIVE',
+      status,
       visibility: null,
       scopeId: null,
       scopeType: null,
       createdBy: null,
       skip: 0,
-      take: 20,
+      take: 200,
     });
 
-    const found = result.items.find((item) => {
-      if (item.targetId !== targetId) return false;
-      if (item.type !== 'CUSTOM') return false;
-      if (!isObjectLike(item.extraData)) return false;
-      return item.extraData.kind === SITE_BUILDER_KIND;
-    });
-
-    return found ?? null;
+    return result.items
+      .filter((item) => {
+        if (item.targetId !== targetId) return false;
+        if (item.type !== 'CUSTOM') return false;
+        if (!isObjectLike(item.extraData)) return false;
+        return item.extraData.kind === SITE_BUILDER_KIND;
+      })
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   }
 
   private async resolveBindData(
@@ -294,6 +423,15 @@ export class SiteBuilderService {
         items: Array<{ id: string; title: string; updatedAt: string }>;
       };
       contact: { pageId: string | null };
+      customMenus: Array<{
+        id: string;
+        label: string;
+        type: SiteBuilderCustomMenuType;
+        style: 'list' | 'card';
+        pageId: string | null;
+        pageIds: string[];
+        pageCovers: Record<string, string>;
+      }>;
     };
   }> {
     const pageMap: Record<
@@ -310,6 +448,8 @@ export class SiteBuilderService {
       config.menus.home.enabled ? config.menus.home.pageId : null,
       config.menus.about.enabled ? config.menus.about.pageId : null,
       config.menus.contact.enabled ? config.menus.contact.pageId : null,
+      ...config.customMenus.map((menu) => menu.pageId),
+      ...config.customMenus.flatMap((menu) => menu.pageIds),
     ].filter((id): id is string => Boolean(id));
 
     let blogCandidateIds: string[] = [];
@@ -360,7 +500,9 @@ export class SiteBuilderService {
           Array.from(idsInSpace),
         )
       : [];
-    const publishedById = new Map(publishedPages.map((page) => [page.id, page]));
+    const publishedById = new Map(
+      publishedPages.map((page) => [page.id, page]),
+    );
 
     for (const page of publishedPages) {
       pageMap[page.id] = {
@@ -387,7 +529,10 @@ export class SiteBuilderService {
           updatedAt: page.updatedAt.toISOString(),
         };
       })
-      .filter((item): item is { id: string; title: string; updatedAt: string } => Boolean(item));
+      .filter(
+        (item): item is { id: string; title: string; updatedAt: string } =>
+          Boolean(item),
+      );
 
     return {
       pageMap,
@@ -399,27 +544,71 @@ export class SiteBuilderService {
           items: blogItems,
         },
         contact: { pageId: safePageId(config.menus.contact.pageId) },
+        customMenus: config.customMenus.map((menu) => ({
+          id: menu.id,
+          label: menu.label,
+          type: menu.type,
+          style: menu.style,
+          pageId: menu.type === 'SINGLE_PAGE' ? safePageId(menu.pageId) : null,
+          pageIds:
+            menu.type === 'PAGE_LIST'
+              ? menu.pageIds
+                  .map((id) => safePageId(id))
+                  .filter((id): id is string => Boolean(id))
+              : [],
+          pageCovers:
+            menu.type === 'PAGE_LIST'
+              ? Object.fromEntries(
+                  menu.pageIds
+                    .map((id) => safePageId(id))
+                    .filter((id): id is string => Boolean(id))
+                    .map((id) => [id, menu.pageCovers[id]])
+                    .filter(
+                      (entry): entry is [string, string] =>
+                        typeof entry[1] === 'string' &&
+                        entry[1].trim().length > 0,
+                    ),
+                )
+              : {},
+        })),
       },
     };
   }
 
-  private normalizeConfig(input: unknown, actorUserId: string): SiteBuilderConfigV1 {
+  private normalizeConfig(
+    input: unknown,
+    actorUserId: string,
+  ): SiteBuilderConfigV1 {
     if (!isObjectLike(input)) {
       throw new BadRequestException('config invalid');
     }
 
+    const defaults = defaultConfig(actorUserId);
     const themeInput = isObjectLike(input.theme) ? input.theme : {};
     const modeRaw = toTrimmedString(themeInput.mode);
     const mode = modeRaw === 'dark' || modeRaw === 'system' ? modeRaw : 'light';
 
-    const primaryColorRaw = toTrimmedString(themeInput.primaryColor) ?? '#2563eb';
+    const primaryColorRaw =
+      toTrimmedString(themeInput.primaryColor) ?? '#2563eb';
     if (!isHexColor(primaryColorRaw)) {
       throw new BadRequestException('theme.primaryColor invalid');
     }
 
-    const defaultMenus = defaultConfig(actorUserId).menus;
+    const defaultMenus = defaults.menus;
     const menusInput = isObjectLike(input.menus) ? input.menus : {};
     const menus = this.normalizeMenus(menusInput, defaultMenus);
+    const fallbackCustomMenus = this.buildCustomMenusFromMenus(
+      menus,
+      defaults.customMenus,
+    );
+    const customMenus = this.normalizeCustomMenus(
+      Array.isArray(input.customMenus) ? input.customMenus : [],
+      fallbackCustomMenus,
+    );
+    const branding = this.normalizeBranding(
+      isObjectLike(input.branding) ? input.branding : {},
+      defaults.branding,
+    );
 
     return {
       version: 1,
@@ -429,6 +618,8 @@ export class SiteBuilderService {
         primaryColor: primaryColorRaw,
       },
       menus,
+      customMenus,
+      branding,
       updatedAt: new Date().toISOString(),
       updatedBy: actorUserId,
     };
@@ -461,7 +652,9 @@ export class SiteBuilderService {
         menu.enabled === undefined ? base.enabled : Boolean(menu.enabled);
       const sourceRaw = toTrimmedString(menu.source);
       const source: SiteBuilderBlogSource =
-        sourceRaw === 'MANUAL_PAGE_IDS' ? 'MANUAL_PAGE_IDS' : 'LATEST_PUBLISHED';
+        sourceRaw === 'MANUAL_PAGE_IDS'
+          ? 'MANUAL_PAGE_IDS'
+          : 'LATEST_PUBLISHED';
       const styleRaw = toTrimmedString(menu.style);
       const style = styleRaw === 'list' ? 'list' : 'card';
       const pageIds = Array.isArray(menu.pageIds)
@@ -473,7 +666,11 @@ export class SiteBuilderService {
             ),
           )
         : [];
-      const limit = clamp(Number(menu.limit ?? base.limit), 1, MAX_PAGE_LIST_LIMIT);
+      const limit = clamp(
+        Number(menu.limit ?? base.limit),
+        1,
+        MAX_PAGE_LIST_LIMIT,
+      );
       return {
         enabled,
         source,
@@ -491,11 +688,186 @@ export class SiteBuilderService {
     };
   }
 
-  private readSiteBuilderMetadata(input: unknown): SiteBuilderMetadata {
-    if (!isObjectLike(input)) return {};
-    if (!isObjectLike(input.siteBuilder)) return {};
+  private normalizeBranding(
+    input: Record<string, unknown>,
+    fallback: SiteBuilderBranding,
+  ): SiteBuilderBranding {
+    const logoUrlRaw = toTrimmedString(input.logoUrl);
+    if (!logoUrlRaw) return { logoUrl: fallback.logoUrl ?? null };
+    if (logoUrlRaw.length > MAX_LOGO_URL_LENGTH) {
+      throw new BadRequestException('branding.logoUrl too large');
+    }
+    return { logoUrl: logoUrlRaw };
+  }
 
-    const siteBuilder = input.siteBuilder as Record<string, unknown>;
+  private buildCustomMenusFromMenus(
+    menus: SiteBuilderMenus,
+    fallback: SiteBuilderCustomMenuConfig[],
+  ): SiteBuilderCustomMenuConfig[] {
+    const entries: SiteBuilderCustomMenuConfig[] = [];
+    if (menus.home.enabled) {
+      entries.push({
+        id: 'menu-home',
+        label: 'Home',
+        type: 'SINGLE_PAGE',
+        style: 'card',
+        pageId: menus.home.pageId,
+        pageIds: [],
+        pageCovers: {},
+      });
+    }
+    if (menus.about.enabled) {
+      entries.push({
+        id: 'menu-about',
+        label: 'About',
+        type: 'SINGLE_PAGE',
+        style: 'card',
+        pageId: menus.about.pageId,
+        pageIds: [],
+        pageCovers: {},
+      });
+    }
+    if (menus.contact.enabled) {
+      entries.push({
+        id: 'menu-contact',
+        label: 'Contact',
+        type: 'SINGLE_PAGE',
+        style: 'card',
+        pageId: menus.contact.pageId,
+        pageIds: [],
+        pageCovers: {},
+      });
+    }
+    if (entries.length) return entries;
+    return fallback.map((item) => ({ ...item }));
+  }
+
+  private normalizeCustomMenus(
+    input: unknown[],
+    fallback: SiteBuilderCustomMenuConfig[],
+  ): SiteBuilderCustomMenuConfig[] {
+    const items: SiteBuilderCustomMenuConfig[] = [];
+    const seen = new Set<string>();
+    const rawItems = input.slice(0, MAX_CUSTOM_MENUS);
+
+    for (let index = 0; index < rawItems.length; index += 1) {
+      const raw = rawItems[index];
+      if (!isObjectLike(raw)) continue;
+
+      const baseId = toTrimmedString(raw.id) ?? `menu-${index + 1}`;
+      let id = baseId.slice(0, 64);
+      if (!id) continue;
+      if (seen.has(id)) {
+        let counter = 2;
+        let nextId = `${id}-${counter}`;
+        while (seen.has(nextId)) {
+          counter += 1;
+          nextId = `${id}-${counter}`;
+        }
+        id = nextId;
+      }
+
+      const rawLabel = toTrimmedString(raw.label) ?? `Menu ${items.length + 1}`;
+      const label = rawLabel.slice(0, MAX_MENU_LABEL_LENGTH);
+      const typeRaw = toTrimmedString(raw.type);
+      const type: SiteBuilderCustomMenuType =
+        typeRaw === 'PAGE_LIST' ? 'PAGE_LIST' : 'SINGLE_PAGE';
+      const styleRaw = toTrimmedString(raw.style);
+      const style = styleRaw === 'list' ? 'list' : 'card';
+      const pageId =
+        type === 'SINGLE_PAGE' ? toTrimmedString(raw.pageId) : null;
+      const pageIds =
+        type === 'PAGE_LIST' && Array.isArray(raw.pageIds)
+          ? Array.from(
+              new Set(
+                raw.pageIds
+                  .map((id) => toTrimmedString(id))
+                  .filter((id): id is string => Boolean(id)),
+              ),
+            ).slice(0, MAX_PAGE_LIST_LIMIT)
+          : [];
+      const pageCovers =
+        type === 'PAGE_LIST' && isObjectLike(raw.pageCovers)
+          ? Object.fromEntries(
+              Object.entries(raw.pageCovers)
+                .map(
+                  ([pageId, coverUrl]) =>
+                    [
+                      toTrimmedString(pageId),
+                      toTrimmedString(coverUrl),
+                    ] as const,
+                )
+                .filter(
+                  (entry): entry is [string, string] =>
+                    entry[0] !== null &&
+                    entry[1] !== null &&
+                    entry[1].length > 0 &&
+                    pageIds.includes(entry[0]) &&
+                    entry[1].length <= MAX_LOGO_URL_LENGTH,
+                ),
+            )
+          : {};
+      seen.add(id);
+      items.push({
+        id,
+        label,
+        type,
+        style,
+        pageId,
+        pageIds,
+        pageCovers,
+      });
+    }
+
+    if (items.length) return items;
+
+    return fallback.slice(0, MAX_CUSTOM_MENUS).map((item, index) => {
+      const label = (item.label || `Menu ${index + 1}`).slice(
+        0,
+        MAX_MENU_LABEL_LENGTH,
+      );
+      return {
+        id: item.id || `menu-${index + 1}`,
+        label,
+        type: item.type === 'PAGE_LIST' ? 'PAGE_LIST' : 'SINGLE_PAGE',
+        style: item.style === 'list' ? 'list' : 'card',
+        pageId: item.pageId ?? null,
+        pageIds: Array.isArray(item.pageIds)
+          ? item.pageIds
+              .map((id) => toTrimmedString(id))
+              .filter((id): id is string => Boolean(id))
+          : [],
+        pageCovers:
+          item.type === 'PAGE_LIST' && isObjectLike(item.pageCovers)
+            ? Object.fromEntries(
+                Object.entries(item.pageCovers)
+                  .map(
+                    ([pageId, coverUrl]) =>
+                      [
+                        toTrimmedString(pageId),
+                        toTrimmedString(coverUrl),
+                      ] as const,
+                  )
+                  .filter(
+                    (entry): entry is [string, string] =>
+                      entry[0] !== null &&
+                      entry[1] !== null &&
+                      entry[1].length > 0 &&
+                      entry[1].length <= MAX_LOGO_URL_LENGTH,
+                  ),
+              )
+            : {},
+      };
+    });
+  }
+
+  private readSiteBuilderMetadataFromShareExtraData(
+    input: unknown,
+  ): SiteBuilderMetadata {
+    if (!isObjectLike(input)) return {};
+    const siteBuilder = isObjectLike(input.siteBuilder)
+      ? input.siteBuilder
+      : input;
     return {
       draft: this.readConfigMaybe(siteBuilder.draft),
       published: this.readConfigMaybe(siteBuilder.published),
@@ -507,30 +879,53 @@ export class SiteBuilderService {
   private readConfigMaybe(input: unknown): SiteBuilderConfigV1 | undefined {
     if (!isObjectLike(input)) return undefined;
     try {
-      return this.normalizeConfig(input, toTrimmedString(input.updatedBy) ?? 'system');
+      return this.normalizeConfig(
+        input,
+        toTrimmedString(input.updatedBy) ?? 'system',
+      );
     } catch {
       return undefined;
     }
   }
 
-  private async updateSpaceSiteBuilderMetadata(
+  private buildSiteShareExtraData(
+    baseExtraData: unknown,
     spaceId: string,
-    actorUserId: string,
-    metadataRaw: unknown,
     siteBuilder: SiteBuilderMetadata,
-  ): Promise<void> {
-    const metadata = isObjectLike(metadataRaw) ? { ...metadataRaw } : {};
+  ): Record<string, unknown> {
+    const extraData = isObjectLike(baseExtraData) ? { ...baseExtraData } : {};
     const nextSiteBuilder: Record<string, unknown> = {};
     if (siteBuilder.draft) nextSiteBuilder.draft = siteBuilder.draft;
-    if (siteBuilder.published) nextSiteBuilder.published = siteBuilder.published;
+    if (siteBuilder.published)
+      nextSiteBuilder.published = siteBuilder.published;
     nextSiteBuilder.publishedAt = siteBuilder.publishedAt ?? null;
     nextSiteBuilder.publishedBy = siteBuilder.publishedBy ?? null;
-    metadata.siteBuilder = nextSiteBuilder;
-    await this.prisma.space.update({
-      where: { id: spaceId },
+
+    extraData.kind = SITE_BUILDER_KIND;
+    extraData.spaceId = spaceId;
+    extraData.siteBuilder = nextSiteBuilder;
+    return extraData;
+  }
+
+  private async persistSiteBuilderMetadataToShare(params: {
+    share: Share;
+    spaceId: string;
+    actorUserId: string;
+    metadata: SiteBuilderMetadata;
+    status?: ShareStatus;
+  }): Promise<void> {
+    const nextExtraData = this.buildSiteShareExtraData(
+      params.share.extraData ?? null,
+      params.spaceId,
+      params.metadata,
+    );
+
+    await this.prisma.externalShare.update({
+      where: { id: params.share.id },
       data: {
-        metadata: metadata as Prisma.InputJsonValue,
-        updatedBy: actorUserId,
+        extraData: nextExtraData as Prisma.InputJsonValue,
+        updatedBy: params.actorUserId,
+        status: params.status,
       },
     });
   }
@@ -549,7 +944,6 @@ export class SiteBuilderService {
         id: true,
         name: true,
         description: true,
-        metadata: true,
       },
     });
     if (!space) throw new NotFoundException('space not found');

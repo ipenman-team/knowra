@@ -19,6 +19,22 @@ export type SiteBuilderBlogMenu = {
   limit: number;
 };
 
+export type SiteBuilderCustomMenuType = 'SINGLE_PAGE' | 'PAGE_LIST';
+
+export type SiteBuilderCustomMenu = {
+  id: string;
+  label: string;
+  type: SiteBuilderCustomMenuType;
+  style: SiteBuilderBlogStyle;
+  pageId: string | null;
+  pageIds: string[];
+  pageCovers: Record<string, string>;
+};
+
+export type SiteBuilderBranding = {
+  logoUrl: string | null;
+};
+
 export type SiteBuilderMenus = {
   home: SiteBuilderPageMenu;
   about: SiteBuilderPageMenu;
@@ -34,6 +50,8 @@ export type SiteBuilderConfig = {
     primaryColor: string;
   };
   menus: SiteBuilderMenus;
+  customMenus: SiteBuilderCustomMenu[];
+  branding: SiteBuilderBranding;
   updatedAt: string;
   updatedBy: string;
 };

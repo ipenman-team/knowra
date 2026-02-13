@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type {
   SiteTemplateBlogItem,
@@ -76,6 +77,18 @@ export function KnowledgeBlogMenu({
               'rounded-md border bg-card p-4 text-left transition-colors hover:bg-accent',
             )}
           >
+            {item.coverUrl ? (
+              <div className="mb-3 overflow-hidden rounded-md border bg-muted/20">
+                <Image
+                  src={item.coverUrl}
+                  alt={`${item.title} cover`}
+                  width={1200}
+                  height={630}
+                  unoptimized
+                  className="h-40 w-full object-cover"
+                />
+              </div>
+            ) : null}
             <div className="line-clamp-2 text-lg font-semibold">{item.title}</div>
             <div className="mt-2 text-xs text-muted-foreground">
               发布于 {formatDateTime(item.updatedAt)}
@@ -94,13 +107,27 @@ export function KnowledgeBlogMenu({
           key={item.id}
           type="button"
           onClick={() => onSelectPageId(item.id)}
-          className={cn(
-            'w-full rounded-md border bg-card px-4 py-3 text-left transition-colors hover:bg-accent',
-          )}
+          className={cn('w-full rounded-md border bg-card p-3 text-left transition-colors hover:bg-accent')}
         >
-          <div className="font-medium">{item.title}</div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            发布于 {formatDateTime(item.updatedAt)}
+          <div className="flex items-start gap-3">
+            {item.coverUrl ? (
+              <div className="h-20 w-32 shrink-0 overflow-hidden rounded-md border bg-muted/20">
+                <Image
+                  src={item.coverUrl}
+                  alt={`${item.title} cover`}
+                  width={320}
+                  height={200}
+                  unoptimized
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="line-clamp-2 font-medium">{item.title}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                发布于 {formatDateTime(item.updatedAt)}
+              </div>
+            </div>
           </div>
           <div className="mt-3 text-sm font-medium text-primary">Read More &gt;</div>
         </button>

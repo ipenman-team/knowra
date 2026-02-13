@@ -9,6 +9,7 @@ export { workbenchApi } from './workbench';
 export { dailyCopiesApi } from './daily-copies';
 export { sharesApi, type ShareDto } from './shares';
 export { siteBuilderApi } from './site-builder';
+export { filesApi } from './files';
 export type { CreatePageInput, PageDto, SavePageInput } from './pages';
 export type { TaskDto as ApiTaskDto } from './tasks';
 export type { SpaceDto } from './spaces/types';
