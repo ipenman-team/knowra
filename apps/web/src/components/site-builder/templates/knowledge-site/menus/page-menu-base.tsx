@@ -40,7 +40,6 @@ export function KnowledgePageMenuBase({
   const slateValue = parseContentToSlateValue(page.content);
   return (
     <section className="space-y-4 rounded-md bg-card p-5">
-      <EditorTitleDisplay title={page.title || '无标题文档'} />
       <SlateEditor
         className="border-none"
         key={`${page.id}-${page.updatedAt}`}

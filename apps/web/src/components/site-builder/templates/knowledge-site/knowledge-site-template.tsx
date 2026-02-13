@@ -100,11 +100,6 @@ export function KnowledgeSiteTemplate({
             <div className="truncate text-lg font-semibold">
               {data.siteName}
             </div>
-            <div className="text-xs text-muted-foreground">
-              {data.publishedAt
-                ? `发布于 ${formatDateTime(data.publishedAt)}`
-                : '当前为草稿预览'}
-            </div>
           </div>
           <nav className="min-w-0 overflow-x-auto">
             <div className="flex items-center gap-1 whitespace-nowrap">

@@ -173,6 +173,7 @@ export function EditSpaceModal(props: {
   return (
     <Modal
       open={open}
+      className="max-w-lg"
       title="编辑空间"
       onOpenChange={onOpenChange}
       onConfirm={handleSubmit(handleUpdate)}
