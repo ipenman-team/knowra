@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { publicApiClient } from './public-client';
 import { PageDto } from './pages';
 
 export type ShareScopeType = 'SPACE' | 'TENANT';
@@ -68,10 +69,10 @@ export const sharesApi = {
   },
 
   getPublicAccess: async (publicId: string, password?: string) => {
-    const res = await apiClient.post<{
+    const res = await publicApiClient.post<{
       ok: boolean;
       share: ShareDto;
-      snapshot?: any;
+      snapshot?: unknown;
     }>(`/shares/public/${publicId}/access`, { password });
     return res.data;
   }

@@ -6,7 +6,13 @@ import { CopyIcon, ExternalLinkIcon, Loader2 } from 'lucide-react';
 import { sharesApi, ShareDto, spacesApi, pagesApi } from '@/lib/api';
 import { pageVersionsApi } from '@/lib/api/page-versions';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,7 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { SpaceShareSnapshotPage, SpaceShareSnapshotPayload } from '@/components/share/types';
+import type {
+  SpaceShareSnapshotPage,
+  SpaceShareSnapshotPayload,
+} from '@/components/share/types';
 import { toast } from 'sonner';
 
 type AccessMode = 'public' | 'password';
@@ -108,12 +117,13 @@ export default function SpaceSharePage() {
         scopeId: spaceId,
       });
 
-      const activeShare = res.items.find(
-        (item) =>
-          item.type === 'SPACE' &&
-          item.targetId === spaceId &&
-          item.status === 'ACTIVE',
-      ) ?? null;
+      const activeShare =
+        res.items.find(
+          (item) =>
+            item.type === 'SPACE' &&
+            item.targetId === spaceId &&
+            item.status === 'ACTIVE',
+        ) ?? null;
 
       setShare(activeShare);
 
@@ -137,78 +147,80 @@ export default function SpaceSharePage() {
     fetchShare();
   }, [fetchShare, spaceId]);
 
-  const buildSnapshotPayload = useCallback(async (): Promise<SpaceShareSnapshotPayload> => {
-    const [space, listedPages] = await Promise.all([
-      spacesApi.get(spaceId),
-      listSpacePagesForSnapshot(spaceId),
-    ]);
+  const buildSnapshotPayload =
+    useCallback(async (): Promise<SpaceShareSnapshotPayload> => {
+      const [space, listedPages] = await Promise.all([
+        spacesApi.get(spaceId),
+        listSpacePagesForSnapshot(spaceId),
+      ]);
 
-    const pagesWithContent = await Promise.all(
-      listedPages.map(async (page): Promise<SpaceShareSnapshotPage | null> => {
-        if (page.latestPublishedVersionId) {
-          try {
-            const published = await pageVersionsApi.getVersion(
-              page.id,
-              page.latestPublishedVersionId,
-            );
-            return {
-              id: page.id,
-              title: published.title || page.title,
-              parentIds: page.parentIds,
-              content: published.content,
-              updatedAt: published.updatedAt,
-            };
-          } catch {
-            // fallback to current page below
-          }
-        }
+      const pagesWithContent = await Promise.all(
+        listedPages.map(
+          async (page): Promise<SpaceShareSnapshotPage | null> => {
+            if (page.latestPublishedVersionId) {
+              try {
+                const published = await pageVersionsApi.getVersion(
+                  page.id,
+                  page.latestPublishedVersionId,
+                );
+                return {
+                  id: page.id,
+                  title: published.title || page.title,
+                  parentIds: page.parentIds,
+                  content: published.content,
+                  updatedAt: published.updatedAt,
+                };
+              } catch {
+                // fallback to current page below
+              }
+            }
 
-        try {
-          const detail = await pagesApi.get(spaceId, page.id);
-          return {
-            id: detail.id,
-            title: detail.title,
-            parentIds: detail.parentIds ?? [],
-            content: detail.content,
-            updatedAt: detail.updatedAt,
-          };
-        } catch {
-          return {
-            id: page.id,
-            title: page.title,
-            parentIds: page.parentIds,
-            content: null,
-            updatedAt: page.updatedAt,
-          };
-        }
-      }),
-    );
+            try {
+              const detail = await pagesApi.get(spaceId, page.id);
+              return {
+                id: detail.id,
+                title: detail.title,
+                parentIds: detail.parentIds ?? [],
+                content: detail.content,
+                updatedAt: detail.updatedAt,
+              };
+            } catch {
+              return {
+                id: page.id,
+                title: page.title,
+                parentIds: page.parentIds,
+                content: null,
+                updatedAt: page.updatedAt,
+              };
+            }
+          },
+        ),
+      );
 
-    const pages = pagesWithContent.filter(
-      (item): item is SpaceShareSnapshotPage => Boolean(item),
-    );
+      const pages = pagesWithContent.filter(
+        (item): item is SpaceShareSnapshotPage => Boolean(item),
+      );
 
-    const defaultPageId =
-      pages.find((page) => page.parentIds.length === 0)?.id ??
-      pages[0]?.id ??
-      null;
+      const defaultPageId =
+        pages.find((page) => page.parentIds.length === 0)?.id ??
+        pages[0]?.id ??
+        null;
 
-    return {
-      space: {
-        id: space.id,
-        name: space.name,
-        description: space.description,
-        color: space.color,
-      },
-      pages,
-      defaultPageId,
-    };
-  }, [spaceId]);
+      return {
+        space: {
+          id: space.id,
+          name: space.name,
+          description: space.description,
+          color: space.color,
+        },
+        pages,
+        defaultPageId,
+      };
+    }, [spaceId]);
 
   const createShareWithSnapshot = useCallback(
     async (replaceShareId?: string) => {
-      const password =
-        accessMode === 'password' ? passwordInput.trim() : null;
+      const password = accessMode === 'password' ? passwordInput.trim() : null;
 
       if (accessMode === 'password' && !password) {
         throw new Error('password_required');
@@ -236,7 +248,9 @@ export default function SpaceSharePage() {
         return createdShare;
       } catch (error) {
         if (createdShare) {
-          await sharesApi.update(createdShare.id, { status: 'REVOKED' }).catch(() => null);
+          await sharesApi
+            .update(createdShare.id, { status: 'REVOKED' })
+            .catch(() => null);
         }
         throw error;
       }
@@ -349,19 +363,15 @@ export default function SpaceSharePage() {
       </div>
 
       <div className="flex-1 overflow-auto p-6">
-        <Card className="max-w-3xl">
-          <CardHeader>
-            <CardTitle>共享与访问设置</CardTitle>
-            <CardDescription>
-              开启后可将整个空间以只读方式分享给外部访问者。
-            </CardDescription>
-          </CardHeader>
+        <Card className="max-w-3xl border-none shadow-none">
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
-              <div className="space-y-1">
+              <div className="space-y-1 pt-4">
                 <Label>开启空间共享</Label>
                 <p className="text-sm text-muted-foreground">
-                  {share ? '当前已开启，可复制链接发送给外部用户。' : '当前仅空间成员可见。'}
+                  {share
+                    ? '当前已开启，可复制链接发送给外部用户。'
+                    : '当前仅空间成员可见。'}
                 </p>
               </div>
               <Switch
@@ -377,82 +387,70 @@ export default function SpaceSharePage() {
                 正在加载共享配置...
               </div>
             ) : null}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>访问方式</Label>
-                <Select
-                  value={accessMode}
-                  onValueChange={(value: AccessMode) => setAccessMode(value)}
-                  disabled={submitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择访问方式" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">公开访问</SelectItem>
-                    <SelectItem value="password">密码访问</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>有效期</Label>
-                <Select
-                  value={expirePreset}
-                  onValueChange={(value: ExpirePreset) => setExpirePreset(value)}
-                  disabled={submitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择有效期" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="never">永久有效</SelectItem>
-                    <SelectItem value="7d">7 天有效</SelectItem>
-                    <SelectItem value="30d">30 天有效</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {accessMode === 'password' ? (
-              <div className="space-y-2">
-                <Label>访问密码</Label>
-                <Input
-                  type="text"
-                  placeholder="请输入访问密码（更新设置时生效）"
-                  value={passwordInput}
-                  onChange={(event) => setPasswordInput(event.target.value)}
-                  disabled={submitting}
-                />
-              </div>
-            ) : null}
-
-            {share ? (
+            {share && (
               <>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={handleRegenerateShare}
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    更新共享设置
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleRefreshSnapshot}
-                    disabled={submitting}
-                  >
-                    刷新共享内容
-                  </Button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>访问方式</Label>
+                    <Select
+                      value={accessMode}
+                      onValueChange={(value: AccessMode) =>
+                        setAccessMode(value)
+                      }
+                      disabled={submitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择访问方式" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">公开访问</SelectItem>
+                        <SelectItem value="password">密码访问</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>有效期</Label>
+                    <Select
+                      value={expirePreset}
+                      onValueChange={(value: ExpirePreset) =>
+                        setExpirePreset(value)
+                      }
+                      disabled={submitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择有效期" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="never">永久有效</SelectItem>
+                        <SelectItem value="7d">7 天有效</SelectItem>
+                        <SelectItem value="30d">30 天有效</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {accessMode === 'password' ? (
+                  <div className="space-y-2">
+                    <Label>访问密码</Label>
+                    <Input
+                      type="text"
+                      placeholder="请输入访问密码（更新设置时生效）"
+                      value={passwordInput}
+                      onChange={(event) => setPasswordInput(event.target.value)}
+                      disabled={submitting}
+                    />
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label>共享链接</Label>
                   <div className="flex flex-wrap gap-2">
-                    <Input value={shareUrl} readOnly className="min-w-[240px] flex-1" />
+                    <Input
+                      value={shareUrl}
+                      readOnly
+                      className="min-w-[240px] flex-1"
+                    />
                     <Button
                       variant="outline"
                       size="icon"
@@ -473,13 +471,6 @@ export default function SpaceSharePage() {
                   </p>
                 </div>
               </>
-            ) : (
-              <Button onClick={handleEnableShare} disabled={loading || submitting}>
-                {submitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                生成共享链接
-              </Button>
             )}
           </CardContent>
         </Card>

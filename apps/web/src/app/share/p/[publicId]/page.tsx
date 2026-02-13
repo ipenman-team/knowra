@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { sharesApi, ShareDto } from '@/lib/api';
+import type { ShareDto } from '@/lib/api';
+import { publicSharesApi } from '@/lib/api/public-shares';
 import { PublicPageViewer } from '@/components/share/public-page-viewer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,13 +11,63 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
+type ShareSnapshot = { payload?: unknown; createdAt?: string };
+
+function extractErrorStatus(error: unknown): number | undefined {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof (error as { status?: unknown }).status === 'number'
+  ) {
+    return (error as { status: number }).status;
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as { response?: unknown }).response === 'object' &&
+    (error as { response?: unknown }).response !== null
+  ) {
+    const response = (error as { response: { status?: unknown } }).response;
+    if (typeof response.status === 'number') return response.status;
+  }
+
+  return undefined;
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as { response?: unknown }).response === 'object' &&
+    (error as { response?: unknown }).response !== null
+  ) {
+    const response = (error as { response: { data?: unknown } }).response;
+    if (
+      typeof response.data === 'object' &&
+      response.data !== null &&
+      'message' in response.data &&
+      typeof (response.data as { message?: unknown }).message === 'string'
+    ) {
+      return (response.data as { message: string }).message;
+    }
+  }
+
+  return '';
+}
+
 export default function PublicSharePage() {
   const params = useParams();
   const publicId = params.publicId as string;
   
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState<ShareDto | null>(null);
-  const [snapshot, setSnapshot] = useState<any>(null);
+  const [snapshot, setSnapshot] = useState<ShareSnapshot | null>(null);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,14 +76,13 @@ export default function PublicSharePage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await sharesApi.getPublicAccess(publicId, pwd);
+      const res = await publicSharesApi.getPublicAccess(publicId, pwd);
       setShare(res.share);
-      setSnapshot(res.snapshot);
+      setSnapshot(res.snapshot ?? null);
       setPasswordRequired(false);
-    } catch (err: any) {
-      // Check if error is "password required"
-      const status = err?.response?.status;
-      const msg = err?.response?.data?.message || err.message || '';
+    } catch (error: unknown) {
+      const status = extractErrorStatus(error);
+      const msg = extractErrorMessage(error);
       
       // 401 Unauthorized is returned for password required/invalid
       if (status === 401 || msg.includes('password')) {
