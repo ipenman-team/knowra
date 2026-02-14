@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type CSSProperties } from "react";
 import { createEditor, Descendant, Element as SlateElement } from "slate";
 import { withHistory } from "slate-history";
 import {
@@ -97,15 +97,28 @@ export function serializeSlateValue(value: SlateValue): string {
 
 function Leaf(props: RenderLeafProps) {
   const { attributes, children, leaf } = props;
-  const anyLeaf = leaf as unknown as { bold?: boolean; italic?: boolean; underline?: boolean };
+  const anyLeaf = leaf as unknown as {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    textColor?: string;
+    backgroundColor?: string;
+  };
 
   let next = children;
   if (anyLeaf.bold) next = <strong>{next}</strong>;
   if (anyLeaf.italic) next = <em>{next}</em>;
   if (anyLeaf.underline) next = <u>{next}</u>;
 
+  const inlineStyle: CSSProperties = {};
+  const textColor = normalizeLeafColor(anyLeaf.textColor);
+  if (textColor) inlineStyle.color = textColor;
+
+  const backgroundColor = normalizeLeafColor(anyLeaf.backgroundColor);
+  if (backgroundColor) inlineStyle.backgroundColor = backgroundColor;
+
   return (
-    <span {...attributes}>
+    <span {...attributes} style={inlineStyle}>
       {next}
     </span>
   );
@@ -174,6 +187,12 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
         </p>
       );
   }
+}
+
+function normalizeLeafColor(value?: string) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }
 
 export function SlateEditor(props: {

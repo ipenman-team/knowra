@@ -3,6 +3,7 @@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+import { BackgroundColorPluginView } from "./background-color/view";
 import { BlockQuotePluginView } from "./block-quote/view";
 import { BoldPluginView } from "./bold/view";
 import { BulletedListPluginView } from "./bulleted-list/view";
@@ -14,6 +15,7 @@ import { ImageBlockPluginView } from "./image-block/view";
 import { ItalicPluginView } from "./italic/view";
 import { NumberedListPluginView } from "./numbered-list/view";
 import { RedoPluginView } from "./redo/view";
+import { TextColorPluginView } from "./text-color/view";
 import { UnderlinePluginView } from "./underline/view";
 import { UndoPluginView } from "./undo/view";
 
@@ -42,6 +44,8 @@ export function EditorToolbar(props: { disabled?: boolean }) {
       <BoldPluginView disabled={props.disabled} />
       <ItalicPluginView disabled={props.disabled} />
       <UnderlinePluginView disabled={props.disabled} />
+      <TextColorPluginView disabled={props.disabled} />
+      <BackgroundColorPluginView disabled={props.disabled} />
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 

@@ -11,6 +11,7 @@ export type BlockFormat =
   | "bulleted-list";
 
 export type MarkFormat = "bold" | "italic" | "underline";
+export type ColorMarkFormat = "textColor" | "backgroundColor";
 
 const LIST_TYPES: BlockFormat[] = ["numbered-list", "bulleted-list"];
 
@@ -23,6 +24,25 @@ export function toggleMark(editor: Editor, format: MarkFormat) {
   const active = isMarkActive(editor, format);
   if (active) Editor.removeMark(editor, format);
   else Editor.addMark(editor, format, true);
+}
+
+export function getColorMark(editor: Editor, format: ColorMarkFormat) {
+  const marks = Editor.marks(editor) as Record<string, unknown> | null;
+  const value = marks?.[format];
+
+  if (typeof value !== "string") return null;
+  const nextValue = value.trim();
+  return nextValue.length > 0 ? nextValue : null;
+}
+
+export function setColorMark(editor: Editor, format: ColorMarkFormat, value: string | null) {
+  const nextValue = value?.trim() ?? "";
+  if (nextValue) {
+    Editor.addMark(editor, format, nextValue);
+    return;
+  }
+
+  Editor.removeMark(editor, format);
 }
 
 export function isBlockActive(editor: Editor, format: BlockFormat) {
