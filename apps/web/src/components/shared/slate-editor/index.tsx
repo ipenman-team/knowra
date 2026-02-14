@@ -1,44 +1,30 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { createEditor, Descendant, Editor, Element as SlateElement, Transforms } from "slate";
+import { createEditor, Descendant, Element as SlateElement } from "slate";
 import { withHistory } from "slate-history";
 import {
   Editable,
   Slate,
-  useSlate,
   withReact,
   type RenderElementProps,
   type RenderLeafProps,
+  type RenderPlaceholderProps,
 } from "slate-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
 import {
   canIndentListItem,
   handleEnterInList,
   indentListItem,
   isInListItem,
-  isListActive,
   outdentListItem,
-  toggleList,
 } from "./list-commands";
+import { toggleMark } from "./editor-format";
+import { EditorToolbar } from "./plugins/editor-toolbar";
 
 export type SlateValue = Descendant[];
-
-type BlockFormat =
-  | "paragraph"
-  | "heading-one"
-  | "heading-two"
-  | "block-quote"
-  | "numbered-list"
-  | "bulleted-list";
-
-type MarkFormat = "bold" | "italic" | "underline";
-
-const LIST_TYPES: BlockFormat[] = ["numbered-list", "bulleted-list"];
 
 export function parseContentToSlateValue(content: unknown): SlateValue {
   if (!content) {
@@ -171,183 +157,6 @@ function Element(props: RenderElementProps) {
   }
 }
 
-function isMarkActive(editor: Editor, format: MarkFormat) {
-  const marks = Editor.marks(editor) as Record<string, unknown> | null;
-  return Boolean(marks?.[format]);
-}
-
-function toggleMark(editor: Editor, format: MarkFormat) {
-  const active = isMarkActive(editor, format);
-  if (active) Editor.removeMark(editor, format);
-  else Editor.addMark(editor, format, true);
-}
-
-function isBlockActive(editor: Editor, format: BlockFormat) {
-  const [match] = Editor.nodes(editor, {
-    match: (n) =>
-      !Editor.isEditor(n) &&
-      SlateElement.isElement(n) &&
-      (n as SlateElement & { type?: string }).type === format,
-  });
-  return Boolean(match);
-}
-
-function toggleBlock(editor: Editor, format: BlockFormat) {
-  const isActive = isBlockActive(editor, format);
-  const isList = LIST_TYPES.includes(format);
-
-  if (isList) {
-    toggleList(editor, format as Extract<BlockFormat, "numbered-list" | "bulleted-list">);
-    return;
-  }
-
-  Transforms.unwrapNodes(editor, {
-    match: (n) =>
-      !Editor.isEditor(n) &&
-      SlateElement.isElement(n) &&
-      LIST_TYPES.includes((((n as SlateElement & { type?: string }).type ?? "paragraph") as BlockFormat)),
-    split: true,
-  });
-
-  const nextType = isActive ? "paragraph" : format;
-  Transforms.setNodes(editor, { type: nextType } as unknown as Partial<SlateElement>, {
-    match: (n) => !Editor.isEditor(n) && SlateElement.isElement(n),
-  });
-}
-
-function ToolbarButton(props: {
-  label: string;
-  active?: boolean;
-  disabled?: boolean;
-  onMouseDown: (e: React.MouseEvent) => void;
-}) {
-  return (
-    <Button
-      type="button"
-      variant={props.active ? "secondary" : "ghost"}
-      className="h-8 px-2 text-xs"
-      disabled={props.disabled}
-      onMouseDown={props.onMouseDown}
-    >
-      {props.label}
-    </Button>
-  );
-}
-
-function EditorToolbar(props: { disabled?: boolean }) {
-  const editor = useSlate();
-  const disabled = props.disabled;
-
-  const history = editor as unknown as { undo?: () => void; redo?: () => void };
-
-  return (
-    <div
-      className={cn(
-        "sticky top-12 z-10 -mx-1 mb-3 flex items-center gap-1",
-        "rounded-md border bg-background px-2 py-1",
-      )}
-    >
-      <ToolbarButton
-        label="↶"
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          history.undo?.();
-        }}
-      />
-      <ToolbarButton
-        label="↷"
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          history.redo?.();
-        }}
-      />
-
-      <Separator orientation="vertical" className="mx-1 h-5" />
-
-      <ToolbarButton
-        label="H1"
-        active={isBlockActive(editor, "heading-one")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleBlock(editor, "heading-one");
-        }}
-      />
-      <ToolbarButton
-        label="H2"
-        active={isBlockActive(editor, "heading-two")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleBlock(editor, "heading-two");
-        }}
-      />
-      <ToolbarButton
-        label="❝"
-        active={isBlockActive(editor, "block-quote")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleBlock(editor, "block-quote");
-        }}
-      />
-
-      <Separator orientation="vertical" className="mx-1 h-5" />
-
-      <ToolbarButton
-        label="B"
-        active={isMarkActive(editor, "bold")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleMark(editor, "bold");
-        }}
-      />
-      <ToolbarButton
-        label="I"
-        active={isMarkActive(editor, "italic")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleMark(editor, "italic");
-        }}
-      />
-      <ToolbarButton
-        label="U"
-        active={isMarkActive(editor, "underline")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleMark(editor, "underline");
-        }}
-      />
-
-      <Separator orientation="vertical" className="mx-1 h-5" />
-
-      <ToolbarButton
-        label="•"
-        active={isListActive(editor, "bulleted-list")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleList(editor, "bulleted-list");
-        }}
-      />
-      <ToolbarButton
-        label="1."
-        active={isListActive(editor, "numbered-list")}
-        disabled={disabled}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          toggleList(editor, "numbered-list");
-        }}
-      />
-    </div>
-  );
-}
-
 export function SlateEditor(props: {
   value: SlateValue;
   onChange: (value: SlateValue) => void;
@@ -369,6 +178,24 @@ export function SlateEditor(props: {
     return <Element {...elementProps} />;
   }, []);
 
+  const renderPlaceholder = useCallback((placeholderProps: RenderPlaceholderProps) => {
+    const { attributes, children } = placeholderProps;
+
+    return (
+      <span
+        {...attributes}
+        className={cn((attributes as any).className, "text-muted-foreground/40")}
+        style={{
+          ...attributes.style,
+          top: "0.75rem",
+          left: "0.25rem",
+        }}
+      >
+        {children}
+      </span>
+    );
+  }, []);
+
   return (
     <Slate
       editor={editor}
@@ -384,6 +211,7 @@ export function SlateEditor(props: {
           props.className,
         )}
         placeholder={props.placeholder}
+        renderPlaceholder={renderPlaceholder}
         renderElement={renderElement}
         renderLeaf={renderLeaf}
         readOnly={props.disabled || readOnly}
