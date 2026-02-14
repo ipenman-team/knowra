@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { Type } from "lucide-react";
 import { Range, Transforms } from "slate";
 import { ReactEditor, useSlate } from "slate-react";
 
@@ -45,7 +44,8 @@ export function TextColorPluginView(props: ToolbarPluginProps) {
       defaultLabel="默认文字色"
       disabled={props.disabled}
       value={getTextColor(editor)}
-      triggerContent={<Type className="h-4 w-4" />}
+      triggerContent={<span className="text-[28px] leading-none text-muted-foreground">A</span>}
+      triggerIndicatorFallbackColor="#ef4444"
       onOpenChange={(open) => {
         if (open) cacheSelection();
       }}

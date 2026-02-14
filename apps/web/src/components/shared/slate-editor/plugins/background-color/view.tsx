@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { PaintBucket } from "lucide-react";
+import { Eraser } from "lucide-react";
 import { Range, Transforms } from "slate";
 import { ReactEditor, useSlate } from "slate-react";
 
@@ -45,7 +45,8 @@ export function BackgroundColorPluginView(props: ToolbarPluginProps) {
       defaultLabel="无背景色"
       disabled={props.disabled}
       value={getBackgroundColor(editor)}
-      triggerContent={<PaintBucket className="h-4 w-4" />}
+      triggerContent={<Eraser className="h-4 w-4 text-muted-foreground" />}
+      triggerIndicatorFallbackColor="#eab308"
       onOpenChange={(open) => {
         if (open) cacheSelection();
       }}

@@ -76,6 +76,7 @@ type ColorPickerProps = {
   open?: boolean
   options?: readonly ColorPickerOption[]
   triggerContent?: React.ReactNode
+  triggerIndicatorFallbackColor?: string
   value?: string | null
 }
 
@@ -115,6 +116,7 @@ export function ColorPicker(props: ColorPickerProps) {
   )
 
   const triggerActive = Boolean(selectedColor)
+  const triggerIndicatorColor = selectedColor ?? props.triggerIndicatorFallbackColor ?? null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -123,19 +125,21 @@ export function ColorPicker(props: ColorPickerProps) {
           type="button"
           variant={triggerActive ? "secondary" : "ghost"}
           size="sm"
-          className="h-8 gap-1 px-2"
+          className="h-8 gap-1 px-1.5"
           disabled={props.disabled}
           aria-label={label}
           onMouseDown={props.onTriggerMouseDown}
         >
-          {props.triggerContent ?? <span className="text-sm font-medium leading-none">A</span>}
-          <span
-            className={cn(
-              "h-[2px] w-4 rounded-full border border-input/70",
-              !selectedColor && "bg-transparent",
-            )}
-            style={selectedColor ? { backgroundColor: selectedColor } : undefined}
-          />
+          <span className="relative flex h-5 w-5 items-center justify-center">
+            {props.triggerContent ?? <span className="text-base font-medium leading-none">A</span>}
+            <span
+              className={cn(
+                "absolute -bottom-[2px] left-0 right-0 h-[2px] rounded-full",
+                !triggerIndicatorColor && "bg-transparent",
+              )}
+              style={triggerIndicatorColor ? { backgroundColor: triggerIndicatorColor } : undefined}
+            />
+          </span>
           <ChevronDown className="h-3.5 w-3.5 opacity-70" />
         </Button>
       </PopoverTrigger>
