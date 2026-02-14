@@ -6,7 +6,7 @@ import { useSelectedPageId, usePageContentStore } from '@/stores';
 import { useSpacesLoading, useCurrentSpaceId } from '@/stores/space-store';
 import { useTreePagesLoading } from '@/stores/pages-store';
 
-export function PageContainer(props: {}) {
+export function PageContainer() {
   const selectedPageId = useSelectedPageId();
   const pageLoading = usePageContentStore((s) => s.pageLoading);
   const spacesLoading = useSpacesLoading();
@@ -33,11 +33,11 @@ export function PageContainer(props: {}) {
   }
 
   return (
-    <>
+    <div className="relative [--page-header-sticky-height:3.5rem]">
       <PageHeader />
       <div className="px-6">
         <PageContent />
       </div>
-    </>
+    </div>
   );
 }

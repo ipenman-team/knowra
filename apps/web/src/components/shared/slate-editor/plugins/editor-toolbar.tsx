@@ -26,9 +26,10 @@ export function EditorToolbar(props: { disabled?: boolean }) {
   return (
     <div
       className={cn(
-        "sticky top-12 z-10 -mx-1 mb-3 flex items-center gap-1",
+        "sticky z-20 -mx-1 mb-3 flex items-center gap-1",
         "rounded-md border bg-background px-2 py-1",
       )}
+      style={{ top: "var(--page-header-sticky-height, 3.5rem)" }}
     >
       <UndoPluginView disabled={props.disabled} />
       <RedoPluginView disabled={props.disabled} />

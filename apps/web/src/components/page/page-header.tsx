@@ -131,7 +131,9 @@ export const PageHeader = () => {
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
+    <div
+      className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur"
+    >
       <div className="flex items-center">
         <Button variant="link">
           {pageLoading ? '加载中…' : (activePage?.title?.trim() || '无标题文档')}
