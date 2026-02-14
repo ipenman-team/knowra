@@ -7,9 +7,9 @@ import { ReactEditor, useSlate } from "slate-react";
 
 import { Button } from "@/components/ui/button";
 import {
+  PopoverAnchor,
   Popover,
   PopoverContent,
-  PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +64,7 @@ export function FontSizePluginView(props: ToolbarPluginProps) {
         setOpen(nextOpen);
       }}
     >
-      <PopoverTrigger asChild>
+      <PopoverAnchor asChild>
         <Button
           type="button"
           variant={open || activeSize !== DEFAULT_FONT_SIZE ? "secondary" : "ghost"}
@@ -80,7 +80,7 @@ export function FontSizePluginView(props: ToolbarPluginProps) {
           <span>{activeSize}</span>
           <ChevronDown className="h-3.5 w-3.5 opacity-70" />
         </Button>
-      </PopoverTrigger>
+      </PopoverAnchor>
 
       <PopoverContent align="start" className="w-[132px] p-1" sideOffset={8}>
         <div className="max-h-[360px] space-y-0.5 overflow-y-auto">

@@ -49,7 +49,6 @@ export function insertParagraphAfterSelectedBlockPlugin(editor: Editor) {
     select: false,
   });
   Transforms.select(editor, Editor.start(editor, nextPath));
-  ReactEditor.focus(editor as ReactEditor);
 
   return true;
 }
