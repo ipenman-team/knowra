@@ -8,7 +8,11 @@ import { ReactEditor, useSlate } from "slate-react";
 import { ColorPicker } from "@/components/ui/color-picker";
 
 import type { ToolbarPluginProps } from "../types";
-import { getBackgroundColor, runBackgroundColor } from "./logic";
+import {
+  getBackgroundColor,
+  getBackgroundColorAtCursorPath,
+  runBackgroundColor,
+} from "./logic";
 
 export function BackgroundColorPluginView(props: ToolbarPluginProps) {
   const editor = useSlate();
@@ -39,14 +43,17 @@ export function BackgroundColorPluginView(props: ToolbarPluginProps) {
     [editor, props.disabled, restoreSelection],
   );
 
+  const activeBackgroundColor = getBackgroundColor(editor);
+  const backgroundColorFallback = getBackgroundColorAtCursorPath(editor) ?? "#eab308";
+
   return (
     <ColorPicker
       label="文字背景色"
       defaultLabel="无背景色"
       disabled={props.disabled}
-      value={getBackgroundColor(editor)}
+      value={activeBackgroundColor}
       triggerContent={<Eraser className="h-4 w-4 text-muted-foreground" />}
-      triggerIndicatorFallbackColor="#eab308"
+      triggerIndicatorFallbackColor={backgroundColorFallback}
       onOpenChange={(open) => {
         if (open) cacheSelection();
       }}

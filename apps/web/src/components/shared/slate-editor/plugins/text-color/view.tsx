@@ -7,7 +7,7 @@ import { ReactEditor, useSlate } from "slate-react";
 import { ColorPicker } from "@/components/ui/color-picker";
 
 import type { ToolbarPluginProps } from "../types";
-import { getTextColor, runTextColor } from "./logic";
+import { getTextColor, getTextColorAtCursorPath, runTextColor } from "./logic";
 
 export function TextColorPluginView(props: ToolbarPluginProps) {
   const editor = useSlate();
@@ -38,14 +38,17 @@ export function TextColorPluginView(props: ToolbarPluginProps) {
     [editor, props.disabled, restoreSelection],
   );
 
+  const activeTextColor = getTextColor(editor);
+  const textColorFallback = getTextColorAtCursorPath(editor) ?? "#ef4444";
+
   return (
     <ColorPicker
       label="文字颜色"
       defaultLabel="默认文字色"
       disabled={props.disabled}
-      value={getTextColor(editor)}
-      triggerContent={<span className="text-[28px] leading-none text-muted-foreground">A</span>}
-      triggerIndicatorFallbackColor="#ef4444"
+      value={activeTextColor}
+      triggerContent={<span className="text-lg leading-none text-muted-foreground">A</span>}
+      triggerIndicatorFallbackColor={textColorFallback}
       onOpenChange={(open) => {
         if (open) cacheSelection();
       }}

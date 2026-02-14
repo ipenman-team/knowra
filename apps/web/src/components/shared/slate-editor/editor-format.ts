@@ -28,11 +28,19 @@ export function toggleMark(editor: Editor, format: MarkFormat) {
 
 export function getColorMark(editor: Editor, format: ColorMarkFormat) {
   const marks = Editor.marks(editor) as Record<string, unknown> | null;
-  const value = marks?.[format];
+  return normalizeColorMarkValue(marks?.[format]);
+}
 
-  if (typeof value !== "string") return null;
-  const nextValue = value.trim();
-  return nextValue.length > 0 ? nextValue : null;
+export function getColorMarkAtCursorPath(editor: Editor, format: ColorMarkFormat) {
+  if (!editor.selection) return null;
+
+  try {
+    const [leaf] = Editor.leaf(editor, editor.selection.anchor.path);
+    const leafRecord = leaf as unknown as Record<string, unknown>;
+    return normalizeColorMarkValue(leafRecord[format]);
+  } catch {
+    return null;
+  }
 }
 
 export function setColorMark(editor: Editor, format: ColorMarkFormat, value: string | null) {
@@ -43,6 +51,12 @@ export function setColorMark(editor: Editor, format: ColorMarkFormat, value: str
   }
 
   Editor.removeMark(editor, format);
+}
+
+function normalizeColorMarkValue(value: unknown) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 }
 
 export function isBlockActive(editor: Editor, format: BlockFormat) {
