@@ -20,6 +20,7 @@ import { LinkPluginView } from "./link/view";
 import { NumberedListPluginView } from "./numbered-list/view";
 import { RedoPluginView } from "./redo/view";
 import { TextColorPluginView } from "./text-color/view";
+import { TableBlockPluginView } from "./table-block/view";
 import { UnderlinePluginView } from "./underline/view";
 import { UndoPluginView } from "./undo/view";
 
@@ -43,6 +44,7 @@ export function EditorToolbar(props: { disabled?: boolean }) {
       <CodeBlockPluginView disabled={props.disabled} />
       <DiagramBlockPluginView disabled={props.disabled} />
       <ImageBlockPluginView disabled={props.disabled} />
+      <TableBlockPluginView disabled={props.disabled} />
       <EmojiPluginView disabled={props.disabled} />
 
       <Separator orientation="vertical" className="mx-1 h-5" />

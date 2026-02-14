@@ -42,6 +42,17 @@ import {
 } from "./plugins/image-block/logic";
 import { uploadEditorImage } from "./plugins/image-block/upload";
 import { LINK_MARK, normalizeLinkUrl } from "./plugins/link/logic";
+import {
+  TABLE_BLOCK_TYPE,
+  TABLE_CELL_TYPE,
+  TABLE_ROW_TYPE,
+  withTableBlock,
+} from "./plugins/table-block/logic";
+import {
+  TableBlockElementView,
+  TableCellElementView,
+  TableRowElementView,
+} from "./plugins/table-block/element";
 import { PLUGIN_SCOPE_INLINE } from "./plugins/types";
 
 export type SlateValue = Descendant[];
@@ -177,6 +188,12 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
       return <DiagramBlockElementView {...props} />;
     case IMAGE_BLOCK_TYPE:
       return <ImageBlockElementView {...props} />;
+    case TABLE_BLOCK_TYPE:
+      return <TableBlockElementView {...props} />;
+    case TABLE_ROW_TYPE:
+      return <TableRowElementView {...props} />;
+    case TABLE_CELL_TYPE:
+      return <TableCellElementView {...props} />;
     case "heading-one":
       return (
         <h1 {...attributes} className="py-1 text-3xl font-bold tracking-tight" style={alignStyle}>
@@ -269,7 +286,10 @@ export function SlateEditor(props: {
   showToolbar?: boolean;
 }) {
   const editor = useMemo(
-    () => withImageBlock(withDiagramBlock(withCodeBlock(withHistory(withReact(createEditor()))))),
+    () =>
+      withImageBlock(
+        withDiagramBlock(withCodeBlock(withTableBlock(withHistory(withReact(createEditor()))))),
+      ),
     [],
   );
   const showToolbar = props.showToolbar ?? true;

@@ -5,7 +5,14 @@ export const ALIGN_OPTIONS = ["left", "center", "right", "justify"] as const;
 export type AlignFormat = (typeof ALIGN_OPTIONS)[number];
 
 const ALIGN_VALUE_SET = new Set<AlignFormat>(ALIGN_OPTIONS);
-const NON_ALIGNABLE_BLOCK_TYPES = new Set(["code-block", "diagram-block", "image-block"]);
+const NON_ALIGNABLE_BLOCK_TYPES = new Set([
+  "code-block",
+  "diagram-block",
+  "image-block",
+  "table-block",
+  "table-row",
+  "table-cell",
+]);
 
 export function getBlockAlign(editor: Editor): AlignFormat {
   const [entry] = Editor.nodes(editor, {
