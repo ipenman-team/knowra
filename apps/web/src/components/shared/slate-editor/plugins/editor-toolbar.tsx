@@ -10,6 +10,7 @@ import { BoldPluginView } from "./bold/view";
 import { BulletedListPluginView } from "./bulleted-list/view";
 import { CodeBlockPluginView } from "./code-block/view";
 import { DiagramBlockPluginView } from "./diagram-block/view";
+import { EmojiPluginView } from "./emoji/view";
 import { FontSizePluginView } from "./font-size/view";
 import { HeadingOnePluginView } from "./heading-one/view";
 import { HeadingTwoPluginView } from "./heading-two/view";
@@ -42,6 +43,7 @@ export function EditorToolbar(props: { disabled?: boolean }) {
       <CodeBlockPluginView disabled={props.disabled} />
       <DiagramBlockPluginView disabled={props.disabled} />
       <ImageBlockPluginView disabled={props.disabled} />
+      <EmojiPluginView disabled={props.disabled} />
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
