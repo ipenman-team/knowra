@@ -41,7 +41,8 @@ import {
   withImageBlock,
 } from "./plugins/image-block/logic";
 import { uploadEditorImage } from "./plugins/image-block/upload";
-import { normalizeLinkUrl } from "./plugins/link/logic";
+import { LINK_MARK, normalizeLinkUrl } from "./plugins/link/logic";
+import { PLUGIN_SCOPE_INLINE } from "./plugins/types";
 
 export type SlateValue = Descendant[];
 
@@ -111,6 +112,8 @@ function Leaf(props: RenderLeafProps) {
     backgroundColor?: string;
     link?: string;
     fontSize?: string;
+    pluginScope?: string;
+    pluginKind?: string;
   };
 
   let next = children;
@@ -126,6 +129,8 @@ function Leaf(props: RenderLeafProps) {
         target="_blank"
         rel="noopener noreferrer"
         className="cursor-pointer text-blue-500"
+        data-plugin-scope={anyLeaf.pluginScope ?? PLUGIN_SCOPE_INLINE}
+        data-plugin-kind={anyLeaf.pluginKind ?? LINK_MARK}
         onMouseDown={(event) => {
           if (event.button !== 0) return;
           event.preventDefault();

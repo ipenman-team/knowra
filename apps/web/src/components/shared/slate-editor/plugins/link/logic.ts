@@ -1,6 +1,10 @@
 import { Editor, Range, Transforms, type BaseRange } from "slate";
 
+import { PLUGIN_SCOPE_INLINE } from "../types";
+
 export const LINK_MARK = "link";
+export const PLUGIN_SCOPE_MARK = "pluginScope";
+export const PLUGIN_KIND_MARK = "pluginKind";
 
 const HTTP_PROTOCOLS = new Set(["http:", "https:"]);
 
@@ -64,8 +68,12 @@ export function insertLinkText(editor: Editor, payload: {
   }
 
   Editor.addMark(editor, LINK_MARK, normalizedUrl);
+  Editor.addMark(editor, PLUGIN_SCOPE_MARK, PLUGIN_SCOPE_INLINE);
+  Editor.addMark(editor, PLUGIN_KIND_MARK, LINK_MARK);
   Transforms.insertText(editor, text);
   Editor.removeMark(editor, LINK_MARK);
+  Editor.removeMark(editor, PLUGIN_SCOPE_MARK);
+  Editor.removeMark(editor, PLUGIN_KIND_MARK);
 
   return normalizedUrl;
 }

@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 
 import { loadCodeLanguageExtension } from "./codemirror-language";
 import {
+  CODE_BLOCK_TYPE,
   CODE_LANGUAGE_OPTIONS,
   getCodeBlockCode,
   getCodeBlockHeight,
@@ -54,6 +55,7 @@ import {
   type CodeLanguage,
   updateCodeBlock,
 } from "./logic";
+import { PLUGIN_SCOPE_BLOCK } from "../types";
 
 type CodeBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -325,6 +327,8 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   return (
     <div
       {...props.attributes}
+      data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
+      data-plugin-kind={element.pluginKind ?? CODE_BLOCK_TYPE}
       className="relative my-2"
       onMouseDownCapture={onMoveCursorAfter}
       onContextMenuCapture={onMoveCursorAfterByContextMenu}

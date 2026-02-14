@@ -55,6 +55,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
+  DIAGRAM_BLOCK_TYPE,
   DIAGRAM_ENGINE_OPTIONS,
   DIAGRAM_TEMPLATES,
   getDiagramCode,
@@ -69,6 +70,7 @@ import {
   updateDiagramBlock,
 } from "./logic";
 import { renderMermaidToSvg } from "./mermaid-renderer";
+import { PLUGIN_SCOPE_BLOCK } from "../types";
 
 type DiagramBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -210,7 +212,12 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   }, [editor, element]);
 
   return (
-    <div {...props.attributes} className="my-2">
+    <div
+      {...props.attributes}
+      data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
+      data-plugin-kind={element.pluginKind ?? DIAGRAM_BLOCK_TYPE}
+      className="my-2"
+    >
       <div
         contentEditable={false}
         className={cn(

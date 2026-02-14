@@ -1,5 +1,7 @@
 import { Descendant, Editor, Element as SlateElement, Path, Transforms } from "slate";
 
+import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
+
 export const CODE_BLOCK_TYPE = "code-block";
 export const DEFAULT_CODE_LANGUAGE = "javascript";
 export const DEFAULT_CODE_BLOCK_HEIGHT = 320;
@@ -55,6 +57,8 @@ export type CodeLanguage = (typeof CODE_LANGUAGE_OPTIONS)[number]["value"];
 
 export type CodeBlockElement = SlateElement & {
   type: typeof CODE_BLOCK_TYPE;
+  pluginScope?: PluginMarkerFields["pluginScope"];
+  pluginKind?: string;
   language?: string;
   code?: string;
   wrap?: boolean;
@@ -144,6 +148,8 @@ export function getCodeBlockCode(value?: string) {
 function createCodeBlockElement(): CodeBlockElement {
   return {
     type: CODE_BLOCK_TYPE,
+    pluginScope: PLUGIN_SCOPE_BLOCK,
+    pluginKind: CODE_BLOCK_TYPE,
     language: DEFAULT_CODE_LANGUAGE,
     code: "",
     wrap: false,

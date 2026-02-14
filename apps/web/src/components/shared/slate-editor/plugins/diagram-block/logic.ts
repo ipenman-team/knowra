@@ -1,5 +1,7 @@
 import { Descendant, Editor, Element as SlateElement, Path, Transforms } from "slate";
 
+import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
+
 export const DIAGRAM_BLOCK_TYPE = "diagram-block";
 export const DEFAULT_DIAGRAM_ENGINE = "mermaid";
 export const DEFAULT_DIAGRAM_TEMPLATE_ID = "flow-basic";
@@ -73,6 +75,8 @@ export type DiagramTemplateId = (typeof DIAGRAM_TEMPLATES)[number]["id"];
 
 export type DiagramBlockElement = SlateElement & {
   type: typeof DIAGRAM_BLOCK_TYPE;
+  pluginScope?: PluginMarkerFields["pluginScope"];
+  pluginKind?: string;
   engine?: string;
   templateId?: string;
   code?: string;
@@ -124,6 +128,8 @@ export function insertDiagramBlock(editor: Editor) {
     editor,
     {
       type: DIAGRAM_BLOCK_TYPE,
+      pluginScope: PLUGIN_SCOPE_BLOCK,
+      pluginKind: DIAGRAM_BLOCK_TYPE,
       engine: DEFAULT_DIAGRAM_ENGINE,
       templateId: defaultTemplate.id,
       code: defaultTemplate.code,

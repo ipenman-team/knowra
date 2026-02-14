@@ -16,9 +16,11 @@ import { cn } from "@/lib/utils";
 import {
   getImageBlockAlt,
   getImageBlockUrl,
+  IMAGE_BLOCK_TYPE,
   removeImageBlock,
   type ImageBlockElement,
 } from "./logic";
+import { PLUGIN_SCOPE_BLOCK } from "../types";
 
 type ImageBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -42,7 +44,12 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
   }, [editor, element]);
 
   return (
-    <div {...props.attributes} className="my-2">
+    <div
+      {...props.attributes}
+      data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
+      data-plugin-kind={element.pluginKind ?? IMAGE_BLOCK_TYPE}
+      className="my-2"
+    >
       <div
         contentEditable={false}
         className={cn(

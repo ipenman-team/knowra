@@ -1,9 +1,13 @@
 import { Descendant, Editor, Element as SlateElement, Path, Transforms } from "slate";
 
+import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
+
 export const IMAGE_BLOCK_TYPE = "image-block";
 
 export type ImageBlockElement = SlateElement & {
   type: typeof IMAGE_BLOCK_TYPE;
+  pluginScope?: PluginMarkerFields["pluginScope"];
+  pluginKind?: string;
   url?: string;
   alt?: string;
   children: Descendant[];
@@ -52,6 +56,8 @@ export function insertImageBlock(editor: Editor, input: InsertImageInput) {
     editor,
     {
       type: IMAGE_BLOCK_TYPE,
+      pluginScope: PLUGIN_SCOPE_BLOCK,
+      pluginKind: IMAGE_BLOCK_TYPE,
       url: input.url,
       alt: input.alt,
       children: [{ text: "" }],
