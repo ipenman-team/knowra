@@ -84,6 +84,19 @@ const codeMirrorTheme = EditorView.theme({
   },
 });
 
+const stopSlateEventBubbling = EditorView.domEventHandlers({
+  keydown: stopEventPropagation,
+  keyup: stopEventPropagation,
+  beforeinput: stopEventPropagation,
+  input: stopEventPropagation,
+  compositionstart: stopEventPropagation,
+  compositionupdate: stopEventPropagation,
+  compositionend: stopEventPropagation,
+  paste: stopEventPropagation,
+  copy: stopEventPropagation,
+  cut: stopEventPropagation,
+});
+
 export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const editor = useSlateStatic();
   const element = props.element as CodeBlockElement;
@@ -159,6 +172,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         codeMirrorTheme,
+        stopSlateEventBubbling,
         placeholder("输入代码..."),
         languageCompartment.of([]),
         wrapCompartment.of(wrapRef.current ? EditorView.lineWrapping : []),
@@ -399,4 +413,9 @@ function findPathSafe(editor: ReturnType<typeof useSlateStatic>, element: CodeBl
   } catch {
     return null;
   }
+}
+
+function stopEventPropagation(event: Event) {
+  event.stopPropagation();
+  return false;
 }

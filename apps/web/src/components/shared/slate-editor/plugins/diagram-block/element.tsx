@@ -98,6 +98,19 @@ const mermaidEditorTheme = EditorView.theme({
   },
 });
 
+const stopSlateEventBubbling = EditorView.domEventHandlers({
+  keydown: stopEventPropagation,
+  keyup: stopEventPropagation,
+  beforeinput: stopEventPropagation,
+  input: stopEventPropagation,
+  compositionstart: stopEventPropagation,
+  compositionupdate: stopEventPropagation,
+  compositionend: stopEventPropagation,
+  paste: stopEventPropagation,
+  copy: stopEventPropagation,
+  cut: stopEventPropagation,
+});
+
 export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   const editor = useSlateStatic();
   const element = props.element as DiagramBlockElement;
@@ -467,6 +480,7 @@ function DiagramSourceEditor(props: {
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         EditorView.lineWrapping,
         mermaidEditorTheme,
+        stopSlateEventBubbling,
         placeholder("输入 Mermaid 语法..."),
         editableCompartment.of(EditorView.editable.of(!props.readOnly)),
         readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
@@ -580,4 +594,9 @@ function findPathSafe(editor: ReturnType<typeof useSlateStatic>, element: Diagra
 function formatDiagramError(error: unknown) {
   if (error instanceof Error && error.message) return `Mermaid 渲染失败：${error.message}`;
   return "Mermaid 渲染失败，请检查语法。";
+}
+
+function stopEventPropagation(event: Event) {
+  event.stopPropagation();
+  return false;
 }
