@@ -21,7 +21,13 @@ import {
 import { Check, Copy, Trash2 } from "lucide-react";
 import { Resizable } from "re-resizable";
 import { Editor, Node, Path, Transforms } from "slate";
-import { ReactEditor, useSlateStatic, type RenderElementProps } from "slate-react";
+import {
+  ReactEditor,
+  useFocused,
+  useSelected,
+  useSlateStatic,
+  type RenderElementProps,
+} from "slate-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -99,8 +105,11 @@ const stopSlateEventBubbling = EditorView.domEventHandlers({
 
 export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const editor = useSlateStatic();
+  const selected = useSelected();
+  const focused = useFocused();
   const element = props.element as CodeBlockElement;
   const readOnly = Boolean(props.readOnly ?? false);
+  const isActive = selected && focused;
 
   const language = getCodeBlockLanguage(element.language);
   const code = getCodeBlockCode(element.code) || Node.string(element);
@@ -322,7 +331,11 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
     >
       <div
         contentEditable={false}
-        className="overflow-hidden rounded-md border border-input bg-background shadow-sm"
+        className={cn(
+          "overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors",
+          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+          isActive && "border-blue-500 ring-1 ring-blue-500/60",
+        )}
       >
         <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-3 py-2">
           <Select

@@ -2,7 +2,13 @@
 
 import { useCallback } from "react";
 import { ImageOff, Trash2 } from "lucide-react";
-import { ReactEditor, useSlateStatic, type RenderElementProps } from "slate-react";
+import {
+  ReactEditor,
+  useFocused,
+  useSelected,
+  useSlateStatic,
+  type RenderElementProps,
+} from "slate-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,8 +26,11 @@ type ImageBlockElementViewProps = RenderElementProps & {
 
 export function ImageBlockElementView(props: ImageBlockElementViewProps) {
   const editor = useSlateStatic();
+  const selected = useSelected();
+  const focused = useFocused();
   const element = props.element as ImageBlockElement;
   const readOnly = Boolean(props.readOnly ?? false);
+  const isActive = selected && focused;
 
   const imageUrl = getImageBlockUrl(element.url);
   const imageAlt = getImageBlockAlt(element.alt) || "image";
@@ -37,7 +46,9 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
       <div
         contentEditable={false}
         className={cn(
-          "group relative overflow-hidden rounded-md border border-input bg-muted/20",
+          "group relative overflow-hidden rounded-md border border-input bg-muted/20 transition-colors",
+          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+          isActive && "border-blue-500 ring-1 ring-blue-500/60",
           "min-h-[120px]",
         )}
       >

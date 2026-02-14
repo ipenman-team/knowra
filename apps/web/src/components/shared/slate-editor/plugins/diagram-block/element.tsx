@@ -30,7 +30,13 @@ import {
   UnfoldVertical,
 } from "lucide-react";
 import { Node } from "slate";
-import { ReactEditor, useSlateStatic, type RenderElementProps } from "slate-react";
+import {
+  ReactEditor,
+  useFocused,
+  useSelected,
+  useSlateStatic,
+  type RenderElementProps,
+} from "slate-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -115,8 +121,11 @@ const stopSlateEventBubbling = EditorView.domEventHandlers({
 
 export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   const editor = useSlateStatic();
+  const selected = useSelected();
+  const focused = useFocused();
   const element = props.element as DiagramBlockElement;
   const readOnly = Boolean(props.readOnly ?? false);
+  const isActive = selected && focused;
 
   const engine = getDiagramEngine(element.engine);
   const templateId = getDiagramTemplateId(element.templateId);
@@ -204,7 +213,11 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
     <div {...props.attributes} className="my-2">
       <div
         contentEditable={false}
-        className="overflow-hidden rounded-md border border-input bg-background shadow-sm"
+        className={cn(
+          "overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors",
+          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+          isActive && "border-blue-500 ring-1 ring-blue-500/60",
+        )}
       >
         <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
           <span className="mr-2 text-sm font-medium">文本绘图</span>
@@ -648,7 +661,7 @@ function DiagramPreviewPane(props: {
     <div className={cn("overflow-auto bg-muted/20 p-4", props.className)}>
       <div
         className={cn(
-          "mx-auto w-fit rounded-md bg-background p-2 shadow-sm",
+          "mx-auto w-fit rounded-md bg-background p-2",
           "[&_svg]:h-auto [&_svg]:max-w-full",
         )}
         dangerouslySetInnerHTML={{ __html: props.svg }}
