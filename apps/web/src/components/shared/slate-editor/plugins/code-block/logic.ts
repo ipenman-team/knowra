@@ -1,5 +1,6 @@
 import { Descendant, Editor, Element as SlateElement, Path, Transforms } from "slate";
 
+import { ensureTrailingEmptyParagraph } from "../block-plugin-utils";
 import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
 
 export const CODE_BLOCK_TYPE = "code-block";
@@ -106,6 +107,7 @@ export function insertCodeBlock(editor: Editor) {
   const at = blockEntry ? Path.next(blockEntry[1]) : [editor.children.length];
 
   Transforms.insertNodes(editor, createCodeBlockElement(), { at, select: true });
+  ensureTrailingEmptyParagraph(editor);
 }
 
 export function updateCodeBlock(editor: Editor, path: Path, patch: CodeBlockPatch) {

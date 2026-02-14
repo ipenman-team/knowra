@@ -1,5 +1,6 @@
 import { Descendant, Editor, Element as SlateElement, Path, Transforms } from "slate";
 
+import { ensureTrailingEmptyParagraph } from "../block-plugin-utils";
 import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
 
 export const DIAGRAM_BLOCK_TYPE = "diagram-block";
@@ -138,6 +139,7 @@ export function insertDiagramBlock(editor: Editor) {
     } as unknown as DiagramBlockElement,
     { at, select: true },
   );
+  ensureTrailingEmptyParagraph(editor);
 }
 
 export function updateDiagramBlock(editor: Editor, path: Path, patch: DiagramBlockPatch) {

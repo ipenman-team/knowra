@@ -20,9 +20,8 @@ import {
 } from "@codemirror/view";
 import { Check, Copy, Trash2 } from "lucide-react";
 import { Resizable } from "re-resizable";
-import { Editor, Node, Path, Transforms } from "slate";
+import { Node } from "slate";
 import {
-  ReactEditor,
   useFocused,
   useSelected,
   useSlateStatic,
@@ -40,6 +39,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
+import {
+  findElementPathSafe,
+  focusCursorAfterBlockElement,
+  shouldIgnoreBlockPointerTarget,
+} from "../block-plugin-utils";
+import { PLUGIN_SCOPE_BLOCK } from "../types";
 import { loadCodeLanguageExtension } from "./codemirror-language";
 import {
   CODE_BLOCK_TYPE,
@@ -55,7 +60,6 @@ import {
   type CodeLanguage,
   updateCodeBlock,
 } from "./logic";
-import { PLUGIN_SCOPE_BLOCK } from "../types";
 
 type CodeBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -135,7 +139,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
 
   const patchElement = useCallback(
     (patch: CodePatch) => {
-      const path = findPathSafe(editor, element);
+      const path = findElementPathSafe(editor, element);
       if (!path) return;
       updateCodeBlock(editor, path, patch);
     },
@@ -275,7 +279,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   }, [code]);
 
   const onDelete = useCallback(() => {
-    const path = findPathSafe(editor, element);
+    const path = findElementPathSafe(editor, element);
     if (!path) return;
     removeCodeBlock(editor, path);
   }, [editor, element]);
@@ -283,30 +287,22 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const onMoveCursorAfter = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       if (readOnly) return;
-
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (target.closest(".cm-editor")) return;
-      if (target.closest("button, input, [role='combobox'], [role='switch']")) return;
+      if (event.button !== 0) return;
+      if (shouldIgnoreBlockPointerTarget(event.target)) return;
 
       event.preventDefault();
-      focusAfterCodeBlock(editor, element);
+      focusCursorAfterBlockElement(editor, element);
     },
     [editor, element, readOnly],
   );
 
   const onMoveCursorAfterByContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      if (readOnly) return;
-
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (target.closest(".cm-editor")) return;
-      if (target.closest("button, input, [role='combobox'], [role='switch']")) return;
-
-      focusAfterCodeBlock(editor, element);
+      if (readOnly || !selected) return;
+      if (shouldIgnoreBlockPointerTarget(event.target)) return;
+      focusCursorAfterBlockElement(editor, element);
     },
-    [editor, element, readOnly],
+    [editor, element, readOnly, selected],
   );
 
   const onResizeStart = useCallback(() => {
@@ -459,45 +455,6 @@ type CodePatch = {
   wrap?: boolean;
   height?: number;
 };
-
-function findPathSafe(editor: ReturnType<typeof useSlateStatic>, element: CodeBlockElement) {
-  try {
-    return ReactEditor.findPath(editor as ReactEditor, element);
-  } catch {
-    return null;
-  }
-}
-
-function focusAfterCodeBlock(editor: ReturnType<typeof useSlateStatic>, element: CodeBlockElement) {
-  const path = findPathSafe(editor, element);
-  if (!path) return;
-
-  const nextPath = Path.next(path);
-  const nextExists = hasNodeAt(editor, nextPath);
-
-  if (!nextExists) {
-    Transforms.insertNodes(
-      editor,
-      {
-        type: "paragraph",
-        children: [{ text: "" }],
-      } as unknown as Node,
-      { at: nextPath },
-    );
-  }
-
-  Transforms.select(editor, Editor.start(editor, nextPath));
-  ReactEditor.focus(editor as ReactEditor);
-}
-
-function hasNodeAt(editor: ReturnType<typeof useSlateStatic>, path: Path) {
-  try {
-    Editor.node(editor, path);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function stopEventPropagation(event: Event) {
   event.stopPropagation();

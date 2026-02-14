@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import { Node } from "slate";
 import {
-  ReactEditor,
   useFocused,
   useSelected,
   useSlateStatic,
@@ -55,6 +54,12 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
+  findElementPathSafe,
+  focusCursorAfterBlockElement,
+  shouldIgnoreBlockPointerTarget,
+} from "../block-plugin-utils";
+import { PLUGIN_SCOPE_BLOCK } from "../types";
+import {
   DIAGRAM_BLOCK_TYPE,
   DIAGRAM_ENGINE_OPTIONS,
   DIAGRAM_TEMPLATES,
@@ -70,7 +75,6 @@ import {
   updateDiagramBlock,
 } from "./logic";
 import { renderMermaidToSvg } from "./mermaid-renderer";
-import { PLUGIN_SCOPE_BLOCK } from "../types";
 
 type DiagramBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -147,7 +151,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
 
   const patchElement = useCallback(
     (patch: DiagramPatch) => {
-      const path = findPathSafe(editor, element);
+      const path = findElementPathSafe(editor, element);
       if (!path) return;
       updateDiagramBlock(editor, path, patch);
     },
@@ -206,10 +210,19 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   }, []);
 
   const onDelete = useCallback(() => {
-    const path = findPathSafe(editor, element);
+    const path = findElementPathSafe(editor, element);
     if (!path) return;
     removeDiagramBlock(editor, path);
   }, [editor, element]);
+
+  const onMoveCursorAfterByContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (readOnly || !selected) return;
+      if (shouldIgnoreBlockPointerTarget(event.target)) return;
+      focusCursorAfterBlockElement(editor, element);
+    },
+    [editor, element, readOnly, selected],
+  );
 
   return (
     <div
@@ -217,6 +230,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? DIAGRAM_BLOCK_TYPE}
       className="my-2"
+      onContextMenuCapture={onMoveCursorAfterByContextMenu}
     >
       <div
         contentEditable={false}
@@ -675,14 +689,6 @@ function DiagramPreviewPane(props: {
       />
     </div>
   );
-}
-
-function findPathSafe(editor: ReturnType<typeof useSlateStatic>, element: DiagramBlockElement) {
-  try {
-    return ReactEditor.findPath(editor as ReactEditor, element);
-  } catch {
-    return null;
-  }
 }
 
 function formatDiagramError(error: unknown) {

@@ -1,5 +1,6 @@
 import { Descendant, Editor, Element as SlateElement, Path, Transforms } from "slate";
 
+import { ensureTrailingEmptyParagraph } from "../block-plugin-utils";
 import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
 
 export const IMAGE_BLOCK_TYPE = "image-block";
@@ -64,6 +65,7 @@ export function insertImageBlock(editor: Editor, input: InsertImageInput) {
     } as unknown as ImageBlockElement,
     { at, select: true },
   );
+  ensureTrailingEmptyParagraph(editor);
 }
 
 export function removeImageBlock(editor: Editor, path: Path) {

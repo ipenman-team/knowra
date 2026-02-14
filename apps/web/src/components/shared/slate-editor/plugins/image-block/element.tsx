@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { ImageOff, Trash2 } from "lucide-react";
 import {
-  ReactEditor,
   useFocused,
   useSelected,
   useSlateStatic,
@@ -14,13 +13,18 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import {
+  findElementPathSafe,
+  focusCursorAfterBlockElement,
+  shouldIgnoreBlockPointerTarget,
+} from "../block-plugin-utils";
+import { PLUGIN_SCOPE_BLOCK } from "../types";
+import {
   getImageBlockAlt,
   getImageBlockUrl,
   IMAGE_BLOCK_TYPE,
   removeImageBlock,
   type ImageBlockElement,
 } from "./logic";
-import { PLUGIN_SCOPE_BLOCK } from "../types";
 
 type ImageBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -38,10 +42,19 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
   const imageAlt = getImageBlockAlt(element.alt) || "image";
 
   const onDelete = useCallback(() => {
-    const path = findPathSafe(editor as ReactEditor, element);
+    const path = findElementPathSafe(editor, element);
     if (!path) return;
     removeImageBlock(editor, path);
   }, [editor, element]);
+
+  const onMoveCursorAfterByContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (readOnly || !selected) return;
+      if (shouldIgnoreBlockPointerTarget(event.target)) return;
+      focusCursorAfterBlockElement(editor, element);
+    },
+    [editor, element, readOnly, selected],
+  );
 
   return (
     <div
@@ -49,6 +62,7 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? IMAGE_BLOCK_TYPE}
       className="my-2"
+      onContextMenuCapture={onMoveCursorAfterByContextMenu}
     >
       <div
         contentEditable={false}
@@ -91,12 +105,4 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
       <span className="hidden">{props.children}</span>
     </div>
   );
-}
-
-function findPathSafe(editor: ReactEditor, element: ImageBlockElement) {
-  try {
-    return ReactEditor.findPath(editor, element);
-  } catch {
-    return null;
-  }
 }
