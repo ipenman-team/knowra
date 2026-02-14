@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { BlockQuotePluginView } from "./block-quote/view";
 import { BoldPluginView } from "./bold/view";
 import { BulletedListPluginView } from "./bulleted-list/view";
+import { CodeBlockPluginView } from "./code-block/view";
+import { DiagramBlockPluginView } from "./diagram-block/view";
 import { HeadingOnePluginView } from "./heading-one/view";
 import { HeadingTwoPluginView } from "./heading-two/view";
 import { ItalicPluginView } from "./italic/view";
@@ -30,6 +32,8 @@ export function EditorToolbar(props: { disabled?: boolean }) {
       <HeadingOnePluginView disabled={props.disabled} />
       <HeadingTwoPluginView disabled={props.disabled} />
       <BlockQuotePluginView disabled={props.disabled} />
+      <CodeBlockPluginView disabled={props.disabled} />
+      <DiagramBlockPluginView disabled={props.disabled} />
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 

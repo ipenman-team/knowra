@@ -22,6 +22,10 @@ import {
   outdentListItem,
 } from "./list-commands";
 import { toggleMark } from "./editor-format";
+import { CodeBlockElementView } from "./plugins/code-block/element";
+import { CODE_BLOCK_TYPE, withCodeBlock } from "./plugins/code-block/logic";
+import { DiagramBlockElementView } from "./plugins/diagram-block/element";
+import { DIAGRAM_BLOCK_TYPE, withDiagramBlock } from "./plugins/diagram-block/logic";
 import { EditorToolbar } from "./plugins/editor-toolbar";
 
 export type SlateValue = Descendant[];
@@ -98,11 +102,15 @@ function Leaf(props: RenderLeafProps) {
   );
 }
 
-function Element(props: RenderElementProps) {
+function Element(props: RenderElementProps & { readOnly: boolean }) {
   const { attributes, children, element } = props;
   const el = element as SlateElement & { type?: string };
 
   switch (el.type) {
+    case CODE_BLOCK_TYPE:
+      return <CodeBlockElementView {...props} />;
+    case DIAGRAM_BLOCK_TYPE:
+      return <DiagramBlockElementView {...props} />;
     case "heading-one":
       return (
         <h1 {...attributes} className="py-1 text-3xl font-bold tracking-tight">
@@ -166,17 +174,21 @@ export function SlateEditor(props: {
   readOnly?: boolean;
   showToolbar?: boolean;
 }) {
-  const editor = useMemo(() => withHistory(withReact(createEditor())), []);
+  const editor = useMemo(
+    () => withDiagramBlock(withCodeBlock(withHistory(withReact(createEditor())))),
+    [],
+  );
   const showToolbar = props.showToolbar ?? true;
   const readOnly = Boolean(props.readOnly ?? false);
+  const editorReadOnly = Boolean(props.disabled || readOnly);
 
   const renderLeaf = useCallback((leafProps: RenderLeafProps) => {
     return <Leaf {...leafProps} />;
   }, []);
 
   const renderElement = useCallback((elementProps: RenderElementProps) => {
-    return <Element {...elementProps} />;
-  }, []);
+    return <Element {...elementProps} readOnly={editorReadOnly} />;
+  }, [editorReadOnly]);
 
   const renderPlaceholder = useCallback((placeholderProps: RenderPlaceholderProps) => {
     const { attributes, children } = placeholderProps;
@@ -184,7 +196,7 @@ export function SlateEditor(props: {
     return (
       <span
         {...attributes}
-        className={cn((attributes as any).className, "text-muted-foreground/40")}
+        className="text-muted-foreground/40"
         style={{
           ...attributes.style,
           top: "0.75rem",
@@ -214,7 +226,7 @@ export function SlateEditor(props: {
         renderPlaceholder={renderPlaceholder}
         renderElement={renderElement}
         renderLeaf={renderLeaf}
-        readOnly={props.disabled || readOnly}
+        readOnly={editorReadOnly}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             if (!handleEnterInList(editor)) return;
