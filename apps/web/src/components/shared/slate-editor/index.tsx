@@ -36,6 +36,7 @@ import {
   withImageBlock,
 } from "./plugins/image-block/logic";
 import { uploadEditorImage } from "./plugins/image-block/upload";
+import { normalizeLinkUrl } from "./plugins/link/logic";
 
 export type SlateValue = Descendant[];
 
@@ -103,12 +104,35 @@ function Leaf(props: RenderLeafProps) {
     underline?: boolean;
     textColor?: string;
     backgroundColor?: string;
+    link?: string;
   };
 
   let next = children;
   if (anyLeaf.bold) next = <strong>{next}</strong>;
   if (anyLeaf.italic) next = <em>{next}</em>;
   if (anyLeaf.underline) next = <u>{next}</u>;
+
+  const linkUrl = normalizeLeafLink(anyLeaf.link);
+  if (linkUrl) {
+    next = (
+      <a
+        href={linkUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="cursor-pointer text-blue-500"
+        onMouseDown={(event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          window.open(linkUrl, "_blank", "noopener,noreferrer");
+        }}
+        onClick={(event) => {
+          event.preventDefault();
+        }}
+      >
+        {next}
+      </a>
+    );
+  }
 
   const inlineStyle: CSSProperties = {};
   const textColor = normalizeLeafColor(anyLeaf.textColor);
@@ -193,6 +217,11 @@ function normalizeLeafColor(value?: string) {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeLeafLink(value?: string) {
+  if (typeof value !== "string") return null;
+  return normalizeLinkUrl(value);
 }
 
 export function SlateEditor(props: {

@@ -13,6 +13,7 @@ import { HeadingOnePluginView } from "./heading-one/view";
 import { HeadingTwoPluginView } from "./heading-two/view";
 import { ImageBlockPluginView } from "./image-block/view";
 import { ItalicPluginView } from "./italic/view";
+import { LinkPluginView } from "./link/view";
 import { NumberedListPluginView } from "./numbered-list/view";
 import { RedoPluginView } from "./redo/view";
 import { TextColorPluginView } from "./text-color/view";
@@ -44,6 +45,7 @@ export function EditorToolbar(props: { disabled?: boolean }) {
       <BoldPluginView disabled={props.disabled} />
       <ItalicPluginView disabled={props.disabled} />
       <UnderlinePluginView disabled={props.disabled} />
+      <LinkPluginView disabled={props.disabled} />
       <TextColorPluginView disabled={props.disabled} />
       <BackgroundColorPluginView disabled={props.disabled} />
 
