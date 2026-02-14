@@ -23,6 +23,7 @@ import {
   outdentListItem,
 } from "./list-commands";
 import { toggleMark } from "./editor-format";
+import { setBlockAlign } from "./plugins/align/logic";
 import { CodeBlockElementView } from "./plugins/code-block/element";
 import { CODE_BLOCK_TYPE, withCodeBlock } from "./plugins/code-block/logic";
 import { DiagramBlockElementView } from "./plugins/diagram-block/element";
@@ -150,7 +151,8 @@ function Leaf(props: RenderLeafProps) {
 
 function Element(props: RenderElementProps & { readOnly: boolean }) {
   const { attributes, children, element } = props;
-  const el = element as SlateElement & { type?: string };
+  const el = element as SlateElement & { type?: string; align?: string };
+  const alignStyle = getElementAlignStyle(el);
 
   switch (el.type) {
     case CODE_BLOCK_TYPE:
@@ -161,13 +163,13 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
       return <ImageBlockElementView {...props} />;
     case "heading-one":
       return (
-        <h1 {...attributes} className="py-1 text-3xl font-bold tracking-tight">
+        <h1 {...attributes} className="py-1 text-3xl font-bold tracking-tight" style={alignStyle}>
           {children}
         </h1>
       );
     case "heading-two":
       return (
-        <h2 {...attributes} className="py-1 text-2xl font-semibold tracking-tight">
+        <h2 {...attributes} className="py-1 text-2xl font-semibold tracking-tight" style={alignStyle}>
           {children}
         </h2>
       );
@@ -176,6 +178,7 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
         <blockquote
           {...attributes}
           className="my-2 border-l-2 border-border pl-4 text-muted-foreground"
+          style={alignStyle}
         >
           {children}
         </blockquote>
@@ -185,6 +188,7 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
         <ul
           {...attributes}
           className="my-2 list-disc pl-6 [&_ul]:list-[circle] [&_ul_ul]:list-[square] [&_ul_ul_ul]:list-disc"
+          style={alignStyle}
         >
           {children}
         </ul>
@@ -194,19 +198,20 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
         <ol
           {...attributes}
           className="my-2 list-decimal pl-6 [&_ol]:list-[lower-alpha] [&_ol_ol]:list-[lower-roman] [&_ol_ol_ol]:list-decimal"
+          style={alignStyle}
         >
           {children}
         </ol>
       );
     case "list-item":
       return (
-        <li {...attributes}>
+        <li {...attributes} style={alignStyle}>
           {children}
         </li>
       );
     default:
       return (
-        <p {...attributes} className="py-1">
+        <p {...attributes} className="py-1" style={alignStyle}>
           {children}
         </p>
       );
@@ -222,6 +227,20 @@ function normalizeLeafColor(value?: string) {
 function normalizeLeafLink(value?: string) {
   if (typeof value !== "string") return null;
   return normalizeLinkUrl(value);
+}
+
+function getElementAlignStyle(element: SlateElement & { align?: string }): CSSProperties | undefined {
+  const align = normalizeElementAlign(element.align);
+  if (!align) return undefined;
+  return { textAlign: align };
+}
+
+function normalizeElementAlign(value?: string): CSSProperties["textAlign"] | null {
+  if (value === "left") return "left";
+  if (value === "center") return "center";
+  if (value === "right") return "right";
+  if (value === "justify") return "justify";
+  return null;
 }
 
 export function SlateEditor(props: {
@@ -305,6 +324,31 @@ export function SlateEditor(props: {
 
           const isMod = e.metaKey || e.ctrlKey;
           if (!isMod) return;
+
+          if (e.shiftKey) {
+            const key = e.key.toLowerCase();
+
+            if (key === "l") {
+              e.preventDefault();
+              setBlockAlign(editor, "left");
+              return;
+            }
+            if (key === "c") {
+              e.preventDefault();
+              setBlockAlign(editor, "center");
+              return;
+            }
+            if (key === "r") {
+              e.preventDefault();
+              setBlockAlign(editor, "right");
+              return;
+            }
+            if (key === "j") {
+              e.preventDefault();
+              setBlockAlign(editor, "justify");
+              return;
+            }
+          }
 
           if (e.key.toLowerCase() === "b") {
             e.preventDefault();

@@ -3,6 +3,7 @@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+import { AlignPluginView } from "./align/view";
 import { BackgroundColorPluginView } from "./background-color/view";
 import { BlockQuotePluginView } from "./block-quote/view";
 import { BoldPluginView } from "./bold/view";
@@ -51,6 +52,7 @@ export function EditorToolbar(props: { disabled?: boolean }) {
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
+      <AlignPluginView disabled={props.disabled} />
       <BulletedListPluginView disabled={props.disabled} />
       <NumberedListPluginView disabled={props.disabled} />
     </div>
