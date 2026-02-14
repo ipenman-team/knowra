@@ -20,7 +20,7 @@ import {
 } from "@codemirror/view";
 import { Check, Copy, Trash2 } from "lucide-react";
 import { Resizable } from "re-resizable";
-import { Node } from "slate";
+import { Editor, Node, Path, Transforms } from "slate";
 import { ReactEditor, useSlateStatic, type RenderElementProps } from "slate-react";
 
 import { Button } from "@/components/ui/button";
@@ -269,6 +269,35 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
     removeCodeBlock(editor, path);
   }, [editor, element]);
 
+  const onMoveCursorAfter = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (readOnly) return;
+
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".cm-editor")) return;
+      if (target.closest("button, input, [role='combobox'], [role='switch']")) return;
+
+      event.preventDefault();
+      focusAfterCodeBlock(editor, element);
+    },
+    [editor, element, readOnly],
+  );
+
+  const onMoveCursorAfterByContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (readOnly) return;
+
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".cm-editor")) return;
+      if (target.closest("button, input, [role='combobox'], [role='switch']")) return;
+
+      focusAfterCodeBlock(editor, element);
+    },
+    [editor, element, readOnly],
+  );
+
   const onResizeStart = useCallback(() => {
     setIsResizing(true);
   }, []);
@@ -285,7 +314,12 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   }, []);
 
   return (
-    <div {...props.attributes} className="my-2">
+    <div
+      {...props.attributes}
+      className="relative my-2"
+      onMouseDownCapture={onMoveCursorAfter}
+      onContextMenuCapture={onMoveCursorAfterByContextMenu}
+    >
       <div
         contentEditable={false}
         className="overflow-hidden rounded-md border border-input bg-background shadow-sm"
@@ -395,7 +429,9 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
         </Resizable>
       </div>
 
-      <span className="hidden">{props.children}</span>
+      <span className="pointer-events-none h-0 w-0 overflow-hidden opacity-0">
+        {props.children}
+      </span>
     </div>
   );
 }
@@ -412,6 +448,37 @@ function findPathSafe(editor: ReturnType<typeof useSlateStatic>, element: CodeBl
     return ReactEditor.findPath(editor as ReactEditor, element);
   } catch {
     return null;
+  }
+}
+
+function focusAfterCodeBlock(editor: ReturnType<typeof useSlateStatic>, element: CodeBlockElement) {
+  const path = findPathSafe(editor, element);
+  if (!path) return;
+
+  const nextPath = Path.next(path);
+  const nextExists = hasNodeAt(editor, nextPath);
+
+  if (!nextExists) {
+    Transforms.insertNodes(
+      editor,
+      {
+        type: "paragraph",
+        children: [{ text: "" }],
+      } as unknown as Node,
+      { at: nextPath },
+    );
+  }
+
+  Transforms.select(editor, Editor.start(editor, nextPath));
+  ReactEditor.focus(editor as ReactEditor);
+}
+
+function hasNodeAt(editor: ReturnType<typeof useSlateStatic>, path: Path) {
+  try {
+    Editor.node(editor, path);
+    return true;
+  } catch {
+    return false;
   }
 }
 
