@@ -14,8 +14,8 @@ import { ReactEditor, useSlate } from "slate-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
-  PopoverTrigger,
 } from "@/components/ui/popover";
 
 import type { ToolbarPluginProps } from "../types";
@@ -79,7 +79,7 @@ export function AlignPluginView(props: ToolbarPluginProps) {
         setOpen(nextOpen);
       }}
     >
-      <PopoverTrigger asChild>
+      <PopoverAnchor asChild>
         <Button
           type="button"
           variant={open || activeAlign !== "left" ? "secondary" : "ghost"}
@@ -95,7 +95,7 @@ export function AlignPluginView(props: ToolbarPluginProps) {
           <ActiveIcon className="h-4 w-4" />
           <ChevronDown className="h-3.5 w-3.5 opacity-70" />
         </Button>
-      </PopoverTrigger>
+      </PopoverAnchor>
 
       <PopoverContent align="start" className="w-auto p-2" sideOffset={8}>
         <div className="flex items-center gap-1">
