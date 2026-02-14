@@ -23,6 +23,7 @@ import {
   outdentListItem,
 } from "./list-commands";
 import { toggleMark } from "./editor-format";
+import { insertParagraphAfterSelectedBlockPlugin } from "./plugins/block-plugin-utils";
 import { setBlockAlign } from "./plugins/align/logic";
 import { CodeBlockElementView } from "./plugins/code-block/element";
 import { CODE_BLOCK_TYPE, withCodeBlock } from "./plugins/code-block/logic";
@@ -343,6 +344,11 @@ export function SlateEditor(props: {
         readOnly={editorReadOnly}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
+            if (insertParagraphAfterSelectedBlockPlugin(editor)) {
+              e.preventDefault();
+              return;
+            }
+
             if (!handleEnterInList(editor)) return;
             e.preventDefault();
             return;
