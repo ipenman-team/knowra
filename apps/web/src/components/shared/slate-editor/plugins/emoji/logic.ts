@@ -1,32 +1,5 @@
 import { Editor, Transforms, type BaseRange } from "slate";
 
-export const EMOJI_OPTIONS = [
-  "😀",
-  "😄",
-  "😁",
-  "🤣",
-  "😊",
-  "😍",
-  "😘",
-  "😎",
-  "🤔",
-  "😭",
-  "😡",
-  "👍",
-  "👏",
-  "🙏",
-  "💪",
-  "🎉",
-  "🔥",
-  "💯",
-  "✨",
-  "✅",
-  "❌",
-  "💡",
-  "📌",
-  "🚀",
-] as const;
-
 export function insertEmoji(
   editor: Editor,
   emoji: string,
