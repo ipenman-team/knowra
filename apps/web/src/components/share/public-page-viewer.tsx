@@ -4,10 +4,23 @@ import { SlateEditor, parseContentToSlateValue } from '@/components/shared/slate
 import { EditorTitleDisplay } from '@/components/editor/components/title-display';
 import { SharePageHeader } from '@/components/share/share-page-header';
 import { ShareDto } from '@/lib/api';
+import { ICP_FILING_NUMBER } from '@/lib/filing';
 
-export function PublicPageViewer({ share, snapshot }: { share: ShareDto; snapshot: any }) {
-  const content = snapshot?.payload?.content;
-  const title = snapshot?.payload?.title;
+type PublicPageSnapshot = {
+  payload?: unknown;
+  createdAt?: string;
+} | null;
+
+export function PublicPageViewer({ snapshot }: { share: ShareDto; snapshot: PublicPageSnapshot }) {
+  const payload =
+    snapshot?.payload && typeof snapshot.payload === 'object'
+      ? (snapshot.payload as Record<string, unknown>)
+      : {};
+  const content = payload.content;
+  const title =
+    typeof payload.title === 'string' && payload.title.trim()
+      ? payload.title
+      : '无标题文档';
   const publishedAt = snapshot?.createdAt;
   const slateValue = parseContentToSlateValue(content);
 
@@ -27,7 +40,7 @@ export function PublicPageViewer({ share, snapshot }: { share: ShareDto; snapsho
            />
         </div>
         <div className="text-center text-sm text-muted-foreground pt-10 border-t mt-10">
-          Powered by Contexta
+          {ICP_FILING_NUMBER}
         </div>
       </div>
     </div>

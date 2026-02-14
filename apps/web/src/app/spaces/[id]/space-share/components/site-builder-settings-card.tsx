@@ -62,7 +62,7 @@ export function SiteBuilderSettingsCard({
     <Card className="max-w-3xl border-none shadow-none">
       <CardHeader>
         <CardTitle>高级设置</CardTitle>
-        <CardDescription>自由配置展示站点，品牌化</CardDescription>
+        <CardDescription>自由配置展示站点</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {loading ? (
@@ -91,7 +91,6 @@ export function SiteBuilderSettingsCard({
             </div>
 
             <div className="space-y-2">
-              <Label>配置界面</Label>
               <Button
                 variant="outline"
                 onClick={onOpenConfig}
@@ -117,18 +116,6 @@ export function SiteBuilderSettingsCard({
               </Button>
             </div>
 
-            <p
-              className={cn(
-                'text-xs',
-                autosaveError ? 'text-destructive' : 'text-muted-foreground',
-              )}
-            >
-              {autosaveError
-                ? autosaveError
-                : autosaving
-                  ? '正在自动保存...'
-                  : '已开启自动保存，配置修改会实时写入。'}
-            </p>
 
             <div className="space-y-2">
               <Label>展示页链接</Label>
@@ -157,11 +144,6 @@ export function SiteBuilderSettingsCard({
                   打开
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {publishedAt
-                  ? `最近发布时间：${new Date(publishedAt).toLocaleString()}`
-                  : '当前未发布展示页。'}
-              </p>
             </div>
           </>
         )}

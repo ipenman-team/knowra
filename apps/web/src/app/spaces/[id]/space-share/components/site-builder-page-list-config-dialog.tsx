@@ -53,8 +53,8 @@ export function SiteBuilderPageListConfigDialog({
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
       setStyle(initialConfig.style);
-      setSelectedPageIds(initialConfig.pageIds);
-      setPageCovers(initialConfig.pageCovers);
+      setSelectedPageIds([...initialConfig.pageIds]);
+      setPageCovers({ ...initialConfig.pageCovers });
     }
     onOpenChange(nextOpen);
   };
@@ -68,32 +68,10 @@ export function SiteBuilderPageListConfigDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader className="text-left">
-          <DialogTitle>多页面配置</DialogTitle>
+          <DialogTitle>选择页面</DialogTitle>
         </DialogHeader>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-
-          <div className="space-y-2">
-            <Label>列表样式</Label>
-            <Select
-              value={style}
-              onValueChange={(value: 'list' | 'card') => setStyle(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="列表样式" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="card">card</SelectItem>
-                <SelectItem value="list">list</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-        </div>
-
         <div className="space-y-2">
-          <Label>选择页面</Label>
-          <div className="max-h-[42vh] space-y-1 overflow-y-auto rounded-md border p-3">
+          <div className="max-h-[42vh] space-y-1 overflow-y-auto rounded-md p-3">
             {pages.length ? (
               pages.map((page) => {
                 const checked = selectedSet.has(page.id);
@@ -102,7 +80,6 @@ export function SiteBuilderPageListConfigDialog({
                     key={page.id}
                     className={cn(
                       'flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition hover:bg-accent',
-                      checked && 'bg-accent/50',
                     )}
                   >
                     <Checkbox
@@ -136,7 +113,7 @@ export function SiteBuilderPageListConfigDialog({
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             取消
           </Button>
           <Button

@@ -23,6 +23,58 @@ function formatDateTime(input?: string | Date | null): string {
   return date.toLocaleString();
 }
 
+function formatDateOnly(input?: string | Date | null): string {
+  if (!input) return '';
+  const date = new Date(input);
+  if (!Number.isFinite(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}.${m}.${d}`;
+}
+
+function collectTextFromSlateLike(input: unknown, buffer: string[]): void {
+  if (input == null) return;
+  if (typeof input === 'string') {
+    const value = input.trim();
+    if (value) buffer.push(value);
+    return;
+  }
+  if (Array.isArray(input)) {
+    input.forEach((item) => collectTextFromSlateLike(item, buffer));
+    return;
+  }
+  if (typeof input === 'object') {
+    const record = input as Record<string, unknown>;
+    if (typeof record.text === 'string') {
+      const value = record.text.trim();
+      if (value) buffer.push(value);
+    }
+    if (Array.isArray(record.children)) {
+      collectTextFromSlateLike(record.children, buffer);
+    }
+  }
+}
+
+function getPageSummary(content: unknown, maxLength = 180): string {
+  const buffer: string[] = [];
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      collectTextFromSlateLike(parsed, buffer);
+    } catch {
+      collectTextFromSlateLike(content, buffer);
+    }
+  } else {
+    collectTextFromSlateLike(content, buffer);
+  }
+
+  const text = buffer.join(' ').replace(/\s+/g, ' ').trim();
+  if (!text) return '暂无摘要';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}...`;
+}
+
 export function KnowledgeBlogMenu({
   style,
   items,
@@ -89,11 +141,15 @@ export function KnowledgeBlogMenu({
                 />
               </div>
             ) : null}
-            <div className="line-clamp-2 text-lg font-semibold">{item.title}</div>
+            <div className="line-clamp-2 text-lg font-semibold">
+              {item.title}
+            </div>
             <div className="mt-2 text-xs text-muted-foreground">
               发布于 {formatDateTime(item.updatedAt)}
             </div>
-            <div className="mt-5 text-sm font-medium text-primary">Read More &gt;</div>
+            <div className="mt-5 text-sm font-medium text-primary">
+              Read More &gt;
+            </div>
           </button>
         ))}
       </div>
@@ -101,37 +157,47 @@ export function KnowledgeBlogMenu({
   }
 
   return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onSelectPageId(item.id)}
-          className={cn('w-full rounded-md border bg-card p-3 text-left transition-colors hover:bg-accent')}
-        >
-          <div className="flex items-start gap-3">
-            {item.coverUrl ? (
-              <div className="h-20 w-32 shrink-0 overflow-hidden rounded-md border bg-muted/20">
-                <Image
-                  src={item.coverUrl}
-                  alt={`${item.title} cover`}
-                  width={320}
-                  height={200}
-                  unoptimized
-                  className="h-full w-full object-cover"
-                />
+    <div className="divide-y">
+      {items.map((item) => {
+        const page = pageMap[item.id];
+        const summary = getPageSummary(page?.content);
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onSelectPageId(item.id)}
+            className={cn(
+              'w-full px-0 py-8 text-left transition-colors hover:bg-accent/30',
+            )}
+          >
+            <div className="flex items-start gap-6">
+              <div className="min-w-0 flex-1 space-y-3">
+                <h3 className="line-clamp-2 text-basic font-medium leading-tight text-foreground">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {formatDateOnly(item.updatedAt)} · 已发布
+                </p>
+                <p className="line-clamp-4 text-xs leading-7 text-foreground/90">
+                  {summary}
+                </p>
               </div>
-            ) : null}
-            <div className="min-w-0 flex-1">
-              <div className="line-clamp-2 font-medium">{item.title}</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                发布于 {formatDateTime(item.updatedAt)}
-              </div>
+              {item.coverUrl && (
+                <div className="hidden h-32 w-48 shrink-0 overflow-hidden rounded-sm bg-muted/20 md:block">
+                  <Image
+                    src={item.coverUrl}
+                    alt={`${item.title} cover`}
+                    width={384}
+                    height={256}
+                    unoptimized
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
             </div>
-          </div>
-          <div className="mt-3 text-sm font-medium text-primary">Read More &gt;</div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { filesApi, pagesApi } from '@/lib/api';
 import type { ShareDto } from '@/lib/api';
 import type { PageDto } from '@/lib/api/pages/types';
@@ -50,7 +50,6 @@ export function useSpaceShareSiteBuilder({
   const [pagePickerMenuId, setPagePickerMenuId] = useState<string | null>(null);
   const [pageListConfigOpen, setPageListConfigOpen] = useState(false);
 
-  const logoInputRef = useRef<HTMLInputElement | null>(null);
   const pageDetailMapRef = useRef<Record<string, PageDto>>({});
   const pageLoadingSetRef = useRef<Set<string>>(new Set());
   const siteBuilderLastSavedSignatureRef = useRef<string>('');
@@ -592,9 +591,18 @@ export function useSpaceShareSiteBuilder({
     [updateActiveSiteBuilderMenu],
   );
 
-  const handleOpenLogoPicker = useCallback(() => {
-    logoInputRef.current?.click();
-  }, []);
+  const handleUpdateActivePageListStyle = useCallback(
+    (style: 'list' | 'card') => {
+      updateActiveSiteBuilderMenu((menu) => {
+        if (menu.type !== 'PAGE_LIST') return menu;
+        return {
+          ...menu,
+          style,
+        };
+      });
+    },
+    [updateActiveSiteBuilderMenu],
+  );
 
   const uploadSiteBuilderImage = useCallback(
     async (file: File, from: 'site-builder/logo' | 'site-builder/page-cover') => {
@@ -617,31 +625,32 @@ export function useSpaceShareSiteBuilder({
     [],
   );
 
-  const handleLogoFileChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = '';
-      if (!file) return;
+  const handleUploadLogoFile = useCallback(
+    async (file: File): Promise<string | null> => {
       if (!file.type.startsWith('image/')) {
         toast.error('请选择图片文件');
-        return;
+        return null;
       }
       if (file.size > MAX_LOGO_SIZE_BYTES) {
         toast.error('Logo 文件不能超过 2MB');
-        return;
+        return null;
       }
-      void uploadSiteBuilderImage(file, 'site-builder/logo').then((logoUrl) => {
-        if (!logoUrl) return;
-        updateSiteBuilderConfig((previous) => ({
-          ...previous,
-          branding: {
-            ...previous.branding,
-            logoUrl,
-          },
-        }));
-      });
+      return uploadSiteBuilderImage(file, 'site-builder/logo');
     },
-    [updateSiteBuilderConfig, uploadSiteBuilderImage],
+    [uploadSiteBuilderImage],
+  );
+
+  const handleChangeLogoUrl = useCallback(
+    (logoUrl: string | null) => {
+      updateSiteBuilderConfig((previous) => ({
+        ...previous,
+        branding: {
+          ...previous.branding,
+          logoUrl: logoUrl?.trim() ? logoUrl.trim() : null,
+        },
+      }));
+    },
+    [updateSiteBuilderConfig],
   );
 
   const handleUploadPageCoverFile = useCallback(
@@ -671,9 +680,8 @@ export function useSpaceShareSiteBuilder({
     handleUnpublishSiteBuilder,
     handleCopySiteBuilderLink,
     handleOpenSiteBuilderLink,
-    logoInputRef,
-    handleLogoFileChange,
-    handleOpenLogoPicker,
+    handleUploadLogoFile,
+    handleChangeLogoUrl,
     activeSiteBuilderMenuId,
     setActiveSiteBuilderMenuId,
     activeSiteBuilderMenu,
@@ -692,6 +700,7 @@ export function useSpaceShareSiteBuilder({
     setPageListConfigOpen,
     handleReorderActivePageList,
     handleUpdateActivePageCover,
+    handleUpdateActivePageListStyle,
     handleUploadPageCoverFile,
     pagePickerOpen,
     handlePagePickerOpenChange,

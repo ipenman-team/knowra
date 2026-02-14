@@ -6,6 +6,7 @@ import type {
   SiteBuilderConfig,
   SiteBuilderCustomMenu,
 } from '@/lib/api/site-builder';
+import { ICP_FILING_NUMBER } from '@/lib/filing';
 
 type ResolvedData = {
   pageMap?: Record<string, SiteTemplatePage>;
@@ -214,6 +215,6 @@ export function buildRenderDataFromSnapshot(snapshot: {
         items: payload.resolvedData?.menuData?.blog?.items ?? [],
       },
     },
-    footerText: 'Powered by Contexta',
+    footerText: ICP_FILING_NUMBER,
   };
 }

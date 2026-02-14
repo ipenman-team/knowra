@@ -42,9 +42,8 @@ export default function SpaceSharePage() {
     handleUnpublishSiteBuilder,
     handleCopySiteBuilderLink,
     handleOpenSiteBuilderLink,
-    logoInputRef,
-    handleLogoFileChange,
-    handleOpenLogoPicker,
+    handleUploadLogoFile,
+    handleChangeLogoUrl,
     activeSiteBuilderMenuId,
     setActiveSiteBuilderMenuId,
     activeSiteBuilderMenu,
@@ -63,6 +62,7 @@ export default function SpaceSharePage() {
     setPageListConfigOpen,
     handleReorderActivePageList,
     handleUpdateActivePageCover,
+    handleUpdateActivePageListStyle,
     handleUploadPageCoverFile,
     pagePickerOpen,
     handlePagePickerOpenChange,
@@ -135,10 +135,9 @@ export default function SpaceSharePage() {
           open={siteBuilderModalOpen}
           onOpenChange={setSiteBuilderModalOpen}
           loading={siteBuilderLoading}
-          logoInputRef={logoInputRef}
-          onLogoFileChange={handleLogoFileChange}
-          onOpenLogoPicker={handleOpenLogoPicker}
           config={siteBuilderConfig}
+          onUploadLogoFile={handleUploadLogoFile}
+          onChangeLogoUrl={handleChangeLogoUrl}
           activeMenuId={activeSiteBuilderMenuId}
           activeMenu={activeSiteBuilderMenu}
           activePage={activeSiteBuilderPage}
@@ -158,6 +157,7 @@ export default function SpaceSharePage() {
           onOpenPageListConfig={() => setPageListConfigOpen(true)}
           onReorderPageList={handleReorderActivePageList}
           onUpdatePageCover={handleUpdateActivePageCover}
+          onPageListStyleChange={handleUpdateActivePageListStyle}
           onUploadPageCoverFile={handleUploadPageCoverFile}
         />
 
@@ -171,6 +171,7 @@ export default function SpaceSharePage() {
         />
 
         <SiteBuilderPageListConfigDialog
+          key={`page-list-config-${activeSiteBuilderMenu?.id ?? 'none'}-${pageListConfigOpen ? 'open' : 'closed'}`}
           open={pageListConfigOpen}
           onOpenChange={setPageListConfigOpen}
           pages={sortedSiteBuilderPages}

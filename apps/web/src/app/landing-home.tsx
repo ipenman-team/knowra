@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import type { CarouselApi } from '@/components/ui/carousel';
+import { ICP_FILING_NUMBER } from '@/lib/filing';
 import { cn } from '@/lib/utils';
 
 const productShots = [
@@ -312,7 +312,7 @@ export function LandingHome() {
           </div>
 
           <div className="mt-10 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Contexta
+            © {new Date().getFullYear()} Contexta · {ICP_FILING_NUMBER}
           </div>
         </div>
       </footer>

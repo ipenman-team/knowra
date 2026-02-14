@@ -1,6 +1,5 @@
 'use client';
 
-import { EditorTitleDisplay } from '@/components/editor/components/title-display';
 import {
   SlateEditor,
   parseContentToSlateValue,
@@ -39,7 +38,7 @@ export function KnowledgePageMenuBase({
 
   const slateValue = parseContentToSlateValue(page.content);
   return (
-    <section className="space-y-4 rounded-md bg-card p-5">
+    <section className="min-h-0 max-h-[70vh] space-y-4 overflow-y-auto rounded-md bg-card p-5">
       <SlateEditor
         className="border-none"
         key={`${page.id}-${page.updatedAt}`}

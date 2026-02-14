@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
+import { ICP_FILING_NUMBER } from '@/lib/filing';
 import { cn } from '@/lib/utils';
 import type {
   SiteTemplateRendererProps,
@@ -161,7 +162,7 @@ export function KnowledgeSiteTemplate({
                 width={40}
                 height={40}
                 unoptimized
-                className="h-10 w-10 rounded-md border object-contain"
+                className="h-10 w-10 object-contain"
               />
             ) : null}
             <div className="truncate text-lg font-semibold">{data.siteName}</div>
@@ -266,7 +267,7 @@ export function KnowledgeSiteTemplate({
           )}
 
           <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-            {data.footerText ?? 'Powered by Contexta'}
+            {data.footerText ?? ICP_FILING_NUMBER}
           </div>
         </div>
       </main>

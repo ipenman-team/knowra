@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, type ChangeEvent, type RefObject } from 'react';
-import Image from 'next/image';
-import { Loader2, MoreHorizontal, Plus, Settings2, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, MoreHorizontal, Plus, Settings2 } from 'lucide-react';
 import type { PageDto } from '@/lib/api/pages/types';
 import type {
   SiteBuilderConfig,
@@ -47,6 +46,7 @@ import {
   SlateEditor,
   parseContentToSlateValue,
 } from '@/components/shared/slate-editor';
+import { UploadFileTile } from '@/components/ui/upload-file-tile';
 import { cn } from '@/lib/utils';
 import { SiteBuilderPageListPreview } from './site-builder-page-list-preview';
 
@@ -54,10 +54,9 @@ type SiteBuilderConfigModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loading: boolean;
-  logoInputRef: RefObject<HTMLInputElement | null>;
-  onLogoFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onOpenLogoPicker: () => void;
   config: SiteBuilderConfig;
+  onUploadLogoFile: (file: File) => Promise<string | null>;
+  onChangeLogoUrl: (url: string | null) => void;
   activeMenuId: string | null;
   activeMenu: SiteBuilderCustomMenu | null;
   activePage: PageDto | null;
@@ -77,6 +76,7 @@ type SiteBuilderConfigModalProps = {
   onOpenPageListConfig: () => void;
   onReorderPageList: (nextPageIds: string[]) => void;
   onUpdatePageCover: (pageId: string, coverUrl: string | null) => void;
+  onPageListStyleChange: (style: 'list' | 'card') => void;
   onUploadPageCoverFile: (file: File) => Promise<string | null>;
 };
 
@@ -84,10 +84,9 @@ export function SiteBuilderConfigModal({
   open,
   onOpenChange,
   loading,
-  logoInputRef,
-  onLogoFileChange,
-  onOpenLogoPicker,
   config,
+  onUploadLogoFile,
+  onChangeLogoUrl,
   activeMenuId,
   activeMenu,
   activePage,
@@ -107,6 +106,7 @@ export function SiteBuilderConfigModal({
   onOpenPageListConfig,
   onReorderPageList,
   onUpdatePageCover,
+  onPageListStyleChange,
   onUploadPageCoverFile,
 }: SiteBuilderConfigModalProps) {
   const activeSlateValue = parseContentToSlateValue(activePage?.content);
@@ -124,14 +124,6 @@ export function SiteBuilderConfigModal({
             <DialogTitle>配置界面</DialogTitle>
           </DialogHeader>
 
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onLogoFileChange}
-          />
-
           {loading ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -141,30 +133,17 @@ export function SiteBuilderConfigModal({
               <Card className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col overflow-hidden border">
                 <div className="border-b px-6 py-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <button
-                      type="button"
-                      onClick={onOpenLogoPicker}
-                      className="group/logo relative flex h-14 min-w-[180px] items-center justify-center rounded-md border border-dashed bg-background px-4 transition hover:border-primary/70"
-                    >
-                      {config.branding.logoUrl ? (
-                        <Image
-                          src={config.branding.logoUrl}
-                          alt="Site logo"
-                          width={160}
-                          height={40}
-                          unoptimized
-                          className="h-10 w-auto max-w-[160px] object-contain"
-                        />
-                      ) : (
-                        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                          <Upload className="h-4 w-4" />
-                          上传 Logo
-                        </span>
-                      )}
-                      <span className="absolute inset-0 flex items-center justify-center rounded-md bg-background/70 text-xs opacity-0 transition group-hover/logo:opacity-100">
-                        点击上传并替换
-                      </span>
-                    </button>
+                    <UploadFileTile
+                      value={config.branding.logoUrl}
+                      fileName="logo"
+                      alt="site logo"
+                      shape="circle"
+                      className="h-14 w-14"
+                      emptyLabel="Upload"
+                      errorLabel="Logo 上传失败"
+                      onUpload={onUploadLogoFile}
+                      onChange={onChangeLogoUrl}
+                    />
 
                     <div className="flex items-center gap-2 overflow-x-auto">
                       {config.customMenus.map((menu) => (
@@ -199,7 +178,10 @@ export function SiteBuilderConfigModal({
                             <Settings2 className="h-4 w-4" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="end" className="w-[280px] space-y-3">
+                        <PopoverContent
+                          align="end"
+                          className="w-[280px] space-y-3"
+                        >
                           <div className="space-y-1">
                             <Label htmlFor="menu-config-name">菜单名称</Label>
                             <Input
@@ -215,19 +197,42 @@ export function SiteBuilderConfigModal({
                             <Label htmlFor="menu-config-type">菜单类型</Label>
                             <Select
                               value={activeMenu?.type ?? 'SINGLE_PAGE'}
-                              onValueChange={(value: SiteBuilderCustomMenuType) =>
-                                onMenuTypeChange(value)
-                              }
+                              onValueChange={(
+                                value: SiteBuilderCustomMenuType,
+                              ) => onMenuTypeChange(value)}
                             >
                               <SelectTrigger id="menu-config-type">
                                 <SelectValue placeholder="选择菜单类型" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="SINGLE_PAGE">单页面</SelectItem>
-                                <SelectItem value="PAGE_LIST">多页面</SelectItem>
+                                <SelectItem value="SINGLE_PAGE">
+                                  单页面
+                                </SelectItem>
+                                <SelectItem value="PAGE_LIST">
+                                  多页面
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
+                          {activeMenu?.type === 'PAGE_LIST' ? (
+                            <div className="space-y-1">
+                              <Label htmlFor="menu-config-list-style">展示样式</Label>
+                              <Select
+                                value={activeMenu.style ?? 'card'}
+                                onValueChange={(value: 'list' | 'card') =>
+                                  onPageListStyleChange(value)
+                                }
+                              >
+                                <SelectTrigger id="menu-config-list-style">
+                                  <SelectValue placeholder="选择展示样式" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="card">card</SelectItem>
+                                  <SelectItem value="list">list</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : null}
                           <div className="pt-1">
                             <TooltipProvider delayDuration={0}>
                               <Tooltip
@@ -258,7 +263,9 @@ export function SiteBuilderConfigModal({
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => setDeleteConfirmOpen(false)}
+                                      onClick={() =>
+                                        setDeleteConfirmOpen(false)
+                                      }
                                     >
                                       取消
                                     </Button>
@@ -302,10 +309,14 @@ export function SiteBuilderConfigModal({
                     activeMenu.type === 'SINGLE_PAGE' ? (
                       activeMenu.pageId ? (
                         <div className="group relative rounded-md border bg-background p-4 transition-colors hover:border-primary/70">
-                          <div className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
+                          <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity group-hover:opacity-100">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -347,10 +358,14 @@ export function SiteBuilderConfigModal({
                       )
                     ) : activeMenu.pageIds.length ? (
                       <div className="group relative rounded-md bg-background transition-colors hover:border-primary/70">
-                        <div className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity group-hover:opacity-100">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -376,7 +391,9 @@ export function SiteBuilderConfigModal({
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed bg-background p-10 text-center">
-                        <Button onClick={onOpenPageListConfig}>配置多页面</Button>
+                        <Button onClick={onOpenPageListConfig}>
+                          配置多页面
+                        </Button>
                       </div>
                     )
                   ) : (

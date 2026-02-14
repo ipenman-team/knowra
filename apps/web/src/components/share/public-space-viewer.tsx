@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { buildPageTreeFromFlatPages } from '@contexta/shared';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
 import { EditorTitleDisplay } from '@/components/editor/components/title-display';
@@ -12,6 +12,7 @@ import type {
 import { SlateEditor, parseContentToSlateValue } from '@/components/shared/slate-editor';
 import { Tree } from '@/components/shared/tree';
 import { ShareDto } from '@/lib/api';
+import { ICP_FILING_NUMBER } from '@/lib/filing';
 import { cn } from '@/lib/utils';
 
 function normalizeSnapshotPayload(payload: unknown): SpaceShareSnapshotPayload | null {
@@ -77,7 +78,6 @@ function normalizeSnapshotPayload(payload: unknown): SpaceShareSnapshotPayload |
 }
 
 export function PublicSpaceViewer({
-  share,
   snapshot,
 }: {
   share: ShareDto;
@@ -87,29 +87,26 @@ export function PublicSpaceViewer({
     () => normalizeSnapshotPayload(snapshot?.payload),
     [snapshot?.payload],
   );
-  const pages = payload?.pages ?? [];
+  const pages = useMemo(() => payload?.pages ?? [], [payload?.pages]);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!pages.length) {
-      setSelectedPageId(null);
-      return;
+  const resolvedSelectedPageId = useMemo(() => {
+    if (!pages.length) return null;
+    if (selectedPageId && pages.some((page) => page.id === selectedPageId)) {
+      return selectedPageId;
     }
-
-    setSelectedPageId((prev) => {
-      if (prev && pages.some((page) => page.id === prev)) {
-        return prev;
-      }
-      if (payload?.defaultPageId && pages.some((page) => page.id === payload.defaultPageId)) {
-        return payload.defaultPageId;
-      }
-      return pages[0].id;
-    });
-  }, [pages, payload?.defaultPageId]);
+    if (
+      payload?.defaultPageId &&
+      pages.some((page) => page.id === payload.defaultPageId)
+    ) {
+      return payload.defaultPageId;
+    }
+    return pages[0].id;
+  }, [pages, payload?.defaultPageId, selectedPageId]);
 
   const selectedPage = useMemo(
-    () => pages.find((page) => page.id === selectedPageId) ?? pages[0] ?? null,
-    [pages, selectedPageId],
+    () => pages.find((page) => page.id === resolvedSelectedPageId) ?? null,
+    [pages, resolvedSelectedPageId],
   );
 
   const treeNodes = useMemo(
@@ -208,7 +205,7 @@ export function PublicSpaceViewer({
               onChange={() => {}}
             />
             <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-              Powered by Contexta
+              {ICP_FILING_NUMBER}
             </div>
           </div>
         </main>
