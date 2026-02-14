@@ -19,6 +19,8 @@ import {
   placeholder,
 } from "@codemirror/view";
 import {
+  ChevronLeft,
+  ChevronRight,
   Eye,
   EyeOff,
   Expand,
@@ -188,6 +190,10 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
     patchElement({ preview: !previewEnabled });
   }, [patchElement, previewEnabled]);
 
+  const onToggleSourceCollapsed = useCallback(() => {
+    setIsSourceCollapsed((prev) => !prev);
+  }, []);
+
   const onDelete = useCallback(() => {
     const path = findPathSafe(editor, element);
     if (!path) return;
@@ -249,10 +255,21 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
             type="button"
             variant="ghost"
             size="sm"
+            className="h-8 px-2"
+            disabled={!previewEnabled}
+            onClick={onToggleSourceCollapsed}
+          >
+            {sourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
+            {sourceCollapsed ? "展开语法" : "折叠语法"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             className="ml-auto h-8 px-2"
             onClick={() => {
               setIsFullscreenOpen(true);
-              setIsSourceCollapsed(false);
             }}
           >
             <Expand />
@@ -272,17 +289,18 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
           </Button>
         </div>
 
-        <DiagramPreviewPane
+        <DiagramWorkspace
+          code={code}
+          readOnly={readOnly}
+          previewEnabled={previewEnabled}
+          sourceCollapsed={sourceCollapsed}
           svg={svg}
           renderError={mergedRenderError}
           isRendering={isRendering}
-          previewEnabled={previewEnabled}
-          className="h-[300px]"
+          onCodeChange={(nextCode) => patchElement({ code: nextCode })}
+          onToggleSourceCollapsed={onToggleSourceCollapsed}
+          className="h-[360px]"
         />
-
-        <div className="border-t bg-muted/20 px-3 py-1 text-xs text-muted-foreground">
-          语法区默认折叠，仅在全屏编辑中显示。
-        </div>
       </div>
 
       <DiagramFullscreenDialog
@@ -297,7 +315,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         svg={svg}
         renderError={mergedRenderError}
         isRendering={isRendering}
-        onSetSourceCollapsed={setIsSourceCollapsed}
+        onToggleSourceCollapsed={onToggleSourceCollapsed}
         onTemplateChange={onTemplateChange}
         onTogglePreview={onTogglePreview}
         onCodeChange={(nextCode) => patchElement({ code: nextCode })}
@@ -320,14 +338,14 @@ function DiagramFullscreenDialog(props: {
   svg: string;
   renderError: string | null;
   isRendering: boolean;
-  onSetSourceCollapsed: (collapsed: boolean) => void;
+  onToggleSourceCollapsed: () => void;
   onTemplateChange: (templateId: string) => void;
   onTogglePreview: () => void;
   onCodeChange: (code: string) => void;
 }) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="inset-0 left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none p-0 sm:rounded-none">
+      <DialogContent className="inset-0 left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none p-0 sm:rounded-none [&>button]:hidden">
         <DialogTitle className="sr-only">文本绘图全屏编辑</DialogTitle>
 
         <div className="flex min-h-0 h-full flex-col">
@@ -382,7 +400,7 @@ function DiagramFullscreenDialog(props: {
               size="sm"
               className="h-8 px-2"
               disabled={!props.previewEnabled}
-              onClick={() => props.onSetSourceCollapsed(!props.isSourceCollapsed)}
+              onClick={props.onToggleSourceCollapsed}
             >
               {props.isSourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
               {props.isSourceCollapsed ? "展开语法" : "折叠语法"}
@@ -395,39 +413,95 @@ function DiagramFullscreenDialog(props: {
             </DialogClose>
           </div>
 
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            {!props.isSourceCollapsed ? (
-              <div
-                className={cn(
-                  "min-h-0 border-r",
-                  props.previewEnabled ? "w-1/2" : "w-full",
-                )}
-              >
-                <DiagramSourceEditor
-                  value={props.code}
-                  readOnly={props.readOnly}
-                  onChange={props.onCodeChange}
-                />
-              </div>
-            ) : null}
-
-            {props.previewEnabled ? (
-              <DiagramPreviewPane
-                svg={props.svg}
-                renderError={props.renderError}
-                isRendering={props.isRendering}
-                previewEnabled={props.previewEnabled}
-                className={cn("min-h-0", props.isSourceCollapsed ? "w-full" : "flex-1")}
-              />
-            ) : (
-              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-                预览已关闭，可重新开启。
-              </div>
-            )}
-          </div>
+          <DiagramWorkspace
+            code={props.code}
+            readOnly={props.readOnly}
+            previewEnabled={props.previewEnabled}
+            sourceCollapsed={props.isSourceCollapsed}
+            svg={props.svg}
+            renderError={props.renderError}
+            isRendering={props.isRendering}
+            onCodeChange={props.onCodeChange}
+            onToggleSourceCollapsed={props.onToggleSourceCollapsed}
+            className="min-h-0 flex-1"
+          />
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DiagramWorkspace(props: {
+  code: string;
+  readOnly: boolean;
+  previewEnabled: boolean;
+  sourceCollapsed: boolean;
+  svg: string;
+  renderError: string | null;
+  isRendering: boolean;
+  onCodeChange: (code: string) => void;
+  onToggleSourceCollapsed: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("relative flex min-h-0 overflow-hidden", props.className)}>
+      {!props.sourceCollapsed ? (
+        <div
+          className={cn(
+            "min-h-0 min-w-0",
+            props.previewEnabled ? "w-1/2 border-r" : "w-full",
+          )}
+        >
+          <DiagramSourceEditor
+            value={props.code}
+            readOnly={props.readOnly}
+            onChange={props.onCodeChange}
+          />
+        </div>
+      ) : null}
+
+      {props.previewEnabled ? (
+        <DiagramPreviewPane
+          svg={props.svg}
+          renderError={props.renderError}
+          isRendering={props.isRendering}
+          previewEnabled={props.previewEnabled}
+          className={cn("min-h-0", props.sourceCollapsed ? "w-full" : "w-1/2")}
+        />
+      ) : null}
+
+      {props.previewEnabled ? (
+        <PaneCollapseHandle
+          collapsed={props.sourceCollapsed}
+          onToggle={props.onToggleSourceCollapsed}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PaneCollapseHandle(props: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      {!props.collapsed ? (
+        <div className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] w-px -translate-x-1/2 bg-border" />
+      ) : null}
+
+      <button
+        type="button"
+        className={cn(
+          "absolute top-1/2 z-[2] -translate-y-1/2 rounded-full border border-input bg-muted/90 p-1 text-muted-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground",
+          props.collapsed ? "left-2" : "left-1/2 -translate-x-1/2",
+        )}
+        onClick={props.onToggle}
+        aria-label={props.collapsed ? "展开语法编辑区" : "折叠语法编辑区"}
+      >
+        {props.collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </button>
+    </>
   );
 }
 
