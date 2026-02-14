@@ -11,6 +11,7 @@ import {
   type RenderLeafProps,
   type RenderPlaceholderProps,
 } from "slate-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,14 @@ import { CODE_BLOCK_TYPE, withCodeBlock } from "./plugins/code-block/logic";
 import { DiagramBlockElementView } from "./plugins/diagram-block/element";
 import { DIAGRAM_BLOCK_TYPE, withDiagramBlock } from "./plugins/diagram-block/logic";
 import { EditorToolbar } from "./plugins/editor-toolbar";
+import { ImageBlockElementView } from "./plugins/image-block/element";
+import {
+  getFirstImageFileFromClipboard,
+  IMAGE_BLOCK_TYPE,
+  insertImageBlock,
+  withImageBlock,
+} from "./plugins/image-block/logic";
+import { uploadEditorImage } from "./plugins/image-block/upload";
 
 export type SlateValue = Descendant[];
 
@@ -111,6 +120,8 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
       return <CodeBlockElementView {...props} />;
     case DIAGRAM_BLOCK_TYPE:
       return <DiagramBlockElementView {...props} />;
+    case IMAGE_BLOCK_TYPE:
+      return <ImageBlockElementView {...props} />;
     case "heading-one":
       return (
         <h1 {...attributes} className="py-1 text-3xl font-bold tracking-tight">
@@ -175,7 +186,7 @@ export function SlateEditor(props: {
   showToolbar?: boolean;
 }) {
   const editor = useMemo(
-    () => withDiagramBlock(withCodeBlock(withHistory(withReact(createEditor())))),
+    () => withImageBlock(withDiagramBlock(withCodeBlock(withHistory(withReact(createEditor()))))),
     [],
   );
   const showToolbar = props.showToolbar ?? true;
@@ -259,6 +270,35 @@ export function SlateEditor(props: {
             e.preventDefault();
             toggleMark(editor, "underline");
           }
+        }}
+        onPaste={(event) => {
+          if (editorReadOnly) return;
+
+          const targetNode = event.target;
+          const targetElement =
+            targetNode instanceof HTMLElement
+              ? targetNode
+              : targetNode instanceof Node
+                ? targetNode.parentElement
+                : null;
+          if (targetElement?.closest(".cm-editor")) return;
+
+          const imageFile = getFirstImageFileFromClipboard(event.clipboardData);
+          if (!imageFile) return;
+
+          event.preventDefault();
+
+          void uploadEditorImage(imageFile, "editor/image-paste")
+            .then((url) => {
+              insertImageBlock(editor, {
+                url,
+                alt: imageFile.name || "image",
+              });
+            })
+            .catch((error: unknown) => {
+              const message = error instanceof Error ? error.message : "图片上传失败";
+              toast.error(message || "图片上传失败");
+            });
         }}
       />
     </Slate>
