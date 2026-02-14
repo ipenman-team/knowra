@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
 import { Clock3, Search, X } from "lucide-react";
 import nodeEmoji from "node-emoji";
 
@@ -28,8 +28,12 @@ type EmojiEntry = {
   emoji: string;
 };
 
+type EmojiMartPickerComponent = ComponentType<Record<string, unknown>>;
+
 const EMOJI_RECENT_FALLBACK_KEY = "contexta:emoji-picker:recent";
 const DEFAULT_RECENT_LIMIT = 24;
+const EMOJI_MART_REACT_CDN_URL = "https://esm.sh/@emoji-mart/react@1.1.1?bundle";
+const EMOJI_MART_DATA_CDN_URL = "https://esm.sh/@emoji-mart/data@1.2.1?bundle";
 
 const COMMON_EMOJI_ALIASES = [
   "grinning",
@@ -80,6 +84,9 @@ for (const entry of EMOJI_ENTRIES) {
 export function EmojiPicker(props: EmojiPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [emojiMartPicker, setEmojiMartPicker] = useState<EmojiMartPickerComponent | null>(null);
+  const [emojiMartData, setEmojiMartData] = useState<unknown>(null);
+  const [emojiMartLoadFailed, setEmojiMartLoadFailed] = useState(false);
 
   const recentStorageKey = props.recentStorageKey ?? EMOJI_RECENT_FALLBACK_KEY;
   const recentLimit = Math.max(1, props.recentLimit ?? DEFAULT_RECENT_LIMIT);
@@ -88,6 +95,31 @@ export function EmojiPicker(props: EmojiPickerProps) {
   );
   const selectedEmoji = normalizeEmoji(props.value);
   const triggerEmoji = selectedEmoji ?? props.placeholderEmoji ?? "🙂";
+  const emojiMartReady = Boolean(emojiMartPicker && emojiMartData);
+  const emojiMartLoading = open && !emojiMartReady && !emojiMartLoadFailed;
+
+  useEffect(() => {
+    if (!open) return;
+    if (emojiMartPicker && emojiMartData) return;
+    if (emojiMartLoadFailed) return;
+
+    let disposed = false;
+
+    void loadEmojiMartFromCdn()
+      .then(({ Picker, data }) => {
+        if (disposed) return;
+        setEmojiMartPicker(() => Picker);
+        setEmojiMartData(data);
+      })
+      .catch(() => {
+        if (disposed) return;
+        setEmojiMartLoadFailed(true);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [emojiMartData, emojiMartLoadFailed, emojiMartPicker, open]);
 
   const persistRecent = useCallback(
     (nextRecent: string[]) => {
@@ -156,6 +188,15 @@ export function EmojiPicker(props: EmojiPickerProps) {
     [props, updateRecent],
   );
 
+  const onEmojiMartSelect = useCallback(
+    (payload: unknown) => {
+      const nativeEmoji = getEmojiMartNativeEmoji(payload);
+      if (!nativeEmoji) return;
+      onSelectEmoji(nativeEmoji);
+    },
+    [onSelectEmoji],
+  );
+
   const onClear = useCallback(() => {
     props.onChange(null);
     setQuery("");
@@ -185,17 +226,7 @@ export function EmojiPicker(props: EmojiPickerProps) {
 
       <PopoverContent align="start" sideOffset={8} className={cn("w-[360px] p-3", props.contentClassName)}>
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="搜索 emoji 或别名"
-                className="pl-8"
-              />
-            </div>
-
+          <div className="flex items-center justify-end">
             <Button
               type="button"
               variant="outline"
@@ -209,31 +240,103 @@ export function EmojiPicker(props: EmojiPickerProps) {
             </Button>
           </div>
 
-          {!query && recentEntries.length > 0 ? (
-            <section className="space-y-2">
-              <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
-                <Clock3 className="h-4 w-4" />
-                最近使用
-              </div>
-              <EmojiGrid entries={recentEntries} onSelectEmoji={onSelectEmoji} />
-            </section>
-          ) : null}
-
-          <section className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">
-              {query ? "搜索结果" : "常用"}
-            </div>
-            {visibleEntries.length > 0 ? (
-              <EmojiGrid entries={visibleEntries} onSelectEmoji={onSelectEmoji} />
-            ) : (
-              <div className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
-                未找到匹配的 emoji
-              </div>
-            )}
-          </section>
+          {emojiMartPicker && emojiMartData ? (
+            <EmojiMartPicker
+              pickerComponent={emojiMartPicker}
+              data={emojiMartData}
+              onEmojiSelect={onEmojiMartSelect}
+            />
+          ) : (
+            <EmojiFallbackPanel
+              loading={emojiMartLoading}
+              query={query}
+              recentEntries={recentEntries}
+              visibleEntries={visibleEntries}
+              onQueryChange={setQuery}
+              onSelectEmoji={onSelectEmoji}
+            />
+          )}
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function EmojiMartPicker(props: {
+  pickerComponent: EmojiMartPickerComponent;
+  data: unknown;
+  onEmojiSelect: (payload: unknown) => void;
+}) {
+  const Picker = props.pickerComponent;
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <Picker
+        data={props.data}
+        set="facebook"
+        locale="zh"
+        theme="light"
+        navPosition="top"
+        searchPosition="sticky"
+        previewPosition="bottom"
+        skinTonePosition="search"
+        perLine={9}
+        maxFrequentRows={2}
+        emojiButtonSize={34}
+        emojiSize={22}
+        onEmojiSelect={props.onEmojiSelect}
+      />
+    </div>
+  );
+}
+
+function EmojiFallbackPanel(props: {
+  loading: boolean;
+  query: string;
+  recentEntries: EmojiEntry[];
+  visibleEntries: EmojiEntry[];
+  onQueryChange: (value: string) => void;
+  onSelectEmoji: (emoji: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={props.query}
+          onChange={(event) => props.onQueryChange(event.target.value)}
+          placeholder="搜索 emoji 或别名"
+          className="pl-8"
+        />
+      </div>
+
+      {props.loading ? (
+        <div className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+          Emoji 资源加载中...
+        </div>
+      ) : null}
+
+      {!props.query && props.recentEntries.length > 0 ? (
+        <section className="space-y-2">
+          <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+            <Clock3 className="h-4 w-4" />
+            最近使用
+          </div>
+          <EmojiGrid entries={props.recentEntries} onSelectEmoji={props.onSelectEmoji} />
+        </section>
+      ) : null}
+
+      <section className="space-y-2">
+        <div className="text-sm font-medium text-muted-foreground">{props.query ? "搜索结果" : "常用"}</div>
+        {props.visibleEntries.length > 0 ? (
+          <EmojiGrid entries={props.visibleEntries} onSelectEmoji={props.onSelectEmoji} />
+        ) : (
+          <div className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+            未找到匹配的 emoji
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -279,6 +382,40 @@ function normalizeEmoji(value?: string | null) {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function getEmojiMartNativeEmoji(payload: unknown) {
+  if (typeof payload === "string") return normalizeEmoji(payload);
+  if (!payload || typeof payload !== "object") return null;
+
+  const maybeNative = (payload as { native?: unknown }).native;
+  if (typeof maybeNative !== "string") return null;
+  return normalizeEmoji(maybeNative);
+}
+
+async function loadEmojiMartFromCdn() {
+  const [pickerModule, dataModule] = await Promise.all([
+    import(
+      /* webpackIgnore: true */
+      EMOJI_MART_REACT_CDN_URL
+    ),
+    import(
+      /* webpackIgnore: true */
+      EMOJI_MART_DATA_CDN_URL
+    ),
+  ]);
+
+  const Picker = getModuleDefaultExport(pickerModule) as EmojiMartPickerComponent | null;
+  const data = getModuleDefaultExport(dataModule);
+
+  if (!Picker || !data) throw new Error("emoji-mart load failed");
+  return { Picker, data };
+}
+
+function getModuleDefaultExport(module: unknown) {
+  if (!module || typeof module !== "object") return null;
+  const maybeDefault = (module as { default?: unknown }).default;
+  return maybeDefault ?? null;
 }
 
 function readRecentFromStorage(storageKey: string, limit: number) {
