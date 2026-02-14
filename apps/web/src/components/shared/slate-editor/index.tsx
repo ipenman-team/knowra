@@ -29,6 +29,10 @@ import { CODE_BLOCK_TYPE, withCodeBlock } from "./plugins/code-block/logic";
 import { DiagramBlockElementView } from "./plugins/diagram-block/element";
 import { DIAGRAM_BLOCK_TYPE, withDiagramBlock } from "./plugins/diagram-block/logic";
 import { EditorToolbar } from "./plugins/editor-toolbar";
+import {
+  DEFAULT_FONT_SIZE,
+  normalizeFontSize,
+} from "./plugins/font-size/logic";
 import { ImageBlockElementView } from "./plugins/image-block/element";
 import {
   getFirstImageFileFromClipboard,
@@ -106,6 +110,7 @@ function Leaf(props: RenderLeafProps) {
     textColor?: string;
     backgroundColor?: string;
     link?: string;
+    fontSize?: string;
   };
 
   let next = children;
@@ -141,6 +146,12 @@ function Leaf(props: RenderLeafProps) {
 
   const backgroundColor = normalizeLeafColor(anyLeaf.backgroundColor);
   if (backgroundColor) inlineStyle.backgroundColor = backgroundColor;
+
+  const fontSize = normalizeFontSize(anyLeaf.fontSize);
+  if (fontSize && fontSize !== DEFAULT_FONT_SIZE) {
+    inlineStyle.fontSize = fontSize;
+    inlineStyle.lineHeight = 1.4;
+  }
 
   return (
     <span {...attributes} style={inlineStyle}>
