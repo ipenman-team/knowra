@@ -128,6 +128,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const [copied, setCopied] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isCodeEditorFocused, setIsCodeEditorFocused] = useState(false);
+  const [isLanguageSelectOpen, setIsLanguageSelectOpen] = useState(false);
 
   const codeMirrorRootRef = useRef<HTMLDivElement>(null);
   const codeMirrorViewRef = useRef<EditorView | null>(null);
@@ -346,7 +347,8 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const onResizeStop = useCallback(() => {
     setIsResizing(false);
   }, []);
-  const showFloatingToolbar = !readOnly && (isActive || isCodeEditorFocused);
+  const showFloatingToolbar =
+    !readOnly && (selected || isCodeEditorFocused || isLanguageSelectOpen);
 
   return (
     <div
@@ -390,6 +392,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
             <Select
               value={language}
               onValueChange={(value) => patchElement({ language: getCodeBlockLanguage(value) })}
+              onOpenChange={setIsLanguageSelectOpen}
               disabled={readOnly}
             >
               <SelectTrigger className="h-9 w-[180px]">
