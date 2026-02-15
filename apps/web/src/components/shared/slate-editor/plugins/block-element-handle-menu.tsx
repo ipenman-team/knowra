@@ -39,7 +39,7 @@ export function BlockElementHandleMenu(props: BlockElementHandleMenuProps) {
     <div
       contentEditable={false}
       className={cn(
-        "pointer-events-none absolute -left-10 top-2 z-50 opacity-0 transition-opacity",
+        "pointer-events-none absolute -left-7 top-2 z-50 opacity-0 transition-opacity",
         "group-hover/block:opacity-100 group-focus-within/block:opacity-100",
         props.active && "opacity-100",
         props.className,
@@ -52,7 +52,7 @@ export function BlockElementHandleMenu(props: BlockElementHandleMenuProps) {
             data-block-handle
             draggable={false}
             className={cn(
-              "pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background/95 text-muted-foreground shadow-sm transition-colors",
+              "pointer-events-auto inline-flex h-7 w-6 items-center justify-center rounded-sm border border-input bg-background/95 text-muted-foreground shadow-sm transition-colors",
               "hover:bg-accent hover:text-accent-foreground",
               props.handleClassName,
             )}
@@ -63,7 +63,7 @@ export function BlockElementHandleMenu(props: BlockElementHandleMenuProps) {
             aria-label="块操作菜单"
             title="块操作"
           >
-            <GripVertical className="h-4 w-4" />
+            <GripVertical className="h-3.5 w-3.5" />
           </button>
         </DropdownMenuTrigger>
 
