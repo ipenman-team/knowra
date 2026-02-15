@@ -181,14 +181,14 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
       doc: latestCodeRef.current,
       extensions: [
         history(),
-        lineNumbers(),
+        readOnlyRef.current ? [] : lineNumbers(),
         drawSelection(),
-        highlightActiveLine(),
+        readOnlyRef.current ? [] : highlightActiveLine(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         codeMirrorTheme,
         stopSlateEventBubbling,
-        placeholder("输入代码..."),
+        readOnlyRef.current ? [] : placeholder("输入代码..."),
         languageCompartment.of([]),
         wrapCompartment.of(wrapRef.current ? EditorView.lineWrapping : []),
         editableCompartment.of(EditorView.editable.of(!readOnlyRef.current)),
@@ -329,22 +329,24 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
       onMouseDownCapture={onMoveCursorAfter}
       onContextMenuCapture={onMoveCursorAfterByContextMenu}
     >
-      <BlockElementHandleMenu
-        active={isActive}
-        onDelete={onDelete}
-        deleteDisabled={readOnly}
-        deleteLabel="删除代码块"
-        actions={[
-          {
-            key: "copy-code",
-            label: copied ? "已复制" : "复制代码",
-            icon: copied ? Check : Copy,
-            onSelect: () => {
-              void onCopy();
+      {!readOnly ? (
+        <BlockElementHandleMenu
+          active={isActive}
+          onDelete={onDelete}
+          deleteDisabled={readOnly}
+          deleteLabel="删除代码块"
+          actions={[
+            {
+              key: "copy-code",
+              label: copied ? "已复制" : "复制代码",
+              icon: copied ? Check : Copy,
+              onSelect: () => {
+                void onCopy();
+              },
             },
-          },
-        ]}
-      />
+          ]}
+        />
+      ) : null}
 
       <div
         contentEditable={false}
@@ -354,85 +356,88 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
           isActive && "border-blue-500 ring-1 ring-blue-500/60",
         )}
       >
-        <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-3 py-2">
-          <Select
-            value={language}
-            onValueChange={(value) => patchElement({ language: getCodeBlockLanguage(value) })}
-            disabled={readOnly}
-          >
-            <SelectTrigger className="h-9 w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="max-h-[320px]">
-              {CODE_LANGUAGE_OPTIONS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>自动换行</span>
-            <Switch
-              checked={wrap}
+        {!readOnly ? (
+          <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-3 py-2">
+            <Select
+              value={language}
+              onValueChange={(value) => patchElement({ language: getCodeBlockLanguage(value) })}
               disabled={readOnly}
-              onCheckedChange={(checked) => patchElement({ wrap: checked })}
-            />
-          </label>
-        </div>
+            >
+              <SelectTrigger className="h-9 w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {CODE_LANGUAGE_OPTIONS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Resizable
-          size={{ width: "100%", height }}
-          minHeight={MIN_CODE_BLOCK_HEIGHT}
-          maxHeight={MAX_CODE_BLOCK_HEIGHT}
-          enable={
-            readOnly
-              ? false
-              : {
-                  top: false,
-                  right: false,
-                  bottom: true,
-                  left: false,
-                  topRight: false,
-                  bottomRight: false,
-                  bottomLeft: false,
-                  topLeft: false,
-                }
-          }
-          handleStyles={{
-            bottom: {
-              bottom: 0,
-              height: "14px",
-              left: 0,
-              right: 0,
-              cursor: readOnly ? "not-allowed" : "ns-resize",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderTop: "1px solid hsl(var(--border))",
-              backgroundColor: "hsl(var(--muted) / 0.2)",
-            },
-          }}
-          handleComponent={{
-            bottom: (
-              <div
-                className={cn(
-                  "h-3 w-12 rounded-full bg-border transition-colors",
-                  isResizing && "bg-blue-400",
-                  readOnly && "opacity-40",
-                )}
-                aria-label="拖拽调整代码块高度"
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>自动换行</span>
+              <Switch
+                checked={wrap}
+                disabled={readOnly}
+                onCheckedChange={(checked) => patchElement({ wrap: checked })}
               />
-            ),
-          }}
-          onResizeStart={onResizeStart}
-          onResize={onResize}
-          onResizeStop={onResizeStop}
-          className="relative"
-        >
-          <div ref={codeMirrorRootRef} className="absolute inset-x-0 bottom-[14px] top-0" />
-        </Resizable>
+            </label>
+          </div>
+        ) : null}
+
+        {readOnly ? (
+          <div className="relative" style={{ height }}>
+            <div ref={codeMirrorRootRef} className="absolute inset-0" />
+          </div>
+        ) : (
+          <Resizable
+            size={{ width: "100%", height }}
+            minHeight={MIN_CODE_BLOCK_HEIGHT}
+            maxHeight={MAX_CODE_BLOCK_HEIGHT}
+            enable={{
+              top: false,
+              right: false,
+              bottom: true,
+              left: false,
+              topRight: false,
+              bottomRight: false,
+              bottomLeft: false,
+              topLeft: false,
+            }}
+            handleStyles={{
+              bottom: {
+                bottom: 0,
+                height: "14px",
+                left: 0,
+                right: 0,
+                cursor: "ns-resize",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderTop: "1px solid hsl(var(--border))",
+                backgroundColor: "hsl(var(--muted) / 0.2)",
+              },
+            }}
+            handleComponent={{
+              bottom: (
+                <div
+                  className={cn(
+                    "h-3 w-12 rounded-full bg-border transition-colors",
+                    isResizing && "bg-blue-400",
+                  )}
+                  aria-label="拖拽调整代码块高度"
+                />
+              ),
+            }}
+            onResizeStart={onResizeStart}
+            onResize={onResize}
+            onResizeStop={onResizeStop}
+            className="relative"
+          >
+            <div ref={codeMirrorRootRef} className="absolute inset-x-0 bottom-[14px] top-0" />
+          </Resizable>
+        )}
       </div>
 
       <span className="pointer-events-none h-0 w-0 overflow-hidden opacity-0">
