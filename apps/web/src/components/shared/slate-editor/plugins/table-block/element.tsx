@@ -236,10 +236,10 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
       {...props.attributes}
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? TABLE_BLOCK_TYPE}
-      className={cn("group/block relative my-2", isFullscreen && "z-50")}
+      className="group/block relative my-2"
     >
       <BlockElementHandleMenu
-        active={isActive || isFullscreen}
+        active={!isFullscreen && isActive}
         className={isFullscreen ? "left-3 top-3" : undefined}
         onDelete={onDelete}
         deleteDisabled={readOnly}
@@ -259,31 +259,34 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
       <div
         className={cn(
           "bg-background transition-colors",
-          isFullscreen && "fixed inset-0 z-40",
+          isFullscreen &&
+            "fixed inset-x-0 bottom-0 top-[calc(var(--page-header-sticky-height,3.5rem)+3.25rem)] z-10",
         )}
       >
-        <div className={cn(isFullscreen ? "h-[100dvh]" : "h-auto")}>
-          <div className={cn("h-full overflow-auto", isFullscreen ? "p-2" : "p-0")}>
-            <TableBlockContext.Provider value={contextValue}>
-              <div
-                className={cn(
-                  "relative w-fit rounded-md border border-input bg-background shadow-sm transition-colors",
-                  "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
-                  isActive && "border-blue-500 ring-1 ring-blue-500/60",
-                  isFullscreen && "rounded-none border-none shadow-none",
-                )}
-              >
-                <table
+        <div className={cn(isFullscreen ? "h-full" : "h-auto")}>
+          <div className={cn("h-full overflow-auto", isFullscreen ? "px-3 py-2" : "p-0")}>
+            <div className={cn(isFullscreen && "flex min-h-full justify-center")}>
+              <TableBlockContext.Provider value={contextValue}>
+                <div
                   className={cn(
-                    "table-fixed border-collapse text-sm",
-                    "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
+                    "relative w-fit rounded-md border border-input bg-background shadow-sm transition-colors",
+                    "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+                    isActive && "border-blue-500 ring-1 ring-blue-500/60",
+                    isFullscreen && "rounded-none border-none shadow-none",
                   )}
-                  style={{ width: `${tableWidth}px` }}
                 >
-                  <tbody>{props.children}</tbody>
-                </table>
-              </div>
-            </TableBlockContext.Provider>
+                  <table
+                    className={cn(
+                      "table-fixed border-collapse text-sm",
+                      "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
+                    )}
+                    style={{ width: `${tableWidth}px` }}
+                  >
+                    <tbody>{props.children}</tbody>
+                  </table>
+                </div>
+              </TableBlockContext.Provider>
+            </div>
           </div>
         </div>
       </div>
