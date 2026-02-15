@@ -6,6 +6,10 @@ export type BlockFormat =
   | "paragraph"
   | "heading-one"
   | "heading-two"
+  | "heading-three"
+  | "heading-four"
+  | "heading-five"
+  | "heading-six"
   | "block-quote"
   | "numbered-list"
   | "bulleted-list";

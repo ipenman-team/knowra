@@ -12,8 +12,7 @@ import { CodeBlockPluginView } from "./code-block/view";
 import { DiagramBlockPluginView } from "./diagram-block/view";
 import { EmojiPluginView } from "./emoji/view";
 import { FontSizePluginView } from "./font-size/view";
-import { HeadingOnePluginView } from "./heading-one/view";
-import { HeadingTwoPluginView } from "./heading-two/view";
+import { HeadingPluginView } from "./heading/view";
 import { ImageBlockPluginView } from "./image-block/view";
 import { ItalicPluginView } from "./italic/view";
 import { LinkPluginView } from "./link/view";
@@ -38,8 +37,7 @@ export function EditorToolbar(props: { disabled?: boolean }) {
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
-      <HeadingOnePluginView disabled={props.disabled} />
-      <HeadingTwoPluginView disabled={props.disabled} />
+      <HeadingPluginView disabled={props.disabled} />
       <BlockQuotePluginView disabled={props.disabled} />
       <CodeBlockPluginView disabled={props.disabled} />
       <DiagramBlockPluginView disabled={props.disabled} />

@@ -234,6 +234,30 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
           {children}
         </h2>
       );
+    case "heading-three":
+      return (
+        <h3 {...attributes} className="py-1 text-xl font-semibold tracking-tight" style={alignStyle}>
+          {children}
+        </h3>
+      );
+    case "heading-four":
+      return (
+        <h4 {...attributes} className="py-1 text-lg font-semibold tracking-tight" style={alignStyle}>
+          {children}
+        </h4>
+      );
+    case "heading-five":
+      return (
+        <h5 {...attributes} className="py-1 text-base font-semibold tracking-tight" style={alignStyle}>
+          {children}
+        </h5>
+      );
+    case "heading-six":
+      return (
+        <h6 {...attributes} className="py-1 text-sm font-semibold tracking-tight" style={alignStyle}>
+          {children}
+        </h6>
+      );
     case "block-quote":
       return (
         <blockquote
