@@ -2,6 +2,7 @@
 
 import type { ComponentType, PointerEventHandler } from "react";
 import { GripVertical, Trash2 } from "lucide-react";
+import { useReadOnly } from "slate-react";
 
 import {
   DropdownMenu,
@@ -33,7 +34,9 @@ type BlockElementHandleMenuProps = {
 };
 
 export function BlockElementHandleMenu(props: BlockElementHandleMenuProps) {
+  const readOnly = useReadOnly();
   const actions = props.actions ?? [];
+  if (readOnly) return null;
 
   return (
     <div
