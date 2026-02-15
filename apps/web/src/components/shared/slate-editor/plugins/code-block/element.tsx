@@ -15,7 +15,7 @@ import {
   EditorView,
   highlightActiveLine,
   keymap,
-  lineNumbers,
+  lineNumbers as codeMirrorLineNumbers,
   placeholder,
 } from "@codemirror/view";
 import { Check, Copy } from "lucide-react";
@@ -52,6 +52,7 @@ import {
   getCodeBlockCode,
   getCodeBlockHeight,
   getCodeBlockLanguage,
+  getCodeBlockLineNumbers,
   getCodeBlockWrap,
   MAX_CODE_BLOCK_HEIGHT,
   MIN_CODE_BLOCK_HEIGHT,
@@ -121,20 +122,24 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const language = getCodeBlockLanguage(element.language);
   const code = getCodeBlockCode(element.code) || Node.string(element);
   const wrap = getCodeBlockWrap(element.wrap);
+  const lineNumbersEnabled = getCodeBlockLineNumbers(element.lineNumbers);
   const height = getCodeBlockHeight(element.height);
 
   const [copied, setCopied] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [isCodeEditorFocused, setIsCodeEditorFocused] = useState(false);
 
   const codeMirrorRootRef = useRef<HTMLDivElement>(null);
   const codeMirrorViewRef = useRef<EditorView | null>(null);
   const latestCodeRef = useRef(code);
   const readOnlyRef = useRef(readOnly);
   const wrapRef = useRef(wrap);
+  const lineNumberRef = useRef(lineNumbersEnabled);
   const patchElementRef = useRef<(patch: CodePatch) => void>(() => {});
 
   const languageCompartment = useMemo(() => new Compartment(), []);
   const wrapCompartment = useMemo(() => new Compartment(), []);
+  const lineNumberCompartment = useMemo(() => new Compartment(), []);
   const editableCompartment = useMemo(() => new Compartment(), []);
   const readOnlyCompartment = useMemo(() => new Compartment(), []);
 
@@ -164,6 +169,10 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   }, [wrap]);
 
   useEffect(() => {
+    lineNumberRef.current = lineNumbersEnabled;
+  }, [lineNumbersEnabled]);
+
+  useEffect(() => {
     if (!copied) return;
 
     const timer = window.setTimeout(() => {
@@ -182,7 +191,9 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
       doc: latestCodeRef.current,
       extensions: [
         history(),
-        readOnlyRef.current ? [] : lineNumbers(),
+        lineNumberCompartment.of(
+          lineNumberRef.current ? codeMirrorLineNumbers() : [],
+        ),
         drawSelection(),
         readOnlyRef.current ? [] : highlightActiveLine(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
@@ -195,6 +206,9 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
         editableCompartment.of(EditorView.editable.of(!readOnlyRef.current)),
         readOnlyCompartment.of(EditorState.readOnly.of(readOnlyRef.current)),
         EditorView.updateListener.of((update) => {
+          if (update.focusChanged) {
+            setIsCodeEditorFocused(update.view.hasFocus);
+          }
           if (!update.docChanged) return;
 
           const nextCode = update.state.doc.toString();
@@ -220,6 +234,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   }, [
     editableCompartment,
     languageCompartment,
+    lineNumberCompartment,
     readOnlyCompartment,
     wrapCompartment,
   ]);
@@ -243,11 +258,22 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
     view.dispatch({
       effects: [
         wrapCompartment.reconfigure(wrap ? EditorView.lineWrapping : []),
+        lineNumberCompartment.reconfigure(
+          lineNumbersEnabled ? codeMirrorLineNumbers() : [],
+        ),
         editableCompartment.reconfigure(EditorView.editable.of(!readOnly)),
         readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
       ],
     });
-  }, [editableCompartment, readOnly, readOnlyCompartment, wrap, wrapCompartment]);
+  }, [
+    editableCompartment,
+    lineNumberCompartment,
+    lineNumbersEnabled,
+    readOnly,
+    readOnlyCompartment,
+    wrap,
+    wrapCompartment,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -320,6 +346,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const onResizeStop = useCallback(() => {
     setIsResizing(false);
   }, []);
+  const showFloatingToolbar = !readOnly && (isActive || isCodeEditorFocused);
 
   return (
     <div
@@ -349,16 +376,17 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
         />
       ) : null}
 
-      <div
-        contentEditable={false}
-        className={cn(
-          "overflow-hidden rounded-md border border-input bg-muted/30 shadow-sm transition-colors",
-          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
-          isActive && "border-blue-500 ring-1 ring-blue-500/60",
-        )}
-      >
-        {!readOnly ? (
-          <div className="flex flex-wrap items-center gap-3 border-b bg-muted/55 px-3 py-2">
+      {!readOnly ? (
+        <div
+          contentEditable={false}
+          className={cn(
+            "absolute left-0 top-0 z-30 -translate-y-[calc(100%+8px)] transition-opacity",
+            showFloatingToolbar
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0",
+          )}
+        >
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-input bg-background/95 px-3 py-2 shadow-sm backdrop-blur-sm">
             <Select
               value={language}
               onValueChange={(value) => patchElement({ language: getCodeBlockLanguage(value) })}
@@ -384,8 +412,28 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
                 onCheckedChange={(checked) => patchElement({ wrap: checked })}
               />
             </label>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>行号</span>
+              <Switch
+                checked={lineNumbersEnabled}
+                disabled={readOnly}
+                onCheckedChange={(checked) =>
+                  patchElement({ lineNumbers: checked })
+                }
+              />
+            </label>
           </div>
-        ) : null}
+        </div>
+      ) : null}
+
+      <div
+        contentEditable={false}
+        className={cn(
+          "overflow-hidden border-input bg-muted/30 shadow-sm transition-colors",
+          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+          isActive && "border-blue-500 ring-1 ring-blue-500/60",
+        )}
+      >
 
         {readOnly ? (
           <div className="relative" style={{ height }}>
@@ -416,7 +464,6 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderTop: "1px solid hsl(var(--border))",
                 backgroundColor: "hsl(var(--muted) / 0.2)",
               },
             }}
@@ -424,7 +471,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
               bottom: (
                 <div
                   className={cn(
-                    "h-3 w-12 rounded-full bg-border transition-colors",
+                    "h-2 w-10 rounded-full bg-border transition-colors",
                     isResizing && "bg-blue-400",
                   )}
                   aria-label="拖拽调整代码块高度"
@@ -452,6 +499,7 @@ type CodePatch = {
   language?: CodeLanguage;
   code?: string;
   wrap?: boolean;
+  lineNumbers?: boolean;
   height?: number;
 };
 

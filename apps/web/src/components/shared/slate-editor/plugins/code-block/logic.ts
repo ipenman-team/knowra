@@ -63,6 +63,7 @@ export type CodeBlockElement = SlateElement & {
   language?: string;
   code?: string;
   wrap?: boolean;
+  lineNumbers?: boolean;
   height?: number;
   children: Descendant[];
 };
@@ -71,6 +72,7 @@ type CodeBlockPatch = {
   language?: CodeLanguage;
   code?: string;
   wrap?: boolean;
+  lineNumbers?: boolean;
   height?: number;
 };
 
@@ -143,6 +145,10 @@ export function getCodeBlockWrap(value?: boolean) {
   return Boolean(value ?? false);
 }
 
+export function getCodeBlockLineNumbers(value?: boolean) {
+  return value ?? true;
+}
+
 export function getCodeBlockCode(value?: string) {
   return typeof value === "string" ? value : "";
 }
@@ -155,6 +161,7 @@ function createCodeBlockElement(): CodeBlockElement {
     language: DEFAULT_CODE_LANGUAGE,
     code: "",
     wrap: false,
+    lineNumbers: true,
     height: DEFAULT_CODE_BLOCK_HEIGHT,
     children: [{ text: "" }],
   } as unknown as CodeBlockElement;
