@@ -77,7 +77,7 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
   const rowHeights = getTableRowHeights(element);
   const columnCount = columnWidths.length;
   const rowCount = rowHeights.length;
-  const tableWidth = Math.max(720, columnWidths.reduce((sum, width) => sum + width, 0));
+  const tableWidth = Math.max(1, columnWidths.reduce((sum, width) => sum + width, 0));
   const tableHeight = Math.max(1, rowHeights.reduce((sum, height) => sum + height, 0));
   const tableFrameWidth = tableWidth + TABLE_CONTROL_STRIP_SIZE;
   const tableFrameHeight = tableHeight + TABLE_CONTROL_STRIP_SIZE;
@@ -299,18 +299,21 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
 
       <div
         className={cn(
-          "overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors",
-          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
-          isActive && "border-blue-500 ring-1 ring-blue-500/60",
-          isFullscreen && "fixed inset-0 rounded-none border-none shadow-none",
+          "bg-background transition-colors",
+          isFullscreen && "fixed inset-0 z-40",
         )}
       >
-        <div className={cn("bg-background", isFullscreen ? "h-[100dvh]" : "h-auto")}>
-          <div className="h-full overflow-auto p-2">
+        <div className={cn(isFullscreen ? "h-[100dvh]" : "h-auto")}>
+          <div className={cn("h-full overflow-auto", isFullscreen ? "p-2" : "p-0")}>
             <TableBlockContext.Provider value={contextValue}>
-              <div className="min-w-full w-fit">
+              <div className="w-fit">
                 <div
-                  className="relative grid overflow-visible"
+                  className={cn(
+                    "relative grid overflow-visible rounded-md border border-input bg-background shadow-sm transition-colors",
+                    "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+                    isActive && "border-blue-500 ring-1 ring-blue-500/60",
+                    isFullscreen && "rounded-none border-none shadow-none",
+                  )}
                   style={{
                     gridTemplateColumns: `${TABLE_CONTROL_STRIP_SIZE}px ${tableWidth}px`,
                     gridTemplateRows: `${TABLE_CONTROL_STRIP_SIZE}px ${tableHeight}px`,
