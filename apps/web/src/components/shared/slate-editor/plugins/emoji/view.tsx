@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { Smile } from "lucide-react";
 import { Transforms, type Range } from "slate";
 import { ReactEditor, useSlate } from "slate-react";
 
@@ -51,8 +52,10 @@ export function EmojiPluginView(props: ToolbarPluginProps) {
       label="插入 Emoji"
       disabled={props.disabled}
       value={lastEmoji}
+      triggerIcon={<Smile className="h-4 w-4" />}
+      showSelectedOnTrigger={false}
       placeholderEmoji="🙂"
-      triggerClassName="h-8 px-2"
+      triggerClassName="h-8 w-8 p-0"
       contentClassName="w-[360px]"
       recentStorageKey="contexta:editor:emoji-recent"
       onChange={onEmojiChange}

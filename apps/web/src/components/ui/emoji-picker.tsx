@@ -23,6 +23,8 @@ type EmojiPickerProps = {
   onChange: (emoji: string | null) => void;
   onOpenChange?: (open: boolean) => void;
   disabled?: boolean;
+  triggerIcon?: ReactNode;
+  showSelectedOnTrigger?: boolean;
   placeholderEmoji?: string;
   recentStorageKey?: string;
   recentLimit?: number;
@@ -103,7 +105,9 @@ export function EmojiPicker(props: EmojiPickerProps) {
     () => readRecentFromStorage(recentStorageKey, recentLimit),
   );
   const selectedEmoji = normalizeEmoji(props.value);
-  const triggerEmoji = selectedEmoji ?? props.placeholderEmoji ?? "🙂";
+  const showSelectedOnTrigger = props.showSelectedOnTrigger ?? true;
+  const triggerEmoji =
+    (showSelectedOnTrigger ? selectedEmoji : null) ?? props.placeholderEmoji ?? "🙂";
   const emojiMartReady = Boolean(emojiMartPicker && emojiMartData && !emojiMartRuntimeFailed);
   const emojiMartLoading = open && !emojiMartReady && !emojiMartLoadFailed && !emojiMartRuntimeFailed;
 
@@ -228,8 +232,13 @@ export function EmojiPicker(props: EmojiPickerProps) {
           className={cn("h-8 px-2", props.triggerClassName)}
           disabled={props.disabled}
           aria-label={props.label ?? "选择 Emoji"}
+          tooltip={props.label}
         >
-          <span className="text-xl leading-none">{triggerEmoji}</span>
+          {props.triggerIcon ? (
+            <span className="inline-flex items-center justify-center">{props.triggerIcon}</span>
+          ) : (
+            <span className="text-xl leading-none">{triggerEmoji}</span>
+          )}
         </Button>
       </PopoverTrigger>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Image as ImageIcon, Loader2 } from "lucide-react";
 import { useSlate } from "slate-react";
 import { toast } from "sonner";
 
@@ -19,9 +20,17 @@ export function ImageBlockPluginView(props: ToolbarPluginProps) {
   return (
     <>
       <ToolbarButton
-        label={uploading ? "上传中" : "IMG"}
+        label="IMG"
+        icon={
+          uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ImageIcon className="h-4 w-4" />
+          )
+        }
         active={isImageBlockActive(editor)}
         disabled={disabled}
+        tooltip={uploading ? "图片上传中" : "图片"}
         onMouseDown={(event) => {
           event.preventDefault();
           inputRef.current?.click();

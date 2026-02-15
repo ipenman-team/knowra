@@ -1,5 +1,6 @@
 "use client";
 
+import { GitBranch } from "lucide-react";
 import { useSlate } from "slate-react";
 
 import { ToolbarButton } from "../toolbar-button";
@@ -12,8 +13,10 @@ export function DiagramBlockPluginView(props: ToolbarPluginProps) {
   return (
     <ToolbarButton
       label="图"
+      icon={<GitBranch className="h-4 w-4" />}
       active={isDiagramBlockActive(editor)}
       disabled={props.disabled}
+      tooltip="文本绘图"
       onMouseDown={(event) => {
         event.preventDefault();
         insertDiagramBlock(editor);

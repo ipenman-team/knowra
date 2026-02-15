@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,7 @@ const TOOLBAR_TOOLTIP_BY_LABEL: Record<string, string> = {
 
 export function ToolbarButton(props: {
   label: string;
+  icon?: ReactNode;
   active?: boolean;
   disabled?: boolean;
   tooltip?: string;
@@ -30,12 +31,13 @@ export function ToolbarButton(props: {
     <Button
       type="button"
       variant={props.active ? "secondary" : "ghost"}
-      className="h-8 px-2 text-xs"
+      className={props.icon ? "h-8 w-8 p-0" : "h-8 px-2 text-xs"}
       disabled={props.disabled}
       tooltip={tooltip}
       onMouseDown={props.onMouseDown}
+      aria-label={tooltip}
     >
-      {props.label}
+      {props.icon ?? props.label}
     </Button>
   );
 }
