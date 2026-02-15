@@ -12,6 +12,7 @@ export function UnderlinePluginView(props: ToolbarPluginProps) {
   return (
     <ToolbarButton
       label="U"
+      tooltip="下划线"
       active={isUnderlineActive(editor)}
       disabled={props.disabled}
       onMouseDown={(e) => {

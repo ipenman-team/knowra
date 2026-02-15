@@ -12,6 +12,7 @@ export function ItalicPluginView(props: ToolbarPluginProps) {
   return (
     <ToolbarButton
       label="I"
+      tooltip="斜体"
       active={isItalicActive(editor)}
       disabled={props.disabled}
       onMouseDown={(e) => {

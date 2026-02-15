@@ -6,7 +6,7 @@ export const EditorTitleDisplay = memo(function EditorTitleDisplay({
   title: string;
 }) {
   return (
-    <div className="text-5xl font-bold tracking-tight">
+    <div className="text-3xl font-bold tracking-tight">
       {title.trim() || '无标题文档'}
     </div>
   );

@@ -62,7 +62,7 @@ export function HeadingPluginView(props: ToolbarPluginProps) {
         <Button
           type="button"
           variant={open || activeOption.value !== "paragraph" ? "secondary" : "ghost"}
-          className="h-8 min-w-[84px] justify-between px-2"
+          className="h-8 min-w-[60px] justify-between px-2"
           disabled={props.disabled}
           tooltip="标题样式"
           onMouseDown={(event) => {

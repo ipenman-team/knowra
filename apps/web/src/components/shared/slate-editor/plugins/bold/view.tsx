@@ -12,6 +12,7 @@ export function BoldPluginView(props: ToolbarPluginProps) {
   return (
     <ToolbarButton
       label="B"
+      tooltip="加粗"
       active={isBoldActive(editor)}
       disabled={props.disabled}
       onMouseDown={(e) => {

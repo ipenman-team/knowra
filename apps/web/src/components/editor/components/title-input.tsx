@@ -18,7 +18,7 @@ export const EditorTitleInput = memo(function EditorTitleInput({
   return (
     <input
       className={cn(
-        'w-full bg-transparent text-5xl font-bold tracking-tight',
+        'w-full bg-transparent text-3xl font-bold tracking-tight',
         'placeholder:text-muted-foreground/40',
         'focus-visible:outline-none'
       )}

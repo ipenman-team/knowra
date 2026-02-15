@@ -35,7 +35,7 @@ export function PageContainer() {
   return (
     <div className="relative [--page-header-sticky-height:3.5rem]">
       <PageHeader />
-      <div className="px-6">
+      <div className="px-12 py-2">
         <PageContent />
       </div>
     </div>

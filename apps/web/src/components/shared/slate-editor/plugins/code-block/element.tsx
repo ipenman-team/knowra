@@ -78,10 +78,10 @@ const codeMirrorTheme = EditorView.theme({
   },
   ".cm-content": {
     minHeight: "100%",
-    padding: "12px 16px",
+    padding: "6px 6px",
   },
   ".cm-gutters": {
-    borderRight: "1px solid hsl(var(--border))",
+    border: "none",
     backgroundColor: "hsl(var(--muted) / 0.6)",
   },
   ".cm-lineNumbers .cm-gutterElement": {

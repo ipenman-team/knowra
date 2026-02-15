@@ -84,7 +84,7 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
       <div
         contentEditable={false}
         className={cn(
-          "relative overflow-hidden rounded-md border border-input bg-muted/20 transition-colors",
+          "relative overflow-hidden border-input bg-muted/20 transition-colors",
           "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
           isActive && "border-blue-500 ring-1 ring-blue-500/60",
           "min-h-[120px]",

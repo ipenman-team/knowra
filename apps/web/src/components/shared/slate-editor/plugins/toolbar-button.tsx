@@ -37,7 +37,7 @@ export function ToolbarButton(props: {
       onMouseDown={props.onMouseDown}
       aria-label={tooltip}
     >
-      {props.icon ?? props.label}
+      {props.icon ?? <span className="text-base/[15px]">{props.label}</span>}
     </Button>
   );
 }

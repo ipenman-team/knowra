@@ -5,8 +5,8 @@ import { PLUGIN_SCOPE_BLOCK, type PluginMarkerFields } from "../types";
 
 export const CODE_BLOCK_TYPE = "code-block";
 export const DEFAULT_CODE_LANGUAGE = "javascript";
-export const DEFAULT_CODE_BLOCK_HEIGHT = 320;
-export const MIN_CODE_BLOCK_HEIGHT = 180;
+export const DEFAULT_CODE_BLOCK_HEIGHT = 80;
+export const MIN_CODE_BLOCK_HEIGHT = 80;
 export const MAX_CODE_BLOCK_HEIGHT = 960;
 
 export const CODE_LANGUAGE_OPTIONS = [

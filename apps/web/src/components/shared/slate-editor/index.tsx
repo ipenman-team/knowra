@@ -909,7 +909,7 @@ export function SlateEditor(props: {
     >
       {showToolbar ? <EditorToolbar disabled={props.disabled || readOnly} /> : null}
       {props.topContent ? (
-        <div className={cn("pt-6 pb-2", props.topContentClassName)}>
+        <div className={cn("pb-2", props.topContentClassName)}>
           {props.topContent}
         </div>
       ) : null}

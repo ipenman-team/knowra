@@ -18,6 +18,7 @@ import {
 } from '@/stores';
 import { pageVersionsApi } from '@/lib/api';
 import { saveDraft } from '@/lib/page/save-draft';
+import { cn } from '@/lib/utils';
 
 export const PageEditor = memo(function PageEditor() {
   const pageMode = usePageMode();
@@ -144,7 +145,7 @@ export const PageEditor = memo(function PageEditor() {
   }, [isPreview, selectedPageId, latestPublishedVersionId]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl pt-6">
+    <div className={cn("mx-auto w-full max-w-5xl", { "pt-6": isPreview })}>
       <SlateEditor
         key={isPreview ? previewEditorKey : editEditorKey}
         value={currentValue}

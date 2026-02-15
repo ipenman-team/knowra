@@ -356,7 +356,7 @@ export function TableCellElementView(props: RenderElementProps) {
       {isCurrentCell && focused ? (
         <span
           contentEditable={false}
-          className="pointer-events-none absolute inset-0 z-10 border border-blue-500"
+          className="pointer-events-none absolute inset-0 z-10 border-2 border-blue-400"
         />
       ) : null}
 
