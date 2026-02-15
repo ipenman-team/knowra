@@ -17,11 +17,11 @@ export const TABLE_CELL_TYPE = "table-cell";
 
 export const DEFAULT_TABLE_ROWS = 3;
 export const DEFAULT_TABLE_COLUMNS = 3;
-export const DEFAULT_TABLE_COLUMN_WIDTH = 240;
-export const DEFAULT_TABLE_ROW_HEIGHT = 110;
+export const DEFAULT_TABLE_COLUMN_WIDTH = 170;
+export const DEFAULT_TABLE_ROW_HEIGHT = 34;
 export const MIN_TABLE_COLUMN_WIDTH = 120;
 export const MAX_TABLE_COLUMN_WIDTH = 720;
-export const MIN_TABLE_ROW_HEIGHT = 52;
+export const MIN_TABLE_ROW_HEIGHT = 28;
 export const MAX_TABLE_ROW_HEIGHT = 420;
 
 export type TableCellElement = SlateElement & {

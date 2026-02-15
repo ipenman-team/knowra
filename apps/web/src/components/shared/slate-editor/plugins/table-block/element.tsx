@@ -572,7 +572,7 @@ export function TableCellElementView(props: RenderElementProps) {
     <TableCell
       {...props.attributes}
       className={cn(
-        "group/table-cell relative border border-border p-2 align-top",
+        "group/table-cell relative border border-border p-1.5 align-top",
         (isColumnSelected || isRowSelected) && "bg-blue-500/5",
       )}
       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
@@ -601,7 +601,7 @@ export function TableCellElementView(props: RenderElementProps) {
         />
       ) : null}
 
-      <div className="min-h-[38px]">{props.children}</div>
+      <div className="min-h-[20px]">{props.children}</div>
     </TableCell>
   );
 }
