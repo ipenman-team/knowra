@@ -111,7 +111,9 @@ export function getSelectionText(editor: Editor, selection: BaseRange | null | u
   }
 }
 
-export function normalizeLinkUrl(input: string) {
+export function normalizeLinkUrl(input: unknown) {
+  if (typeof input !== "string") return null;
+
   const value = input.trim();
   if (!value) return null;
 
