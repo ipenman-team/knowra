@@ -27,7 +27,9 @@ import {
   getTableRowHeights,
   insertTableColumn,
   insertTableRow,
+  removeTableColumn,
   removeTableBlock,
+  removeTableRow,
   resizeTableColumn,
   resizeTableRow,
   type TableBlockElement,
@@ -47,6 +49,8 @@ type TableBlockContextValue = {
   columnCount: number;
   rowCount: number;
   readOnly: boolean;
+  selectedColumnIndex: number | null;
+  selectedRowIndex: number | null;
   startColumnResize: (columnIndex: number, event: ReactMouseEvent<HTMLButtonElement>) => void;
   startRowResize: (rowIndex: number, event: ReactMouseEvent<HTMLButtonElement>) => void;
 };
@@ -65,6 +69,8 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [hoverColumnBoundary, setHoverColumnBoundary] = useState<number | null>(null);
   const [hoverRowBoundary, setHoverRowBoundary] = useState<number | null>(null);
+  const [selectedColumnIndex, setSelectedColumnIndex] = useState<number | null>(null);
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
   const columnWidths = getTableColumnWidths(element);
   const rowHeights = getTableRowHeights(element);
@@ -92,6 +98,9 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
     }
     return boundaries;
   }, [rowHeights]);
+
+  const columnOffsets = useMemo(() => columnBoundaries.slice(0, -1), [columnBoundaries]);
+  const rowOffsets = useMemo(() => rowBoundaries.slice(0, -1), [rowBoundaries]);
 
   const getTablePath = useCallback(() => {
     return findElementPathSafe(editor, element);
@@ -145,6 +154,35 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
     if (!tablePath) return;
     removeTableBlock(editor, tablePath);
   }, [editor, getTablePath, readOnly]);
+
+  const onDeleteSelectedColumn = useCallback(() => {
+    if (
+      readOnly ||
+      selectedColumnIndex === null ||
+      selectedColumnIndex < 0 ||
+      selectedColumnIndex >= columnCount
+    ) {
+      return;
+    }
+    const tablePath = getTablePath();
+    if (!tablePath) return;
+
+    if (removeTableColumn(editor, tablePath, selectedColumnIndex)) {
+      setSelectedColumnIndex(null);
+    }
+  }, [columnCount, editor, getTablePath, readOnly, selectedColumnIndex]);
+
+  const onDeleteSelectedRow = useCallback(() => {
+    if (readOnly || selectedRowIndex === null || selectedRowIndex < 0 || selectedRowIndex >= rowCount) {
+      return;
+    }
+    const tablePath = getTablePath();
+    if (!tablePath) return;
+
+    if (removeTableRow(editor, tablePath, selectedRowIndex)) {
+      setSelectedRowIndex(null);
+    }
+  }, [editor, getTablePath, readOnly, rowCount, selectedRowIndex]);
 
   const startColumnResize = useCallback(
     (columnIndex: number, event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -210,15 +248,42 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
     };
   }, [dragState, editor, getTablePath]);
 
+  const effectiveSelectedColumnIndex =
+    selectedColumnIndex !== null && selectedColumnIndex >= 0 && selectedColumnIndex < columnCount
+      ? selectedColumnIndex
+      : null;
+  const effectiveSelectedRowIndex =
+    selectedRowIndex !== null && selectedRowIndex >= 0 && selectedRowIndex < rowCount
+      ? selectedRowIndex
+      : null;
+
   const contextValue = useMemo<TableBlockContextValue>(() => {
     return {
       columnCount,
       rowCount,
       readOnly,
+      selectedColumnIndex: effectiveSelectedColumnIndex,
+      selectedRowIndex: effectiveSelectedRowIndex,
       startColumnResize,
       startRowResize,
     };
-  }, [columnCount, readOnly, rowCount, startColumnResize, startRowResize]);
+  }, [
+    columnCount,
+    effectiveSelectedColumnIndex,
+    effectiveSelectedRowIndex,
+    readOnly,
+    rowCount,
+    startColumnResize,
+    startRowResize,
+  ]);
+
+  const selectedColumnLeft =
+    effectiveSelectedColumnIndex === null ? null : (columnOffsets[effectiveSelectedColumnIndex] ?? 0);
+  const selectedColumnWidth =
+    effectiveSelectedColumnIndex === null ? null : (columnWidths[effectiveSelectedColumnIndex] ?? 0);
+  const selectedRowTop = effectiveSelectedRowIndex === null ? null : (rowOffsets[effectiveSelectedRowIndex] ?? 0);
+  const selectedRowHeight =
+    effectiveSelectedRowIndex === null ? null : (rowHeights[effectiveSelectedRowIndex] ?? 0);
 
   return (
     <div
@@ -302,6 +367,20 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
 
                   {!readOnly ? (
                     <div contentEditable={false} className="pointer-events-none absolute inset-0 z-30">
+                      {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
+                        <div
+                          className="absolute inset-y-0 border border-blue-500/60 bg-blue-500/5"
+                          style={{ left: `${selectedColumnLeft}px`, width: `${selectedColumnWidth}px` }}
+                        />
+                      ) : null}
+
+                      {selectedRowTop !== null && selectedRowHeight !== null ? (
+                        <div
+                          className="absolute inset-x-0 border border-blue-500/60 bg-blue-500/5"
+                          style={{ top: `${selectedRowTop}px`, height: `${selectedRowHeight}px` }}
+                        />
+                      ) : null}
+
                       {hoverColumnBoundary !== null ? (
                         <div
                           className="absolute top-0 h-full w-px bg-blue-500/85"
@@ -315,6 +394,64 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                           style={{ top: `${rowBoundaries[hoverRowBoundary] ?? 0}px` }}
                         />
                       ) : null}
+
+                      <div className="absolute -top-7 left-0 z-40 flex h-5 w-full">
+                        {columnWidths.map((width, columnIndex) => (
+                          <button
+                            key={`column-control-${columnIndex}`}
+                            type="button"
+                            contentEditable={false}
+                            className={cn(
+                              "pointer-events-auto h-full border border-border/70 bg-background/80 transition-colors",
+                              effectiveSelectedColumnIndex === columnIndex
+                                ? "border-blue-500 bg-blue-100"
+                                : "hover:bg-blue-50",
+                            )}
+                            style={{ width: `${width}px` }}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setSelectedColumnIndex(columnIndex);
+                              setSelectedRowIndex(null);
+                            }}
+                            aria-label={`选中第 ${columnIndex + 1} 列`}
+                            title="选中整列"
+                          />
+                        ))}
+                      </div>
+
+                      <div className="absolute -left-7 top-0 z-40 flex w-5 flex-col">
+                        {rowHeights.map((height, rowIndex) => (
+                          <button
+                            key={`row-control-${rowIndex}`}
+                            type="button"
+                            contentEditable={false}
+                            className={cn(
+                              "pointer-events-auto w-full border border-border/70 bg-background/80 transition-colors",
+                              effectiveSelectedRowIndex === rowIndex
+                                ? "border-blue-500 bg-blue-100"
+                                : "hover:bg-blue-50",
+                            )}
+                            style={{ height: `${height}px` }}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setSelectedRowIndex(rowIndex);
+                              setSelectedColumnIndex(null);
+                            }}
+                            aria-label={`选中第 ${rowIndex + 1} 行`}
+                            title="选中整行"
+                          />
+                        ))}
+                      </div>
 
                       {columnBoundaries.map((offset, boundaryIndex) => (
                         <button
@@ -383,6 +520,58 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                           )}
                         </button>
                       ))}
+
+                      {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
+                        <div
+                          className="pointer-events-auto absolute -top-14 z-50 -translate-x-1/2 rounded-md border bg-background p-1 shadow-md"
+                          style={{ left: `${selectedColumnLeft + selectedColumnWidth / 2}px` }}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                            disabled={columnCount <= 1}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onDeleteSelectedColumn();
+                            }}
+                          >
+                            删除列
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      {selectedRowTop !== null && selectedRowHeight !== null ? (
+                        <div
+                          className="pointer-events-auto absolute -left-24 z-50 -translate-y-1/2 rounded-md border bg-background p-1 shadow-md"
+                          style={{ top: `${selectedRowTop + selectedRowHeight / 2}px` }}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                            disabled={rowCount <= 1}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onDeleteSelectedRow();
+                            }}
+                          >
+                            删除行
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -432,11 +621,20 @@ export function TableCellElementView(props: RenderElementProps) {
       rowIndex >= 0 &&
       rowIndex < context.rowCount - 1,
   );
+  const isColumnSelected = Boolean(
+    context && context.selectedColumnIndex !== null && context.selectedColumnIndex === columnIndex,
+  );
+  const isRowSelected = Boolean(
+    context && context.selectedRowIndex !== null && context.selectedRowIndex === rowIndex,
+  );
 
   return (
     <TableCell
       {...props.attributes}
-      className="group/table-cell relative border border-border p-2 align-top"
+      className={cn(
+        "group/table-cell relative border border-border p-2 align-top",
+        (isColumnSelected || isRowSelected) && "bg-blue-500/5",
+      )}
       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
     >
       {canResizeColumn ? (

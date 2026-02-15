@@ -260,6 +260,44 @@ export function resizeTableRow(editor: Editor, tablePath: Path, rowIndex: number
   return true;
 }
 
+export function removeTableRow(editor: Editor, tablePath: Path, rowIndex: number) {
+  const table = getTableAtPath(editor, tablePath);
+  if (!table) return false;
+
+  const rowCount = table.children.length;
+  if (rowCount <= 1) return false;
+  if (rowIndex < 0 || rowIndex >= rowCount) return false;
+
+  Transforms.removeNodes(editor, { at: [...tablePath, rowIndex] });
+
+  const nextRowIndex = Math.min(rowIndex, rowCount - 2);
+  Transforms.select(editor, Editor.start(editor, [...tablePath, nextRowIndex, 0]));
+  return true;
+}
+
+export function removeTableColumn(editor: Editor, tablePath: Path, columnIndex: number) {
+  const table = getTableAtPath(editor, tablePath);
+  if (!table) return false;
+
+  const rowCount = table.children.length;
+  const columnCount = getTableColumnCount(table);
+  if (columnCount <= 1) return false;
+  if (columnIndex < 0 || columnIndex >= columnCount) return false;
+
+  Editor.withoutNormalizing(editor, () => {
+    for (let rowIndex = rowCount - 1; rowIndex >= 0; rowIndex -= 1) {
+      Transforms.removeNodes(editor, { at: [...tablePath, rowIndex, columnIndex] });
+    }
+  });
+
+  if (rowCount > 0) {
+    const nextColumnIndex = Math.min(columnIndex, columnCount - 2);
+    Transforms.select(editor, Editor.start(editor, [...tablePath, 0, nextColumnIndex]));
+  }
+
+  return true;
+}
+
 export function removeTableBlock(editor: Editor, tablePath: Path) {
   Transforms.removeNodes(editor, { at: tablePath });
 
