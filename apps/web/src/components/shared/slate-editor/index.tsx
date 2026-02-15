@@ -1,6 +1,19 @@
 "use client";
 
-import { Code2, Heading1, Heading2, List, ListOrdered, Quote, Table2, type LucideIcon } from "lucide-react";
+import {
+  Bold,
+  Code2,
+  Heading1,
+  Heading2,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  Quote,
+  Table2,
+  Underline,
+  type LucideIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createEditor, Descendant, Editor, Element as SlateElement, Range as SlateRange, Transforms } from "slate";
 import { withHistory } from "slate-history";
@@ -15,6 +28,9 @@ import {
 } from "slate-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import {
@@ -24,7 +40,7 @@ import {
   isInListItem,
   outdentListItem,
 } from "./list-commands";
-import { isBlockActive, toggleBlock, toggleMark } from "./editor-format";
+import { isBlockActive, isMarkActive, toggleBlock, toggleMark } from "./editor-format";
 import { insertParagraphAfterSelectedBlockPlugin } from "./plugins/block-plugin-utils";
 import { setBlockAlign } from "./plugins/align/logic";
 import { handleEnterInBlockQuote } from "./plugins/block-quote/logic";
@@ -49,7 +65,15 @@ import {
   withImageBlock,
 } from "./plugins/image-block/logic";
 import { uploadEditorImage } from "./plugins/image-block/upload";
-import { LINK_MARK, normalizeLinkUrl } from "./plugins/link/logic";
+import {
+  DEFAULT_LINK_PLACEHOLDER_TEXT,
+  DEFAULT_LINK_PLACEHOLDER_URL,
+  LINK_MARK,
+  getLinkAtSelection,
+  getSelectionText,
+  insertLinkText,
+  normalizeLinkUrl,
+} from "./plugins/link/logic";
 import { InlineLinkLeaf } from "./plugins/link/inline-link-leaf";
 import {
   handleEnterInTable,
@@ -70,6 +94,8 @@ import { PLUGIN_SCOPE_INLINE } from "./plugins/types";
 export type SlateValue = Descendant[];
 
 const SLASH_MENU_WIDTH = 320;
+const INLINE_TOOLBAR_WIDTH = 260;
+const INLINE_LINK_DIALOG_WIDTH = 420;
 
 type SlashMenuItem = {
   id: string;
@@ -84,6 +110,20 @@ type SlashMenuState = {
   range: SlateRange;
   top: number;
   left: number;
+};
+
+type InlineToolbarState = {
+  range: SlateRange;
+  top: number;
+  left: number;
+  placeBelow: boolean;
+};
+
+type InlineLinkDialogState = {
+  range: SlateRange;
+  top: number;
+  left: number;
+  placeAbove: boolean;
 };
 
 export function parseContentToSlateValue(content: unknown): SlateValue {
@@ -372,6 +412,29 @@ function getCaretViewportPosition(editableElement: HTMLElement | null) {
   };
 }
 
+function cloneSlateRange(range: SlateRange): SlateRange {
+  return {
+    anchor: {
+      path: [...range.anchor.path],
+      offset: range.anchor.offset,
+    },
+    focus: {
+      path: [...range.focus.path],
+      offset: range.focus.offset,
+    },
+  };
+}
+
+function getRangeViewportRect(editor: Editor, range: SlateRange) {
+  try {
+    const domRange = ReactEditor.toDOMRange(editor as ReactEditor, range);
+    const firstRect = domRange.getClientRects()[0];
+    return firstRect ?? domRange.getBoundingClientRect();
+  } catch {
+    return null;
+  }
+}
+
 export function SlateEditor(props: {
   value: SlateValue;
   onChange: (value: SlateValue) => void;
@@ -393,8 +456,16 @@ export function SlateEditor(props: {
   const editorReadOnly = Boolean(props.disabled || readOnly);
   const editableRef = useRef<HTMLDivElement | null>(null);
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
+  const inlineToolbarRef = useRef<HTMLDivElement | null>(null);
+  const inlineLinkDialogRef = useRef<HTMLDivElement | null>(null);
   const [slashMenuState, setSlashMenuState] = useState<SlashMenuState | null>(null);
   const [slashActiveIndex, setSlashActiveIndex] = useState(0);
+  const [inlineToolbarState, setInlineToolbarState] = useState<InlineToolbarState | null>(null);
+  const [inlineLinkDialogState, setInlineLinkDialogState] = useState<InlineLinkDialogState | null>(
+    null,
+  );
+  const [inlineLinkText, setInlineLinkText] = useState(DEFAULT_LINK_PLACEHOLDER_TEXT);
+  const [inlineLinkUrl, setInlineLinkUrl] = useState(DEFAULT_LINK_PLACEHOLDER_URL);
 
   const slashMenuItems = useMemo<SlashMenuItem[]>(() => {
     return [
@@ -500,6 +571,146 @@ export function SlateEditor(props: {
     });
   }, [slashMenuItems, slashMenuState]);
 
+  const normalizedInlineLinkUrl = useMemo(() => normalizeLinkUrl(inlineLinkUrl), [inlineLinkUrl]);
+  const hasInlineLinkValidationError =
+    inlineLinkUrl.trim().length > 0 && !normalizedInlineLinkUrl;
+  const canApplyInlineLink = Boolean(normalizedInlineLinkUrl && inlineLinkText.trim().length > 0);
+
+  const syncInlineToolbarState = useCallback(() => {
+    if (editorReadOnly || inlineLinkDialogState || slashMenuState) {
+      setInlineToolbarState(null);
+      return;
+    }
+    if (!editor.selection || !SlateRange.isExpanded(editor.selection)) {
+      setInlineToolbarState(null);
+      return;
+    }
+
+    const range = cloneSlateRange(editor.selection);
+    const rect = getRangeViewportRect(editor, range);
+    if (!rect) {
+      setInlineToolbarState(null);
+      return;
+    }
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const halfWidth = INLINE_TOOLBAR_WIDTH / 2;
+    const left = Math.min(
+      Math.max(12 + halfWidth, rect.left + rect.width / 2),
+      Math.max(12 + halfWidth, viewportWidth - halfWidth - 12),
+    );
+    const placeBelow = rect.top < 96;
+    const top = placeBelow ? rect.bottom + 8 : rect.top - 8;
+
+    setInlineToolbarState((prev) => {
+      if (
+        prev &&
+        prev.top === top &&
+        prev.left === left &&
+        prev.placeBelow === placeBelow &&
+        SlateRange.equals(prev.range, range)
+      ) {
+        return prev;
+      }
+      return { range, top, left, placeBelow };
+    });
+  }, [editor, editorReadOnly, inlineLinkDialogState, slashMenuState]);
+
+  const updateInlineLinkDialogPosition = useCallback(() => {
+    if (!inlineLinkDialogState) return;
+
+    const rect = getRangeViewportRect(editor, inlineLinkDialogState.range);
+    if (!rect) return;
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const halfWidth = INLINE_LINK_DIALOG_WIDTH / 2;
+    const left = Math.min(
+      Math.max(12 + halfWidth, rect.left + rect.width / 2),
+      Math.max(12 + halfWidth, viewportWidth - halfWidth - 12),
+    );
+
+    const preferAbove = rect.bottom + 320 > viewportHeight - 16;
+    const top = preferAbove ? rect.top - 8 : rect.bottom + 10;
+
+    setInlineLinkDialogState((prev) => {
+      if (!prev) return prev;
+      if (
+        prev.top === top &&
+        prev.left === left &&
+        prev.placeAbove === preferAbove
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        top,
+        left,
+        placeAbove: preferAbove,
+      };
+    });
+  }, [editor, inlineLinkDialogState]);
+
+  const openInlineLinkDialog = useCallback(() => {
+    if (editorReadOnly) return;
+    if (!editor.selection || !SlateRange.isExpanded(editor.selection)) return;
+
+    const range = cloneSlateRange(editor.selection);
+    const rect = getRangeViewportRect(editor, range);
+    if (!rect) return;
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const halfWidth = INLINE_LINK_DIALOG_WIDTH / 2;
+    const left = Math.min(
+      Math.max(12 + halfWidth, rect.left + rect.width / 2),
+      Math.max(12 + halfWidth, viewportWidth - halfWidth - 12),
+    );
+    const preferAbove = rect.bottom + 320 > viewportHeight - 16;
+    const top = preferAbove ? rect.top - 8 : rect.bottom + 10;
+
+    const selectedText = getSelectionText(editor, range);
+    const activeLink = getLinkAtSelection(editor, range);
+
+    setInlineLinkText(activeLink?.text || selectedText || DEFAULT_LINK_PLACEHOLDER_TEXT);
+    setInlineLinkUrl(activeLink?.url || DEFAULT_LINK_PLACEHOLDER_URL);
+    setInlineLinkDialogState({
+      range,
+      top,
+      left,
+      placeAbove: preferAbove,
+    });
+    setInlineToolbarState(null);
+  }, [editor, editorReadOnly]);
+
+  const closeInlineLinkDialog = useCallback(() => {
+    setInlineLinkDialogState(null);
+    ReactEditor.focus(editor);
+    requestAnimationFrame(() => {
+      syncInlineToolbarState();
+    });
+  }, [editor, syncInlineToolbarState]);
+
+  const applyInlineLink = useCallback(() => {
+    if (!inlineLinkDialogState || !canApplyInlineLink) return;
+
+    try {
+      Transforms.select(editor, inlineLinkDialogState.range);
+    } catch {
+      return;
+    }
+
+    ReactEditor.focus(editor);
+    const inserted = insertLinkText(editor, {
+      text: inlineLinkText,
+      url: inlineLinkUrl,
+      selection: inlineLinkDialogState.range,
+    });
+
+    if (!inserted) return;
+    setInlineLinkDialogState(null);
+  }, [canApplyInlineLink, editor, inlineLinkDialogState, inlineLinkText, inlineLinkUrl]);
+
   const syncSlashMenuState = useCallback(() => {
     if (editorReadOnly) {
       setSlashMenuState(null);
@@ -583,6 +794,67 @@ export function SlateEditor(props: {
     };
   }, [closeSlashMenu, slashMenuState, syncSlashMenuState]);
 
+  useEffect(() => {
+    if (editorReadOnly) return;
+
+    const sync = () => {
+      syncInlineToolbarState();
+    };
+
+    window.addEventListener("mouseup", sync, true);
+    window.addEventListener("keyup", sync, true);
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+
+    return () => {
+      window.removeEventListener("mouseup", sync, true);
+      window.removeEventListener("keyup", sync, true);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [editorReadOnly, syncInlineToolbarState]);
+
+  useEffect(() => {
+    if (!inlineLinkDialogState) return;
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && inlineLinkDialogRef.current?.contains(target)) return;
+      if (target && inlineToolbarRef.current?.contains(target)) return;
+      setInlineLinkDialogState(null);
+      requestAnimationFrame(() => {
+        syncInlineToolbarState();
+      });
+    };
+
+    const onViewportChange = () => {
+      updateInlineLinkDialogPosition();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeInlineLinkDialog();
+    };
+
+    window.addEventListener("mousedown", onMouseDown, true);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("keydown", onKeyDown, true);
+
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown, true);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [
+    closeInlineLinkDialog,
+    inlineLinkDialogState,
+    syncInlineToolbarState,
+    updateInlineLinkDialogPosition,
+  ]);
+
   const renderLeaf = useCallback((leafProps: RenderLeafProps) => {
     return <Leaf {...leafProps} />;
   }, []);
@@ -616,6 +888,7 @@ export function SlateEditor(props: {
       onChange={(nextValue) => {
         props.onChange(nextValue);
         syncSlashMenuState();
+        syncInlineToolbarState();
       }}
     >
       {showToolbar ? <EditorToolbar disabled={props.disabled || readOnly} /> : null}
@@ -769,6 +1042,133 @@ export function SlateEditor(props: {
             });
         }}
       />
+
+      {!editorReadOnly && inlineToolbarState && !inlineLinkDialogState ? (
+        <div
+          ref={inlineToolbarRef}
+          contentEditable={false}
+          className="fixed z-50 flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 shadow-lg"
+          style={{
+            top: `${inlineToolbarState.top}px`,
+            left: `${inlineToolbarState.left}px`,
+            width: `${INLINE_TOOLBAR_WIDTH}px`,
+            transform: inlineToolbarState.placeBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)",
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <Button
+            type="button"
+            variant={isMarkActive(editor, "bold") ? "secondary" : "ghost"}
+            className="h-8 w-8 px-0"
+            tooltip="加粗"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              toggleMark(editor, "bold");
+            }}
+          >
+            <Bold className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant={isMarkActive(editor, "italic") ? "secondary" : "ghost"}
+            className="h-8 w-8 px-0"
+            tooltip="斜体"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              toggleMark(editor, "italic");
+            }}
+          >
+            <Italic className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant={isMarkActive(editor, "underline") ? "secondary" : "ghost"}
+            className="h-8 w-8 px-0"
+            tooltip="下划线"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              toggleMark(editor, "underline");
+            }}
+          >
+            <Underline className="h-4 w-4" />
+          </Button>
+
+          <Separator orientation="vertical" className="mx-0.5 h-5" />
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 w-8 px-0"
+            tooltip="链接"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              openInlineLinkDialog();
+            }}
+          >
+            <Link2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
+
+      {!editorReadOnly && inlineLinkDialogState ? (
+        <div
+          ref={inlineLinkDialogRef}
+          contentEditable={false}
+          className="fixed z-50 w-[420px] space-y-5 rounded-md border border-input bg-background p-6 shadow-xl"
+          style={{
+            top: `${inlineLinkDialogState.top}px`,
+            left: `${inlineLinkDialogState.left}px`,
+            transform: inlineLinkDialogState.placeAbove
+              ? "translate(-50%, -100%)"
+              : "translate(-50%, 0)",
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          <div className="space-y-2">
+            <div className="text-sm font-medium">文本</div>
+            <Input
+              value={inlineLinkText}
+              placeholder={DEFAULT_LINK_PLACEHOLDER_TEXT}
+              onChange={(event) => setInlineLinkText(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-sm font-medium">链接</div>
+            <Input
+              value={inlineLinkUrl}
+              placeholder="请输入链接"
+              aria-invalid={hasInlineLinkValidationError}
+              className={cn(
+                hasInlineLinkValidationError && "border-destructive focus-visible:ring-destructive",
+              )}
+              onChange={(event) => setInlineLinkUrl(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                applyInlineLink();
+              }}
+            />
+            {hasInlineLinkValidationError ? (
+              <p className="text-sm text-destructive">请输入正确的链接</p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={closeInlineLinkDialog}>
+              取消
+            </Button>
+            <Button type="button" disabled={!canApplyInlineLink} onClick={applyInlineLink}>
+              应用
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {!editorReadOnly && slashMenuState ? (
         <div
