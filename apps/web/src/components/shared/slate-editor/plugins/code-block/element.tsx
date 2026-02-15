@@ -73,6 +73,7 @@ const codeMirrorTheme = EditorView.theme({
   ".cm-scroller": {
     fontFamily:
       "ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace",
+    backgroundColor: "hsl(var(--muted) / 0.45)",
   },
   ".cm-content": {
     minHeight: "100%",
@@ -80,16 +81,16 @@ const codeMirrorTheme = EditorView.theme({
   },
   ".cm-gutters": {
     borderRight: "1px solid hsl(var(--border))",
-    backgroundColor: "hsl(var(--muted) / 0.35)",
+    backgroundColor: "hsl(var(--muted) / 0.6)",
   },
   ".cm-lineNumbers .cm-gutterElement": {
     color: "hsl(var(--muted-foreground) / 0.7)",
   },
   ".cm-activeLine": {
-    backgroundColor: "hsl(var(--muted) / 0.35)",
+    backgroundColor: "hsl(var(--muted) / 0.7)",
   },
   ".cm-activeLineGutter": {
-    backgroundColor: "hsl(var(--muted) / 0.45)",
+    backgroundColor: "hsl(var(--muted) / 0.72)",
   },
   "&.cm-focused": {
     outline: "none",
@@ -351,13 +352,13 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
       <div
         contentEditable={false}
         className={cn(
-          "overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors",
+          "overflow-hidden rounded-md border border-input bg-muted/30 shadow-sm transition-colors",
           "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
           isActive && "border-blue-500 ring-1 ring-blue-500/60",
         )}
       >
         {!readOnly ? (
-          <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-3 border-b bg-muted/55 px-3 py-2">
             <Select
               value={language}
               onValueChange={(value) => patchElement({ language: getCodeBlockLanguage(value) })}
