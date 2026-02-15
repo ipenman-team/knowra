@@ -238,7 +238,7 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
       return (
         <blockquote
           {...attributes}
-          className="my-2 border-l-2 border-border pl-4 text-muted-foreground"
+          className="my-2 whitespace-pre-wrap border-l-2 border-border pl-4 text-muted-foreground"
           style={alignStyle}
         >
           {children}

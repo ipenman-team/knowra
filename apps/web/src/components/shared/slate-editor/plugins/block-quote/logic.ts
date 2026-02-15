@@ -26,7 +26,10 @@ export function handleEnterInBlockQuote(editor: Editor) {
 
   const [blockQuoteNode, blockQuotePath] = blockQuoteEntry;
   const isEmpty = Node.string(blockQuoteNode).trim() === "";
-  if (!isEmpty) return false;
+  if (!isEmpty) {
+    Editor.insertSoftBreak(editor);
+    return true;
+  }
 
   Transforms.setNodes(
     editor,
