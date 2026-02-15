@@ -129,6 +129,7 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const [isResizing, setIsResizing] = useState(false);
   const [isCodeEditorFocused, setIsCodeEditorFocused] = useState(false);
   const [isLanguageSelectOpen, setIsLanguageSelectOpen] = useState(false);
+  const [isRestoringEditorFocus, setIsRestoringEditorFocus] = useState(false);
 
   const codeMirrorRootRef = useRef<HTMLDivElement>(null);
   const codeMirrorViewRef = useRef<EditorView | null>(null);
@@ -347,8 +348,23 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
   const onResizeStop = useCallback(() => {
     setIsResizing(false);
   }, []);
+  const onLanguageChange = useCallback(
+    (value: string) => {
+      patchElement({ language: getCodeBlockLanguage(value) });
+      setIsRestoringEditorFocus(true);
+      window.requestAnimationFrame(() => {
+        codeMirrorViewRef.current?.focus();
+        setIsRestoringEditorFocus(false);
+      });
+    },
+    [patchElement],
+  );
   const showFloatingToolbar =
-    !readOnly && (selected || isCodeEditorFocused || isLanguageSelectOpen);
+    !readOnly &&
+    (selected ||
+      isCodeEditorFocused ||
+      isLanguageSelectOpen ||
+      isRestoringEditorFocus);
 
   return (
     <div
@@ -388,14 +404,14 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
               : "pointer-events-none opacity-0",
           )}
         >
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-input bg-background/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-input bg-background/95 p-2 shadow-sm backdrop-blur-sm">
             <Select
               value={language}
-              onValueChange={(value) => patchElement({ language: getCodeBlockLanguage(value) })}
+              onValueChange={onLanguageChange}
               onOpenChange={setIsLanguageSelectOpen}
               disabled={readOnly}
             >
-              <SelectTrigger className="h-9 w-[180px]">
+              <SelectTrigger className="h-6 w-[120px] border-none shadow-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-[320px]">
