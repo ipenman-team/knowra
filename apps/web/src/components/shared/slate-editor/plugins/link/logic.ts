@@ -1,6 +1,8 @@
 import {
+  Descendant,
   Editor,
   Element as SlateElement,
+  NodeEntry,
   Path,
   Range,
   Text,
@@ -18,7 +20,63 @@ export const DEFAULT_LINK_PLACEHOLDER_URL = "http://";
 
 const HTTP_PROTOCOLS = new Set(["http:", "https:"]);
 
+export type LinkElement = SlateElement & {
+  type: typeof LINK_MARK;
+  url: string;
+  children: Descendant[];
+  pluginScope?: string;
+  pluginKind?: string;
+};
+
+type LinkTextNode = Text & Record<string, unknown>;
+
+function createLinkElement(url: string, text: string): LinkElement {
+  return {
+    type: LINK_MARK,
+    url,
+    pluginScope: PLUGIN_SCOPE_INLINE,
+    pluginKind: LINK_MARK,
+    children: [{ text }],
+  };
+}
+
+export function isLinkElement(node: unknown): node is LinkElement {
+  return (
+    SlateElement.isElement(node) &&
+    (node as SlateElement & { type?: string }).type === LINK_MARK
+  );
+}
+
+export function withLink<T extends Editor>(editor: T): T {
+  const { isInline } = editor;
+
+  editor.isInline = (element) => {
+    if (isLinkElement(element)) return true;
+    return isInline(element);
+  };
+
+  return editor;
+}
+
+export function getLinkEntry(
+  editor: Editor,
+  selection: BaseRange | null | undefined = editor.selection,
+): NodeEntry<LinkElement> | null {
+  if (!selection) return null;
+
+  const point = Range.isCollapsed(selection) ? selection.anchor : selection.focus;
+  const entry = Editor.above(editor, {
+    at: point,
+    match: (node) => isLinkElement(node),
+  });
+
+  return (entry as NodeEntry<LinkElement> | undefined) ?? null;
+}
+
 export function getLinkMark(editor: Editor) {
+  const linkEntry = getLinkEntry(editor);
+  if (linkEntry) return normalizeLinkUrl(linkEntry[0].url);
+
   const marks = Editor.marks(editor) as Record<string, unknown> | null;
   const value = marks?.[LINK_MARK];
 
@@ -26,13 +84,24 @@ export function getLinkMark(editor: Editor) {
   return normalizeLinkUrl(value);
 }
 
-type LinkTextNode = Text & Record<string, unknown>;
-
 export function getLinkAtSelection(
   editor: Editor,
   selection: BaseRange | null | undefined = editor.selection,
 ) {
   if (!selection) return null;
+
+  const linkEntry = getLinkEntry(editor, selection);
+  if (linkEntry) {
+    const [linkNode, path] = linkEntry;
+    const normalizedUrl = normalizeLinkUrl(linkNode.url);
+    if (!normalizedUrl) return null;
+
+    return {
+      url: normalizedUrl,
+      text: Editor.string(editor, path),
+      range: Editor.range(editor, path),
+    };
+  }
 
   const point = Range.isCollapsed(selection) ? selection.anchor : selection.focus;
 
@@ -150,36 +219,50 @@ export function insertLinkText(editor: Editor, payload: {
 
   if (!editor.selection) return null;
 
+  Transforms.unwrapNodes(editor, {
+    at: editor.selection,
+    match: isLinkElement,
+    split: true,
+  });
+
   if (Range.isExpanded(editor.selection)) {
     Transforms.delete(editor);
   }
 
-  Editor.addMark(editor, LINK_MARK, normalizedUrl);
-  Editor.addMark(editor, PLUGIN_SCOPE_MARK, PLUGIN_SCOPE_INLINE);
-  Editor.addMark(editor, PLUGIN_KIND_MARK, LINK_MARK);
-  Transforms.insertText(editor, text);
-  Editor.removeMark(editor, LINK_MARK);
-  Editor.removeMark(editor, PLUGIN_SCOPE_MARK);
-  Editor.removeMark(editor, PLUGIN_KIND_MARK);
+  Transforms.insertNodes(editor, createLinkElement(normalizedUrl, text));
 
   return normalizedUrl;
 }
 
 export function removeLinkMark(editor: Editor, selection: BaseRange | null | undefined) {
-  if (!selection) return;
+  if (selection) {
+    try {
+      Transforms.select(editor, selection);
+    } catch {
+      // ignore invalid selection
+    }
+  }
+
+  if (!editor.selection) return;
+
+  Transforms.unwrapNodes(editor, {
+    at: editor.selection,
+    match: isLinkElement,
+    split: true,
+  });
 
   Transforms.unsetNodes(editor, LINK_MARK, {
-    at: selection,
+    at: editor.selection,
     match: Text.isText,
     split: true,
   });
   Transforms.unsetNodes(editor, PLUGIN_SCOPE_MARK, {
-    at: selection,
+    at: editor.selection,
     match: Text.isText,
     split: true,
   });
   Transforms.unsetNodes(editor, PLUGIN_KIND_MARK, {
-    at: selection,
+    at: editor.selection,
     match: Text.isText,
     split: true,
   });

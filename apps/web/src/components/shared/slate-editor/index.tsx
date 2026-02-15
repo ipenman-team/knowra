@@ -80,8 +80,10 @@ import {
   getLinkAtSelection,
   getSelectionText,
   insertLinkText,
+  withLink,
   normalizeLinkUrl,
 } from "./plugins/link/logic";
+import { LinkElementView } from "./plugins/link/element";
 import { InlineLinkLeaf } from "./plugins/link/inline-link-leaf";
 import {
   handleEnterInTable,
@@ -260,6 +262,8 @@ function Element(props: RenderElementProps & { readOnly: boolean }) {
       return <TableRowElementView {...props} />;
     case TABLE_CELL_TYPE:
       return <TableCellElementView {...props} />;
+    case LINK_MARK:
+      return <LinkElementView {...props} />;
     case "heading-one":
       return (
         <h1 {...attributes} className="py-1 text-3xl font-bold tracking-tight" style={alignStyle}>
@@ -457,7 +461,9 @@ export function SlateEditor(props: {
   const editor = useMemo(
     () =>
       withImageBlock(
-        withDiagramBlock(withCodeBlock(withTableBlock(withHistory(withReact(createEditor()))))),
+        withDiagramBlock(
+          withCodeBlock(withTableBlock(withLink(withHistory(withReact(createEditor()))))),
+        ),
       ),
     [],
   );
@@ -903,7 +909,7 @@ export function SlateEditor(props: {
     >
       {showToolbar ? <EditorToolbar disabled={props.disabled || readOnly} /> : null}
       {props.topContent ? (
-        <div className={cn("pb-2", props.topContentClassName)}>
+        <div className={cn("pt-6 pb-2", props.topContentClassName)}>
           {props.topContent}
         </div>
       ) : null}
