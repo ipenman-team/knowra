@@ -67,8 +67,8 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const [hoverColumnBoundary, setHoverColumnBoundary] = useState<number | null>(null);
-  const [hoverRowBoundary, setHoverRowBoundary] = useState<number | null>(null);
+  const [hoverColumnControlIndex, setHoverColumnControlIndex] = useState<number | null>(null);
+  const [hoverRowControlIndex, setHoverRowControlIndex] = useState<number | null>(null);
   const [selectedColumnIndex, setSelectedColumnIndex] = useState<number | null>(null);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
@@ -106,26 +106,26 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
     return findElementPathSafe(editor, element);
   }, [editor, element]);
 
-  const onInsertColumnAtBoundary = useCallback(
-    (boundaryIndex: number) => {
+  const onInsertColumnFromControl = useCallback(
+    (columnIndex: number) => {
       if (readOnly) return;
       const tablePath = getTablePath();
       if (!tablePath) return;
 
-      setHoverColumnBoundary(null);
-      insertTableColumn(editor, tablePath, boundaryIndex - 1);
+      setHoverColumnControlIndex(null);
+      insertTableColumn(editor, tablePath, columnIndex);
     },
     [editor, getTablePath, readOnly],
   );
 
-  const onInsertRowAtBoundary = useCallback(
-    (boundaryIndex: number) => {
+  const onInsertRowFromControl = useCallback(
+    (rowIndex: number) => {
       if (readOnly) return;
       const tablePath = getTablePath();
       if (!tablePath) return;
 
-      setHoverRowBoundary(null);
-      insertTableRow(editor, tablePath, boundaryIndex - 1);
+      setHoverRowControlIndex(null);
+      insertTableRow(editor, tablePath, rowIndex);
     },
     [editor, getTablePath, readOnly],
   );
@@ -333,20 +333,6 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                         />
                       ) : null}
 
-                      {hoverColumnBoundary !== null ? (
-                        <div
-                          className="absolute top-0 h-full w-px bg-blue-500/85"
-                          style={{ left: `${columnBoundaries[hoverColumnBoundary] ?? 0}px` }}
-                        />
-                      ) : null}
-
-                      {hoverRowBoundary !== null ? (
-                        <div
-                          className="absolute left-0 w-full h-px bg-blue-500/85"
-                          style={{ top: `${rowBoundaries[hoverRowBoundary] ?? 0}px` }}
-                        />
-                      ) : null}
-
                       <div
                         className={cn(
                           "absolute -top-7 left-0 z-40 flex h-5 w-full opacity-0 transition-opacity",
@@ -355,139 +341,125 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                         )}
                       >
                         {columnWidths.map((width, columnIndex) => (
-                          <button
+                          <div
                             key={`column-control-${columnIndex}`}
-                            type="button"
-                            contentEditable={false}
-                            className={cn(
-                              "pointer-events-auto h-full border border-border/70 bg-background/80 transition-colors",
-                              effectiveSelectedColumnIndex === columnIndex
-                                ? "border-blue-500 bg-blue-100"
-                                : "hover:bg-blue-50",
-                            )}
+                            className="relative h-full"
                             style={{ width: `${width}px` }}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                            }}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setSelectedColumnIndex(columnIndex);
-                              setSelectedRowIndex(null);
-                            }}
-                            aria-label={`选中第 ${columnIndex + 1} 列`}
-                            title="选中整列"
-                          />
+                            onMouseEnter={() => setHoverColumnControlIndex(columnIndex)}
+                            onMouseLeave={() =>
+                              setHoverColumnControlIndex((prev) => (prev === columnIndex ? null : prev))
+                            }
+                          >
+                            <button
+                              type="button"
+                              contentEditable={false}
+                              className={cn(
+                                "pointer-events-auto h-full w-full border border-border/70 bg-background/80 transition-colors",
+                                effectiveSelectedColumnIndex === columnIndex
+                                  ? "border-blue-500 bg-blue-100"
+                                  : "hover:bg-blue-50",
+                              )}
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setSelectedColumnIndex(columnIndex);
+                                setSelectedRowIndex(null);
+                              }}
+                              aria-label={`选中第 ${columnIndex + 1} 列`}
+                              title="选中整列"
+                            />
+
+                            {hoverColumnControlIndex === columnIndex ? (
+                              <button
+                                type="button"
+                                contentEditable={false}
+                                className="pointer-events-auto absolute -top-8 left-1/2 z-50 inline-flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-md border border-input bg-background shadow-sm transition-colors hover:bg-accent"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  onInsertColumnFromControl(columnIndex);
+                                }}
+                                aria-label="在当前列后插入列"
+                                title="插入列"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
                         ))}
                       </div>
 
                       <div
                         className={cn(
-                          "absolute -left-7 top-0 z-40 flex w-5 flex-col opacity-0 transition-opacity",
+                          "absolute -left-7 top-0 z-40 flex w-5 flex-col overflow-visible opacity-0 transition-opacity",
                           "group-hover/block:opacity-100",
                           shouldShowControls && "opacity-100",
                         )}
                       >
                         {rowHeights.map((height, rowIndex) => (
-                          <button
+                          <div
                             key={`row-control-${rowIndex}`}
-                            type="button"
-                            contentEditable={false}
-                            className={cn(
-                              "pointer-events-auto w-full border border-border/70 bg-background/80 transition-colors",
-                              effectiveSelectedRowIndex === rowIndex
-                                ? "border-blue-500 bg-blue-100"
-                                : "hover:bg-blue-50",
-                            )}
+                            className="relative w-full"
                             style={{ height: `${height}px` }}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                            }}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setSelectedRowIndex(rowIndex);
-                              setSelectedColumnIndex(null);
-                            }}
-                            aria-label={`选中第 ${rowIndex + 1} 行`}
-                            title="选中整行"
-                          />
+                            onMouseEnter={() => setHoverRowControlIndex(rowIndex)}
+                            onMouseLeave={() =>
+                              setHoverRowControlIndex((prev) => (prev === rowIndex ? null : prev))
+                            }
+                          >
+                            <button
+                              type="button"
+                              contentEditable={false}
+                              className={cn(
+                                "pointer-events-auto h-full w-full border border-border/70 bg-background/80 transition-colors",
+                                effectiveSelectedRowIndex === rowIndex
+                                  ? "border-blue-500 bg-blue-100"
+                                  : "hover:bg-blue-50",
+                              )}
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setSelectedRowIndex(rowIndex);
+                                setSelectedColumnIndex(null);
+                              }}
+                              aria-label={`选中第 ${rowIndex + 1} 行`}
+                              title="选中整行"
+                            />
+
+                            {hoverRowControlIndex === rowIndex ? (
+                              <button
+                                type="button"
+                                contentEditable={false}
+                                className="pointer-events-auto absolute -left-9 top-1/2 z-50 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-input bg-background shadow-sm transition-colors hover:bg-accent"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  onInsertRowFromControl(rowIndex);
+                                }}
+                                aria-label="在当前行后插入行"
+                                title="插入行"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
                         ))}
                       </div>
-
-                      {columnBoundaries.map((offset, boundaryIndex) => (
-                        <button
-                          key={`column-boundary-${boundaryIndex}`}
-                          type="button"
-                          contentEditable={false}
-                          className={cn(
-                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-md border text-[10px] opacity-0 transition-all",
-                            "group-hover/block:opacity-100 hover:opacity-100",
-                            shouldShowControls && "opacity-100",
-                            hoverColumnBoundary === boundaryIndex
-                              ? "border-blue-500 bg-blue-500 text-white shadow-sm"
-                              : "border-transparent bg-transparent text-transparent",
-                          )}
-                          style={{ top: "-10px", left: `${offset}px` }}
-                          onMouseEnter={() => setHoverColumnBoundary(boundaryIndex)}
-                          onMouseLeave={() => setHoverColumnBoundary((prev) => (prev === boundaryIndex ? null : prev))}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            onInsertColumnAtBoundary(boundaryIndex);
-                          }}
-                          aria-label="插入列"
-                          title="插入列"
-                        >
-                          {hoverColumnBoundary === boundaryIndex ? (
-                            <Plus className="h-3 w-3" />
-                          ) : (
-                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                          )}
-                        </button>
-                      ))}
-
-                      {rowBoundaries.map((offset, boundaryIndex) => (
-                        <button
-                          key={`row-boundary-${boundaryIndex}`}
-                          type="button"
-                          contentEditable={false}
-                          className={cn(
-                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border text-[10px] opacity-0 transition-all",
-                            "group-hover/block:opacity-100 hover:opacity-100",
-                            shouldShowControls && "opacity-100",
-                            hoverRowBoundary === boundaryIndex
-                              ? "border-blue-500 bg-blue-500 text-white shadow-sm"
-                              : "border-transparent bg-transparent text-transparent",
-                          )}
-                          style={{ top: `${offset}px`, left: "-10px" }}
-                          onMouseEnter={() => setHoverRowBoundary(boundaryIndex)}
-                          onMouseLeave={() => setHoverRowBoundary((prev) => (prev === boundaryIndex ? null : prev))}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            onInsertRowAtBoundary(boundaryIndex);
-                          }}
-                          aria-label="插入行"
-                          title="插入行"
-                        >
-                          {hoverRowBoundary === boundaryIndex ? (
-                            <Plus className="h-3 w-3" />
-                          ) : (
-                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                          )}
-                        </button>
-                      ))}
 
                       {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
                         <div
