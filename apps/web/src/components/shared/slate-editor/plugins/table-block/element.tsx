@@ -9,7 +9,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { Columns3, Expand, Minimize2, Rows3, Trash2 } from "lucide-react";
+import { Columns3, Expand, Minimize2, Plus, Rows3, Trash2 } from "lucide-react";
 import { useFocused, useSelected, useSlateStatic, type RenderElementProps } from "slate-react";
 
 import { Button } from "@/components/ui/button";
@@ -63,12 +63,35 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dragState, setDragState] = useState<DragState | null>(null);
+  const [hoverColumnBoundary, setHoverColumnBoundary] = useState<number | null>(null);
+  const [hoverRowBoundary, setHoverRowBoundary] = useState<number | null>(null);
 
   const columnWidths = getTableColumnWidths(element);
   const rowHeights = getTableRowHeights(element);
   const columnCount = columnWidths.length;
   const rowCount = rowHeights.length;
   const tableWidth = Math.max(720, columnWidths.reduce((sum, width) => sum + width, 0));
+  const tableHeight = Math.max(1, rowHeights.reduce((sum, height) => sum + height, 0));
+
+  const columnBoundaries = useMemo(() => {
+    let offset = 0;
+    const boundaries = [0];
+    for (const width of columnWidths) {
+      offset += width;
+      boundaries.push(offset);
+    }
+    return boundaries;
+  }, [columnWidths]);
+
+  const rowBoundaries = useMemo(() => {
+    let offset = 0;
+    const boundaries = [0];
+    for (const height of rowHeights) {
+      offset += height;
+      boundaries.push(offset);
+    }
+    return boundaries;
+  }, [rowHeights]);
 
   const getTablePath = useCallback(() => {
     return findElementPathSafe(editor, element);
@@ -91,6 +114,30 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
     const position = getCurrentTableCellPosition(editor, tablePath);
     insertTableColumn(editor, tablePath, position?.columnIndex ?? columnCount - 1);
   }, [columnCount, editor, getTablePath, readOnly]);
+
+  const onInsertColumnAtBoundary = useCallback(
+    (boundaryIndex: number) => {
+      if (readOnly) return;
+      const tablePath = getTablePath();
+      if (!tablePath) return;
+
+      setHoverColumnBoundary(null);
+      insertTableColumn(editor, tablePath, boundaryIndex - 1);
+    },
+    [editor, getTablePath, readOnly],
+  );
+
+  const onInsertRowAtBoundary = useCallback(
+    (boundaryIndex: number) => {
+      if (readOnly) return;
+      const tablePath = getTablePath();
+      if (!tablePath) return;
+
+      setHoverRowBoundary(null);
+      insertTableRow(editor, tablePath, boundaryIndex - 1);
+    },
+    [editor, getTablePath, readOnly],
+  );
 
   const onDelete = useCallback(() => {
     if (readOnly) return;
@@ -189,8 +236,6 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
         )}
       >
         <div contentEditable={false} className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <span className="mr-2 text-sm font-medium">表格</span>
-
           <Button
             type="button"
             variant="ghost"
@@ -225,7 +270,6 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
             }}
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-            {isFullscreen ? "退出全屏" : "全屏编辑"}
           </Button>
 
           <Button
@@ -244,16 +288,104 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
         <div className={cn("bg-background", isFullscreen ? "h-[calc(100dvh-49px)]" : "h-auto")}>
           <div className="h-full overflow-auto p-2">
             <TableBlockContext.Provider value={contextValue}>
-              <div className="min-w-full w-fit">
-                <Table
-                  className={cn(
-                    "table-fixed border-collapse",
-                    "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
-                  )}
-                  style={{ width: `${tableWidth}px` }}
-                >
-                  <TableBody>{props.children}</TableBody>
-                </Table>
+              <div className="min-w-full w-fit pl-4 pt-4">
+                <div className="relative" style={{ width: `${tableWidth}px`, minHeight: `${tableHeight}px` }}>
+                  <Table
+                    className={cn(
+                      "table-fixed border-collapse",
+                      "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
+                    )}
+                    style={{ width: `${tableWidth}px` }}
+                  >
+                    <TableBody>{props.children}</TableBody>
+                  </Table>
+
+                  {!readOnly ? (
+                    <div contentEditable={false} className="pointer-events-none absolute inset-0 z-30">
+                      {hoverColumnBoundary !== null ? (
+                        <div
+                          className="absolute top-0 h-full w-px bg-blue-500/85"
+                          style={{ left: `${columnBoundaries[hoverColumnBoundary] ?? 0}px` }}
+                        />
+                      ) : null}
+
+                      {hoverRowBoundary !== null ? (
+                        <div
+                          className="absolute left-0 w-full h-px bg-blue-500/85"
+                          style={{ top: `${rowBoundaries[hoverRowBoundary] ?? 0}px` }}
+                        />
+                      ) : null}
+
+                      {columnBoundaries.map((offset, boundaryIndex) => (
+                        <button
+                          key={`column-boundary-${boundaryIndex}`}
+                          type="button"
+                          contentEditable={false}
+                          className={cn(
+                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-md border text-[10px] transition-all",
+                            hoverColumnBoundary === boundaryIndex
+                              ? "border-blue-500 bg-blue-500 text-white shadow-sm"
+                              : "border-transparent bg-transparent text-transparent",
+                          )}
+                          style={{ top: "-10px", left: `${offset}px` }}
+                          onMouseEnter={() => setHoverColumnBoundary(boundaryIndex)}
+                          onMouseLeave={() => setHoverColumnBoundary((prev) => (prev === boundaryIndex ? null : prev))}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            onInsertColumnAtBoundary(boundaryIndex);
+                          }}
+                          aria-label="插入列"
+                          title="插入列"
+                        >
+                          {hoverColumnBoundary === boundaryIndex ? (
+                            <Plus className="h-3 w-3" />
+                          ) : (
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                          )}
+                        </button>
+                      ))}
+
+                      {rowBoundaries.map((offset, boundaryIndex) => (
+                        <button
+                          key={`row-boundary-${boundaryIndex}`}
+                          type="button"
+                          contentEditable={false}
+                          className={cn(
+                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border text-[10px] transition-all",
+                            hoverRowBoundary === boundaryIndex
+                              ? "border-blue-500 bg-blue-500 text-white shadow-sm"
+                              : "border-transparent bg-transparent text-transparent",
+                          )}
+                          style={{ top: `${offset}px`, left: "-10px" }}
+                          onMouseEnter={() => setHoverRowBoundary(boundaryIndex)}
+                          onMouseLeave={() => setHoverRowBoundary((prev) => (prev === boundaryIndex ? null : prev))}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            onInsertRowAtBoundary(boundaryIndex);
+                          }}
+                          aria-label="插入行"
+                          title="插入行"
+                        >
+                          {hoverRowBoundary === boundaryIndex ? (
+                            <Plus className="h-3 w-3" />
+                          ) : (
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </TableBlockContext.Provider>
           </div>

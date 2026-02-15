@@ -388,8 +388,8 @@ function createEmptyParagraph() {
 
 function clampIndex(value: number | undefined, max: number) {
   if (typeof value !== "number" || Number.isNaN(value)) return max;
-  if (max < 0) return 0;
-  return Math.max(0, Math.min(max, value));
+  if (max < 0) return -1;
+  return Math.max(-1, Math.min(max, value));
 }
 
 function isPathWithin(path: Path, parentPath: Path) {
