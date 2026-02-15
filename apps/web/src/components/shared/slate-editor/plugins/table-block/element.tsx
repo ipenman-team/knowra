@@ -249,11 +249,7 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
           <div className="h-full overflow-auto p-0">
             <TableBlockContext.Provider value={contextValue}>
               <div
-                className={cn(
-                  "relative w-fit border-input bg-background shadow-sm transition-colors",
-                  "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
-                  isActive && "border-blue-500 ring-1 ring-blue-500/60",
-                )}
+                className="relative w-fit border-input bg-background shadow-sm transition-colors"
               >
                 <table
                   className={cn(
