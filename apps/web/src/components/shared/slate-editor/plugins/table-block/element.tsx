@@ -353,6 +353,13 @@ export function TableCellElementView(props: RenderElementProps) {
       )}
       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
     >
+      {isCurrentCell && focused ? (
+        <span
+          contentEditable={false}
+          className="pointer-events-none absolute inset-0 z-10 border border-blue-500"
+        />
+      ) : null}
+
       {shouldShowCellMenu && context ? (
         <DropdownMenu
           modal={false}
