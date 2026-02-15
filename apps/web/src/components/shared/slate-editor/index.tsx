@@ -885,7 +885,6 @@ export function SlateEditor(props: {
     return (
       <span
         {...attributes}
-        className="text-muted-foreground/40"
         style={{
           ...attributes.style,
           top: "0.75rem",
