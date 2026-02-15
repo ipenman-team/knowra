@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, type CSSProperties } from "react";
-import { createEditor, Descendant, Element as SlateElement } from "slate";
+import { Code2, Heading1, Heading2, List, ListOrdered, Quote, Table2, type LucideIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createEditor, Descendant, Editor, Element as SlateElement, Range as SlateRange, Transforms } from "slate";
 import { withHistory } from "slate-history";
 import {
   Editable,
+  ReactEditor,
   Slate,
   withReact,
   type RenderElementProps,
@@ -22,13 +24,17 @@ import {
   isInListItem,
   outdentListItem,
 } from "./list-commands";
-import { toggleMark } from "./editor-format";
+import { isBlockActive, toggleBlock, toggleMark } from "./editor-format";
 import { insertParagraphAfterSelectedBlockPlugin } from "./plugins/block-plugin-utils";
 import { setBlockAlign } from "./plugins/align/logic";
 import { CodeBlockElementView } from "./plugins/code-block/element";
-import { CODE_BLOCK_TYPE, withCodeBlock } from "./plugins/code-block/logic";
+import { CODE_BLOCK_TYPE, insertCodeBlock, withCodeBlock } from "./plugins/code-block/logic";
 import { DiagramBlockElementView } from "./plugins/diagram-block/element";
-import { DIAGRAM_BLOCK_TYPE, withDiagramBlock } from "./plugins/diagram-block/logic";
+import {
+  DIAGRAM_BLOCK_TYPE,
+  insertDiagramBlock,
+  withDiagramBlock,
+} from "./plugins/diagram-block/logic";
 import { EditorToolbar } from "./plugins/editor-toolbar";
 import {
   DEFAULT_FONT_SIZE,
@@ -48,6 +54,8 @@ import {
   TABLE_BLOCK_TYPE,
   TABLE_CELL_TYPE,
   TABLE_ROW_TYPE,
+  insertTableBlock,
+  isSelectionInTable,
   withTableBlock,
 } from "./plugins/table-block/logic";
 import {
@@ -58,6 +66,23 @@ import {
 import { PLUGIN_SCOPE_INLINE } from "./plugins/types";
 
 export type SlateValue = Descendant[];
+
+const SLASH_MENU_WIDTH = 320;
+
+type SlashMenuItem = {
+  id: string;
+  label: string;
+  keywords: string[];
+  icon: LucideIcon;
+  execute: (editor: Editor) => boolean | void;
+};
+
+type SlashMenuState = {
+  query: string;
+  range: SlateRange;
+  top: number;
+  left: number;
+};
 
 export function parseContentToSlateValue(content: unknown): SlateValue {
   if (!content) {
@@ -278,6 +303,60 @@ function normalizeElementAlign(value?: string): CSSProperties["textAlign"] | nul
   return null;
 }
 
+function getSlashTriggerState(editor: Editor): { query: string; range: SlateRange } | null {
+  if (!editor.selection || !SlateRange.isCollapsed(editor.selection)) return null;
+  if (isSelectionInTable(editor)) return null;
+
+  const [blockEntry] = Editor.nodes(editor, {
+    at: editor.selection,
+    mode: "lowest",
+    match: (node) => SlateElement.isElement(node) && Editor.isBlock(editor, node),
+  });
+  if (!blockEntry) return null;
+
+  const [blockNode, blockPath] = blockEntry;
+  const blockType = (blockNode as SlateElement & { type?: string }).type ?? "paragraph";
+  if (blockType !== "paragraph" && blockType !== "list-item") return null;
+
+  const blockStart = Editor.start(editor, blockPath);
+  const range: SlateRange = {
+    anchor: blockStart,
+    focus: editor.selection.anchor,
+  };
+  const textBeforeCaret = Editor.string(editor, range);
+  if (!textBeforeCaret.startsWith("/")) return null;
+
+  const query = textBeforeCaret.slice(1);
+  if (query.includes(" ")) return null;
+
+  return { query, range };
+}
+
+function getCaretViewportPosition(editableElement: HTMLElement | null) {
+  if (typeof window === "undefined") return null;
+
+  const domSelection = window.getSelection();
+  if (!domSelection || domSelection.rangeCount === 0) return null;
+
+  const domRange = domSelection.getRangeAt(0).cloneRange();
+  domRange.collapse(true);
+
+  const firstRect = domRange.getClientRects()[0];
+  const rect = firstRect ?? domRange.getBoundingClientRect() ?? editableElement?.getBoundingClientRect();
+  if (!rect) return null;
+
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+  const left = Math.min(
+    Math.max(12, rect.left),
+    Math.max(12, viewportWidth - SLASH_MENU_WIDTH - 12),
+  );
+
+  return {
+    top: Math.max(12, rect.bottom + 8),
+    left,
+  };
+}
+
 export function SlateEditor(props: {
   value: SlateValue;
   onChange: (value: SlateValue) => void;
@@ -297,6 +376,197 @@ export function SlateEditor(props: {
   const showToolbar = props.showToolbar ?? true;
   const readOnly = Boolean(props.readOnly ?? false);
   const editorReadOnly = Boolean(props.disabled || readOnly);
+  const editableRef = useRef<HTMLDivElement | null>(null);
+  const slashMenuRef = useRef<HTMLDivElement | null>(null);
+  const [slashMenuState, setSlashMenuState] = useState<SlashMenuState | null>(null);
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0);
+
+  const slashMenuItems = useMemo<SlashMenuItem[]>(() => {
+    return [
+      {
+        id: "quote",
+        label: "引用",
+        keywords: ["quote", "blockquote", "yy"],
+        icon: Quote,
+        execute: (targetEditor) => {
+          if (!isBlockActive(targetEditor, "block-quote")) {
+            toggleBlock(targetEditor, "block-quote");
+          }
+          return true;
+        },
+      },
+      {
+        id: "table",
+        label: "表格",
+        keywords: ["table", "grid", "biaoge"],
+        icon: Table2,
+        execute: (targetEditor) => insertTableBlock(targetEditor),
+      },
+      {
+        id: "code",
+        label: "代码块",
+        keywords: ["code", "daima", "snippet"],
+        icon: Code2,
+        execute: (targetEditor) => {
+          insertCodeBlock(targetEditor);
+          return true;
+        },
+      },
+      {
+        id: "diagram",
+        label: "文本绘图",
+        keywords: ["diagram", "mermaid", "tu"],
+        icon: Code2,
+        execute: (targetEditor) => {
+          insertDiagramBlock(targetEditor);
+          return true;
+        },
+      },
+      {
+        id: "heading-one",
+        label: "一级标题",
+        keywords: ["h1", "heading"],
+        icon: Heading1,
+        execute: (targetEditor) => {
+          if (!isBlockActive(targetEditor, "heading-one")) {
+            toggleBlock(targetEditor, "heading-one");
+          }
+          return true;
+        },
+      },
+      {
+        id: "heading-two",
+        label: "二级标题",
+        keywords: ["h2", "heading2"],
+        icon: Heading2,
+        execute: (targetEditor) => {
+          if (!isBlockActive(targetEditor, "heading-two")) {
+            toggleBlock(targetEditor, "heading-two");
+          }
+          return true;
+        },
+      },
+      {
+        id: "bulleted-list",
+        label: "无序列表",
+        keywords: ["bullet", "list", "ul"],
+        icon: List,
+        execute: (targetEditor) => {
+          if (!isBlockActive(targetEditor, "bulleted-list")) {
+            toggleBlock(targetEditor, "bulleted-list");
+          }
+          return true;
+        },
+      },
+      {
+        id: "numbered-list",
+        label: "有序列表",
+        keywords: ["number", "list", "ol"],
+        icon: ListOrdered,
+        execute: (targetEditor) => {
+          if (!isBlockActive(targetEditor, "numbered-list")) {
+            toggleBlock(targetEditor, "numbered-list");
+          }
+          return true;
+        },
+      },
+    ];
+  }, []);
+
+  const filteredSlashMenuItems = useMemo(() => {
+    if (!slashMenuState) return [] as SlashMenuItem[];
+
+    const normalizedQuery = slashMenuState.query.trim().toLowerCase();
+    if (!normalizedQuery) return slashMenuItems;
+
+    return slashMenuItems.filter((item) => {
+      if (item.label.toLowerCase().includes(normalizedQuery)) return true;
+      return item.keywords.some((keyword) => keyword.toLowerCase().includes(normalizedQuery));
+    });
+  }, [slashMenuItems, slashMenuState]);
+
+  const syncSlashMenuState = useCallback(() => {
+    if (editorReadOnly) {
+      setSlashMenuState(null);
+      return;
+    }
+
+    const trigger = getSlashTriggerState(editor);
+    if (!trigger) {
+      setSlashMenuState(null);
+      return;
+    }
+
+    const position = getCaretViewportPosition(editableRef.current);
+    if (!position) return;
+
+    setSlashMenuState((prev) => {
+      const nextState: SlashMenuState = {
+        query: trigger.query,
+        range: trigger.range,
+        top: position.top,
+        left: position.left,
+      };
+
+      if (!prev || prev.query !== nextState.query) {
+        setSlashActiveIndex(0);
+      }
+
+      return nextState;
+    });
+  }, [editor, editorReadOnly]);
+
+  const closeSlashMenu = useCallback(() => {
+    setSlashMenuState(null);
+    setSlashActiveIndex(0);
+  }, []);
+
+  const executeSlashMenuItem = useCallback(
+    (item: SlashMenuItem) => {
+      if (!slashMenuState) return;
+
+      try {
+        Transforms.select(editor, slashMenuState.range);
+      } catch {
+        closeSlashMenu();
+        return;
+      }
+
+      Transforms.delete(editor);
+
+      const result = item.execute(editor);
+      if (result === false) {
+        toast.error("当前位置无法插入该类型");
+      }
+
+      closeSlashMenu();
+      ReactEditor.focus(editor);
+    },
+    [closeSlashMenu, editor, slashMenuState],
+  );
+
+  useEffect(() => {
+    if (!slashMenuState) return;
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && slashMenuRef.current?.contains(target)) return;
+      closeSlashMenu();
+    };
+
+    const onViewportChange = () => {
+      syncSlashMenuState();
+    };
+
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [closeSlashMenu, slashMenuState, syncSlashMenuState]);
 
   const renderLeaf = useCallback((leafProps: RenderLeafProps) => {
     return <Leaf {...leafProps} />;
@@ -328,10 +598,14 @@ export function SlateEditor(props: {
     <Slate
       editor={editor}
       initialValue={props.value}
-      onChange={(nextValue) => props.onChange(nextValue)}
+      onChange={(nextValue) => {
+        props.onChange(nextValue);
+        syncSlashMenuState();
+      }}
     >
       {showToolbar ? <EditorToolbar disabled={props.disabled || readOnly} /> : null}
       <Editable
+        ref={editableRef}
         className={cn(
           "min-h-[45vh] w-full rounded-md bg-background px-1 py-2 text-[15px] leading-7",
           "focus-visible:outline-none",
@@ -344,6 +618,40 @@ export function SlateEditor(props: {
         renderLeaf={renderLeaf}
         readOnly={editorReadOnly}
         onKeyDown={(e) => {
+          if (slashMenuState) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              if (filteredSlashMenuItems.length > 0) {
+                setSlashActiveIndex((prev) => (prev + 1) % filteredSlashMenuItems.length);
+              }
+              return;
+            }
+
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              if (filteredSlashMenuItems.length > 0) {
+                setSlashActiveIndex((prev) =>
+                  prev <= 0 ? filteredSlashMenuItems.length - 1 : prev - 1,
+                );
+              }
+              return;
+            }
+
+            if (e.key === "Enter") {
+              if (filteredSlashMenuItems.length === 0) return;
+              e.preventDefault();
+              const nextIndex = Math.min(slashActiveIndex, filteredSlashMenuItems.length - 1);
+              executeSlashMenuItem(filteredSlashMenuItems[nextIndex] ?? filteredSlashMenuItems[0]);
+              return;
+            }
+
+            if (e.key === "Escape") {
+              e.preventDefault();
+              closeSlashMenu();
+              return;
+            }
+          }
+
           if (e.key === "Enter") {
             if (handleEnterInTable(editor)) {
               e.preventDefault();
@@ -441,6 +749,55 @@ export function SlateEditor(props: {
             });
         }}
       />
+
+      {!editorReadOnly && slashMenuState ? (
+        <div
+          ref={slashMenuRef}
+          contentEditable={false}
+          className="fixed z-50 w-[320px] overflow-hidden rounded-md border border-input bg-background p-1 shadow-xl"
+          style={{
+            top: `${slashMenuState.top}px`,
+            left: `${slashMenuState.left}px`,
+            width: `${SLASH_MENU_WIDTH}px`,
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <div className="px-3 py-1 text-xs text-muted-foreground">输入以搜索</div>
+          <div className="max-h-72 overflow-y-auto py-1">
+            {filteredSlashMenuItems.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-muted-foreground">无匹配项</div>
+            ) : (
+              filteredSlashMenuItems.map((item, index) => {
+                const Icon = item.icon;
+                const nextActiveIndex = Math.min(slashActiveIndex, filteredSlashMenuItems.length - 1);
+                const isActive = index === nextActiveIndex;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-sm px-3 py-2 text-left text-sm transition-colors",
+                      isActive ? "bg-blue-50 text-blue-600" : "hover:bg-muted",
+                    )}
+                    onMouseEnter={() => setSlashActiveIndex(index)}
+                    onClick={() => executeSlashMenuItem(item)}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-current" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <div className="border-t border-border px-3 py-1 text-xs text-muted-foreground">
+            ↑↓ 选择 · Enter 确认 · Esc 关闭
+          </div>
+        </div>
+      ) : null}
     </Slate>
   );
 }
