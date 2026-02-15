@@ -144,30 +144,28 @@ export const PageEditor = memo(function PageEditor() {
   }, [isPreview, selectedPageId, latestPublishedVersionId]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-4 pt-6">
-      <div className="space-y-2">
-        {isPreview ? (
-          <EditorTitleDisplay title={previewTitle} />
-        ) : (
-          <EditorTitleInput
-            value={pageTitle}
-            disabled={pageLoading}
-            onChange={handleTitleChange}
-          />
-        )}
-      </div>
-
-      <div className="pt-2">
-        <SlateEditor
-          key={isPreview ? previewEditorKey : editEditorKey}
-          value={currentValue}
-          onChange={handleEditorChange}
-          disabled={pageLoading}
-          readOnly={isPreview}
-          showToolbar={!isPreview}
-          placeholder={isPreview ? undefined : '直接输入正文…'}
-        />
-      </div>
+    <div className="mx-auto w-full max-w-5xl pt-6">
+      <SlateEditor
+        key={isPreview ? previewEditorKey : editEditorKey}
+        value={currentValue}
+        onChange={handleEditorChange}
+        disabled={pageLoading}
+        readOnly={isPreview}
+        showToolbar={!isPreview}
+        placeholder={isPreview ? undefined : '直接输入正文…'}
+        topContent={
+          isPreview ? (
+            <EditorTitleDisplay title={previewTitle} />
+          ) : (
+            <EditorTitleInput
+              value={pageTitle}
+              disabled={pageLoading}
+              onChange={handleTitleChange}
+            />
+          )
+        }
+        topContentClassName="space-y-2"
+      />
     </div>
   );
 });

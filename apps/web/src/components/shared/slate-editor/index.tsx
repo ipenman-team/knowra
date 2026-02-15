@@ -14,7 +14,15 @@ import {
   Underline,
   type LucideIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { createEditor, Descendant, Editor, Element as SlateElement, Range as SlateRange, Transforms } from "slate";
 import { withHistory } from "slate-history";
 import {
@@ -443,6 +451,8 @@ export function SlateEditor(props: {
   disabled?: boolean;
   readOnly?: boolean;
   showToolbar?: boolean;
+  topContent?: ReactNode;
+  topContentClassName?: string;
 }) {
   const editor = useMemo(
     () =>
@@ -892,6 +902,11 @@ export function SlateEditor(props: {
       }}
     >
       {showToolbar ? <EditorToolbar disabled={props.disabled || readOnly} /> : null}
+      {props.topContent ? (
+        <div className={cn("pb-2", props.topContentClassName)}>
+          {props.topContent}
+        </div>
+      ) : null}
       <Editable
         ref={editableRef}
         className={cn(
