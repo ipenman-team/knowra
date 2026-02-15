@@ -13,7 +13,7 @@ import { Expand, Minimize2, Plus } from "lucide-react";
 import { useFocused, useSelected, useSlateStatic, type RenderElementProps } from "slate-react";
 
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 import { BlockElementHandleMenu } from "../block-element-handle-menu";
@@ -266,6 +266,8 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
   const selectedRowTop = effectiveSelectedRowIndex === null ? null : (rowOffsets[effectiveSelectedRowIndex] ?? 0);
   const selectedRowHeight =
     effectiveSelectedRowIndex === null ? null : (rowHeights[effectiveSelectedRowIndex] ?? 0);
+  const shouldShowControls =
+    isActive || effectiveSelectedColumnIndex !== null || effectiveSelectedRowIndex !== null;
 
   return (
     <div
@@ -305,15 +307,15 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
             <TableBlockContext.Provider value={contextValue}>
               <div className="min-w-full w-fit pl-4 pt-4">
                 <div className="relative" style={{ width: `${tableWidth}px`, minHeight: `${tableHeight}px` }}>
-                  <Table
+                  <table
                     className={cn(
-                      "table-fixed border-collapse",
+                      "w-full table-fixed border-collapse text-sm",
                       "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
                     )}
                     style={{ width: `${tableWidth}px` }}
                   >
-                    <TableBody>{props.children}</TableBody>
-                  </Table>
+                    <tbody>{props.children}</tbody>
+                  </table>
 
                   {!readOnly ? (
                     <div contentEditable={false} className="pointer-events-none absolute inset-0 z-30">
@@ -345,7 +347,13 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                         />
                       ) : null}
 
-                      <div className="absolute -top-7 left-0 z-40 flex h-5 w-full">
+                      <div
+                        className={cn(
+                          "absolute -top-7 left-0 z-40 flex h-5 w-full opacity-0 transition-opacity",
+                          "group-hover/block:opacity-100",
+                          shouldShowControls && "opacity-100",
+                        )}
+                      >
                         {columnWidths.map((width, columnIndex) => (
                           <button
                             key={`column-control-${columnIndex}`}
@@ -374,7 +382,13 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                         ))}
                       </div>
 
-                      <div className="absolute -left-7 top-0 z-40 flex w-5 flex-col">
+                      <div
+                        className={cn(
+                          "absolute -left-7 top-0 z-40 flex w-5 flex-col opacity-0 transition-opacity",
+                          "group-hover/block:opacity-100",
+                          shouldShowControls && "opacity-100",
+                        )}
+                      >
                         {rowHeights.map((height, rowIndex) => (
                           <button
                             key={`row-control-${rowIndex}`}
@@ -409,7 +423,9 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                           type="button"
                           contentEditable={false}
                           className={cn(
-                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-md border text-[10px] transition-all",
+                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-md border text-[10px] opacity-0 transition-all",
+                            "group-hover/block:opacity-100 hover:opacity-100",
+                            shouldShowControls && "opacity-100",
                             hoverColumnBoundary === boundaryIndex
                               ? "border-blue-500 bg-blue-500 text-white shadow-sm"
                               : "border-transparent bg-transparent text-transparent",
@@ -443,7 +459,9 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                           type="button"
                           contentEditable={false}
                           className={cn(
-                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border text-[10px] transition-all",
+                            "pointer-events-auto absolute z-40 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md border text-[10px] opacity-0 transition-all",
+                            "group-hover/block:opacity-100 hover:opacity-100",
+                            shouldShowControls && "opacity-100",
                             hoverRowBoundary === boundaryIndex
                               ? "border-blue-500 bg-blue-500 text-white shadow-sm"
                               : "border-transparent bg-transparent text-transparent",
