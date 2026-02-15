@@ -6,12 +6,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { ChevronDown, Expand, Minimize2, Plus, Trash2 } from "lucide-react";
-import { Editor, Path } from "slate";
+import { Editor, Path, Transforms, type Range } from "slate";
 import {
+  ReactEditor,
   useFocused,
   useSelected,
   useSlate,
@@ -311,6 +313,8 @@ export function TableCellElementView(props: RenderElementProps) {
   const element = props.element as TableCellElement;
   const width = getTableCellWidth(element.width);
   const cellPath = findElementPathSafe(editor, element);
+  const selectionRef = useRef<Range | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const rowIndex = cellPath ? cellPath[cellPath.length - 2] : -1;
   const columnIndex = cellPath ? cellPath[cellPath.length - 1] : -1;
@@ -329,11 +333,24 @@ export function TableCellElementView(props: RenderElementProps) {
   const isCurrentCell = Boolean(
     context &&
       !context.readOnly &&
-      focused &&
       cellPath &&
       selectedCellPath &&
       Path.equals(cellPath, selectedCellPath),
   );
+  const shouldShowCellMenu = isCurrentCell || menuOpen;
+
+  const cacheSelection = useCallback(() => {
+    selectionRef.current = editor.selection;
+  }, [editor]);
+
+  const restoreSelection = useCallback(() => {
+    if (!selectionRef.current) return;
+    try {
+      Transforms.select(editor, selectionRef.current);
+    } catch {
+      // ignore invalid selection
+    }
+  }, [editor]);
 
   const canResizeColumn = Boolean(
     context &&
@@ -352,18 +369,35 @@ export function TableCellElementView(props: RenderElementProps) {
   return (
     <TableCell
       {...props.attributes}
-      className={cn("group/table-cell relative border border-border p-1.5 align-top", isCurrentCell && "bg-blue-500/5")}
+      className={cn(
+        "group/table-cell relative border border-border p-1.5 align-top",
+        isCurrentCell && focused && "bg-blue-500/5",
+      )}
       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
     >
-      {isCurrentCell && context ? (
-        <DropdownMenu>
+      {shouldShowCellMenu && context ? (
+        <DropdownMenu
+          modal={false}
+          open={menuOpen}
+          onOpenChange={(nextOpen) => {
+            if (nextOpen) {
+              cacheSelection();
+              restoreSelection();
+            }
+            setMenuOpen(nextOpen);
+          }}
+        >
           <DropdownMenuTrigger asChild>
             <button
               type="button"
               contentEditable={false}
               className="absolute right-1 top-1 z-30 inline-flex h-5 w-5 items-center justify-center rounded-sm border border-border bg-background text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-500"
-              onMouseDown={(event) => {
+              onPointerDown={(event) => {
+                cacheSelection();
                 event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
                 event.stopPropagation();
               }}
               aria-label="打开表格菜单"
@@ -372,7 +406,16 @@ export function TableCellElementView(props: RenderElementProps) {
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-44" sideOffset={6}>
+          <DropdownMenuContent
+            align="end"
+            className="w-44"
+            sideOffset={6}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              restoreSelection();
+              ReactEditor.focus(editor as ReactEditor);
+            }}
+          >
             <DropdownMenuItem
               onSelect={(event) => {
                 event.preventDefault();
