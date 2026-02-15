@@ -422,7 +422,6 @@ export function TableCellElementView(props: RenderElementProps) {
   const canResizeColumn = Boolean(
     context &&
       !context.readOnly &&
-      rowIndex === 0 &&
       columnIndex >= 0 &&
       columnIndex < context.columnCount - 1,
   );
@@ -437,14 +436,18 @@ export function TableCellElementView(props: RenderElementProps) {
   return (
     <TableCell
       {...props.attributes}
-      className="relative border border-border p-2 align-top"
+      className="group/table-cell relative border border-border p-2 align-top"
       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
     >
       {canResizeColumn ? (
         <button
           type="button"
           contentEditable={false}
-          className="absolute -right-1 top-0 z-20 h-full w-2 cursor-col-resize bg-transparent transition-colors hover:bg-blue-500/35"
+          className={cn(
+            "absolute -right-1.5 top-0 z-20 h-full w-3 cursor-col-resize bg-transparent opacity-0 transition-opacity",
+            "group-hover/table-cell:opacity-100 hover:opacity-100",
+            "before:absolute before:left-1/2 before:top-0 before:h-full before:w-px before:-translate-x-1/2 before:bg-blue-500/75",
+          )}
           onMouseDown={(event) => context?.startColumnResize(columnIndex, event)}
           aria-label="拖拽调整列宽"
         />
