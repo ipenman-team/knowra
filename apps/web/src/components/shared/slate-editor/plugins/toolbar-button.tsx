@@ -11,7 +11,7 @@ const TOOLBAR_TOOLTIP_BY_LABEL: Record<string, string> = {
   "</>": "代码块",
   "•": "无序列表",
   "1.": "有序列表",
-  IMG: "插入图片",
+  IMG: "图片",
   图: "文本绘图",
   表: "表格",
 };

@@ -242,7 +242,6 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         active={isActive}
         onDelete={onDelete}
         deleteDisabled={readOnly}
-        deleteLabel="删除绘图块"
         actions={[
           {
             key: 'diagram-fullscreen',
@@ -309,18 +308,6 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
           >
             {previewEnabled ? <Eye /> : <EyeOff />}
           </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            disabled={!previewEnabled}
-            onClick={onToggleSourceCollapsed}
-          >
-            {sourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
-          </Button>
-
         </div>
 
         <DiagramWorkspace

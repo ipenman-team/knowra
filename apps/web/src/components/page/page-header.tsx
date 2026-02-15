@@ -149,21 +149,18 @@ export const PageHeader = () => {
       </div>
       <div>
         {pageMode === 'preview' ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <Button
               variant="link"
               disabled={!activePage}
               onClick={() => setShareOpen(true)}
-              className="gap-1"
             >
               <Share2Icon className="w-4 h-4" />
-              分享
             </Button>
             <Button
               variant="link"
               disabled={!activePage}
               onClick={() => setPageMode('edit')}
-              className="gap-1"
             >
               <PencilLineIcon />
               编辑

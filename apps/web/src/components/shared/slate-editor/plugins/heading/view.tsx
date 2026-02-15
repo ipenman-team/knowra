@@ -100,8 +100,7 @@ export function HeadingPluginView(props: ToolbarPluginProps) {
                 <span className="inline-flex h-4 w-4 items-center justify-center">
                   {active ? <Check className="h-4 w-4" /> : null}
                 </span>
-                <span className={cn("text-left leading-none", item.previewClassName)}>{item.label}</span>
-                <span className="ml-auto text-xs text-muted-foreground">{item.shortcut}</span>
+                <span className={cn("text-left leading-none")}>{item.label}</span>
               </button>
             );
           })}
