@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import { Clock3, Search, X } from "lucide-react";
 import nodeEmoji from "node-emoji";
 
@@ -87,6 +95,7 @@ export function EmojiPicker(props: EmojiPickerProps) {
   const [emojiMartPicker, setEmojiMartPicker] = useState<EmojiMartPickerComponent | null>(null);
   const [emojiMartData, setEmojiMartData] = useState<unknown>(null);
   const [emojiMartLoadFailed, setEmojiMartLoadFailed] = useState(false);
+  const [emojiMartRuntimeFailed, setEmojiMartRuntimeFailed] = useState(false);
 
   const recentStorageKey = props.recentStorageKey ?? EMOJI_RECENT_FALLBACK_KEY;
   const recentLimit = Math.max(1, props.recentLimit ?? DEFAULT_RECENT_LIMIT);
@@ -95,13 +104,13 @@ export function EmojiPicker(props: EmojiPickerProps) {
   );
   const selectedEmoji = normalizeEmoji(props.value);
   const triggerEmoji = selectedEmoji ?? props.placeholderEmoji ?? "🙂";
-  const emojiMartReady = Boolean(emojiMartPicker && emojiMartData);
-  const emojiMartLoading = open && !emojiMartReady && !emojiMartLoadFailed;
+  const emojiMartReady = Boolean(emojiMartPicker && emojiMartData && !emojiMartRuntimeFailed);
+  const emojiMartLoading = open && !emojiMartReady && !emojiMartLoadFailed && !emojiMartRuntimeFailed;
 
   useEffect(() => {
     if (!open) return;
     if (emojiMartPicker && emojiMartData) return;
-    if (emojiMartLoadFailed) return;
+    if (emojiMartLoadFailed || emojiMartRuntimeFailed) return;
 
     let disposed = false;
 
@@ -119,7 +128,7 @@ export function EmojiPicker(props: EmojiPickerProps) {
     return () => {
       disposed = true;
     };
-  }, [emojiMartData, emojiMartLoadFailed, emojiMartPicker, open]);
+  }, [emojiMartData, emojiMartLoadFailed, emojiMartPicker, emojiMartRuntimeFailed, open]);
 
   const persistRecent = useCallback(
     (nextRecent: string[]) => {
@@ -240,12 +249,18 @@ export function EmojiPicker(props: EmojiPickerProps) {
             </Button>
           </div>
 
-          {emojiMartPicker && emojiMartData ? (
-            <EmojiMartPicker
-              pickerComponent={emojiMartPicker}
-              data={emojiMartData}
-              onEmojiSelect={onEmojiMartSelect}
-            />
+          {emojiMartReady && emojiMartPicker && emojiMartData ? (
+            <EmojiMartRenderBoundary
+              onError={() => {
+                setEmojiMartRuntimeFailed(true);
+              }}
+            >
+              <EmojiMartPicker
+                pickerComponent={emojiMartPicker}
+                data={emojiMartData}
+                onEmojiSelect={onEmojiMartSelect}
+              />
+            </EmojiMartRenderBoundary>
           ) : (
             <EmojiFallbackPanel
               loading={emojiMartLoading}
@@ -260,6 +275,29 @@ export function EmojiPicker(props: EmojiPickerProps) {
       </PopoverContent>
     </Popover>
   );
+}
+
+class EmojiMartRenderBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; onError: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch() {
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
 }
 
 function EmojiMartPicker(props: {
