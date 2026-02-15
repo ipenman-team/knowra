@@ -23,6 +23,7 @@ type EmojiPickerProps = {
   onChange: (emoji: string | null) => void;
   onOpenChange?: (open: boolean) => void;
   disabled?: boolean;
+  showClearButton?: boolean;
   triggerIcon?: ReactNode;
   showSelectedOnTrigger?: boolean;
   placeholderEmoji?: string;
@@ -105,6 +106,7 @@ export function EmojiPicker(props: EmojiPickerProps) {
     () => readRecentFromStorage(recentStorageKey, recentLimit),
   );
   const selectedEmoji = normalizeEmoji(props.value);
+  const showClearButton = props.showClearButton ?? true;
   const showSelectedOnTrigger = props.showSelectedOnTrigger ?? true;
   const triggerEmoji =
     (showSelectedOnTrigger ? selectedEmoji : null) ?? props.placeholderEmoji ?? "🙂";
@@ -244,19 +246,21 @@ export function EmojiPicker(props: EmojiPickerProps) {
 
       <PopoverContent align="start" sideOffset={8} className={cn("w-[360px] p-3", props.contentClassName)}>
         <div className="space-y-3">
-          <div className="flex items-center justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 px-2"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={onClear}
-            >
-              <X className="h-4 w-4" />
-              清除
-            </Button>
-          </div>
+          {showClearButton ? (
+            <div className="flex items-center justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 px-2"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={onClear}
+              >
+                <X className="h-4 w-4" />
+                清除
+              </Button>
+            </div>
+          ) : null}
 
           {emojiMartReady && emojiMartPicker && emojiMartData ? (
             <EmojiMartRenderBoundary

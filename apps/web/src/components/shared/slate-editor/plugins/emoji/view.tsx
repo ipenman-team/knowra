@@ -52,6 +52,7 @@ export function EmojiPluginView(props: ToolbarPluginProps) {
       label="插入 Emoji"
       disabled={props.disabled}
       value={lastEmoji}
+      showClearButton={false}
       triggerIcon={<Smile className="h-4 w-4" />}
       showSelectedOnTrigger={false}
       placeholderEmoji="🙂"
