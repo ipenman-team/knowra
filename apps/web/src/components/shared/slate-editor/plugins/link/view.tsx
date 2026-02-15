@@ -90,6 +90,7 @@ export function LinkPluginView(props: ToolbarPluginProps) {
           variant={getLinkMark(editor) ? "secondary" : "ghost"}
           className="h-8 px-2"
           disabled={props.disabled}
+          tooltip="插入链接"
           onMouseDown={(event) => {
             event.preventDefault();
             toggleOpen();

@@ -85,6 +85,7 @@ export function AlignPluginView(props: ToolbarPluginProps) {
           variant={open || activeAlign !== "left" ? "secondary" : "ghost"}
           className="h-8 gap-1 px-1.5"
           disabled={props.disabled}
+          tooltip="对齐方式"
           onMouseDown={(event) => {
             event.preventDefault();
             if (!open) cacheSelection();
@@ -109,7 +110,7 @@ export function AlignPluginView(props: ToolbarPluginProps) {
                 variant={activeAlign === item.value ? "secondary" : "ghost"}
                 size="icon"
                 className="h-9 w-9"
-                title={`${item.label} (${item.shortcut})`}
+                tooltip={`${item.label} (${item.shortcut})`}
                 onMouseDown={(event) => {
                   event.preventDefault();
                 }}

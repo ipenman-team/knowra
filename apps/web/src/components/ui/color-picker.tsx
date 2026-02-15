@@ -128,6 +128,7 @@ export function ColorPicker(props: ColorPickerProps) {
           className="h-8 gap-1 px-1.5"
           disabled={props.disabled}
           aria-label={label}
+          tooltip={label}
           onMouseDown={props.onTriggerMouseDown}
         >
           <span className="relative flex h-5 w-5 items-center justify-center">

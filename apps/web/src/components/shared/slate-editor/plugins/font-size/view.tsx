@@ -70,6 +70,7 @@ export function FontSizePluginView(props: ToolbarPluginProps) {
           variant={open || activeSize !== DEFAULT_FONT_SIZE ? "secondary" : "ghost"}
           className="h-8 min-w-[74px] justify-between px-2"
           disabled={props.disabled}
+          tooltip="字号"
           onMouseDown={(event) => {
             event.preventDefault();
             if (!open) cacheSelection();
