@@ -394,7 +394,6 @@ export function TableCellElementView(props: RenderElementProps) {
               className="absolute right-1 top-1 z-30 inline-flex h-5 w-5 items-center justify-center rounded-sm border border-border bg-background text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-500"
               onPointerDown={(event) => {
                 cacheSelection();
-                event.preventDefault();
                 event.stopPropagation();
               }}
               onClick={(event) => {
