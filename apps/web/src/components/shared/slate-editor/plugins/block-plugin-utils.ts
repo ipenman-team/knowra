@@ -35,8 +35,13 @@ export function focusCursorAfterBlockElement(editor: Editor, element: SlateEleme
     });
   }
 
+  const scrollSnapshots = captureScrollSnapshots(editor);
   Transforms.select(editor, Editor.start(editor, nextPath));
-  ReactEditor.focus(editor as ReactEditor);
+  focusEditorWithoutScroll(editor);
+
+  window.requestAnimationFrame(() => {
+    restoreScrollSnapshots(scrollSnapshots);
+  });
 }
 
 export function insertParagraphAfterSelectedBlockPlugin(editor: Editor) {
@@ -115,4 +120,86 @@ function hasNodeAt(editor: Editor, path: Path) {
   } catch {
     return false;
   }
+}
+
+type ScrollSnapshot = {
+  element: HTMLElement | null;
+  left: number;
+  top: number;
+};
+
+function focusEditorWithoutScroll(editor: Editor) {
+  const reactEditor = editor as ReactEditor;
+
+  try {
+    const domNode = ReactEditor.toDOMNode(reactEditor, reactEditor);
+    if (domNode instanceof HTMLElement) {
+      domNode.focus({ preventScroll: true });
+      return;
+    }
+  } catch {
+    // Ignore and fallback to react-editor focus.
+  }
+
+  ReactEditor.focus(reactEditor);
+}
+
+function captureScrollSnapshots(editor: Editor) {
+  const snapshots: ScrollSnapshot[] = [
+    { element: null, left: window.scrollX, top: window.scrollY },
+  ];
+
+  const reactEditor = editor as ReactEditor;
+  let current: HTMLElement | null = null;
+
+  try {
+    const domNode = ReactEditor.toDOMNode(reactEditor, reactEditor);
+    if (domNode instanceof HTMLElement) current = domNode.parentElement;
+  } catch {
+    current = null;
+  }
+
+  while (current) {
+    if (isScrollableElement(current)) {
+      snapshots.push({
+        element: current,
+        left: current.scrollLeft,
+        top: current.scrollTop,
+      });
+    }
+    current = current.parentElement;
+  }
+
+  return snapshots;
+}
+
+function restoreScrollSnapshots(snapshots: ScrollSnapshot[]) {
+  for (const snapshot of snapshots) {
+    if (snapshot.element) {
+      snapshot.element.scrollLeft = snapshot.left;
+      snapshot.element.scrollTop = snapshot.top;
+      continue;
+    }
+
+    window.scrollTo({
+      left: snapshot.left,
+      top: snapshot.top,
+      behavior: "auto",
+    });
+  }
+}
+
+function isScrollableElement(element: HTMLElement) {
+  const style = window.getComputedStyle(element);
+  const overflowY = style.overflowY;
+  const overflowX = style.overflowX;
+
+  const canScrollY =
+    (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") &&
+    element.scrollHeight > element.clientHeight;
+  const canScrollX =
+    (overflowX === "auto" || overflowX === "scroll" || overflowX === "overlay") &&
+    element.scrollWidth > element.clientWidth;
+
+  return canScrollY || canScrollX;
 }
