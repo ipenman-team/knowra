@@ -50,6 +50,7 @@ import {
 } from "./plugins/image-block/logic";
 import { uploadEditorImage } from "./plugins/image-block/upload";
 import { LINK_MARK, normalizeLinkUrl } from "./plugins/link/logic";
+import { InlineLinkLeaf } from "./plugins/link/inline-link-leaf";
 import {
   handleEnterInTable,
   TABLE_BLOCK_TYPE,
@@ -163,24 +164,13 @@ function Leaf(props: RenderLeafProps) {
   const linkUrl = normalizeLeafLink(anyLeaf.link);
   if (linkUrl) {
     next = (
-      <a
+      <InlineLinkLeaf
         href={linkUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="cursor-pointer text-blue-500"
-        data-plugin-scope={anyLeaf.pluginScope ?? PLUGIN_SCOPE_INLINE}
-        data-plugin-kind={anyLeaf.pluginKind ?? LINK_MARK}
-        onMouseDown={(event) => {
-          if (event.button !== 0) return;
-          event.preventDefault();
-          window.open(linkUrl, "_blank", "noopener,noreferrer");
-        }}
-        onClick={(event) => {
-          event.preventDefault();
-        }}
+        pluginScope={anyLeaf.pluginScope ?? PLUGIN_SCOPE_INLINE}
+        pluginKind={anyLeaf.pluginKind ?? LINK_MARK}
       >
         {next}
-      </a>
+      </InlineLinkLeaf>
     );
   }
 

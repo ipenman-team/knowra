@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Link2 } from "lucide-react";
-import { Transforms, type Range } from "slate";
+import { Range, Transforms, type BaseRange } from "slate";
 import { ReactEditor, useSlate } from "slate-react";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 
 import type { ToolbarPluginProps } from "../types";
 import {
+  DEFAULT_LINK_PLACEHOLDER_TEXT,
+  DEFAULT_LINK_PLACEHOLDER_URL,
   getLinkMark,
   getSelectionText,
   insertLinkText,
@@ -24,40 +26,55 @@ import {
 
 export function LinkPluginView(props: ToolbarPluginProps) {
   const editor = useSlate();
-  const selectionRef = useRef<Range | null>(null);
+  const selectionRef = useRef<BaseRange | null>(null);
 
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
-  const [url, setUrl] = useState("http://");
+  const [text, setText] = useState(DEFAULT_LINK_PLACEHOLDER_TEXT);
+  const [url, setUrl] = useState(DEFAULT_LINK_PLACEHOLDER_URL);
 
   const normalizedUrl = useMemo(() => normalizeLinkUrl(url), [url]);
   const hasValidationError = url.trim().length > 0 && !normalizedUrl;
   const canSubmit = Boolean(!props.disabled && normalizedUrl && text.trim().length > 0);
 
-  const snapshotSelection = useCallback(() => {
-    selectionRef.current = editor.selection;
-  }, [editor]);
-
-  const hydrateFromSelection = useCallback(() => {
-    const selectedText = getSelectionText(editor, selectionRef.current);
-    const activeLink = getLinkMark(editor);
-
-    setText(selectedText);
-    setUrl(activeLink ?? "http://");
-  }, [editor]);
-
-  const toggleOpen = useCallback(() => {
+  const openEditor = useCallback(() => {
     if (props.disabled) return;
+    if (!editor.selection) return;
 
-    if (!open) {
-      snapshotSelection();
-      hydrateFromSelection();
+    ReactEditor.focus(editor as ReactEditor);
+    const activeSelection = editor.selection;
+
+    if (Range.isExpanded(activeSelection)) {
+      selectionRef.current = activeSelection;
+      setText(getSelectionText(editor, activeSelection) || DEFAULT_LINK_PLACEHOLDER_TEXT);
+      setUrl(getLinkMark(editor) ?? DEFAULT_LINK_PLACEHOLDER_URL);
       setOpen(true);
       return;
     }
 
-    setOpen(false);
-  }, [hydrateFromSelection, open, props.disabled, snapshotSelection]);
+    const start = {
+      path: [...activeSelection.anchor.path],
+      offset: activeSelection.anchor.offset,
+    };
+
+    Transforms.insertText(editor, DEFAULT_LINK_PLACEHOLDER_TEXT);
+
+    const end = editor.selection?.anchor;
+    if (end) {
+      const insertedRange: BaseRange = { anchor: start, focus: end };
+      selectionRef.current = insertedRange;
+      try {
+        Transforms.select(editor, insertedRange);
+      } catch {
+        // ignore invalid selection
+      }
+    } else {
+      selectionRef.current = activeSelection;
+    }
+
+    setText(DEFAULT_LINK_PLACEHOLDER_TEXT);
+    setUrl(DEFAULT_LINK_PLACEHOLDER_URL);
+    setOpen(true);
+  }, [editor, props.disabled]);
 
   const onConfirm = useCallback(() => {
     if (!canSubmit) return;
@@ -75,6 +92,7 @@ export function LinkPluginView(props: ToolbarPluginProps) {
     const inserted = insertLinkText(editor, {
       text,
       url,
+      selection: selectionRef.current,
     });
 
     if (!inserted) return;
@@ -93,7 +111,8 @@ export function LinkPluginView(props: ToolbarPluginProps) {
           tooltip="插入链接"
           onMouseDown={(event) => {
             event.preventDefault();
-            toggleOpen();
+            event.stopPropagation();
+            openEditor();
           }}
           aria-label="插入链接"
         >
@@ -111,7 +130,7 @@ export function LinkPluginView(props: ToolbarPluginProps) {
           <div className="text-sm font-medium">文本</div>
           <Input
             value={text}
-            placeholder="这是一个链接"
+            placeholder={DEFAULT_LINK_PLACEHOLDER_TEXT}
             onChange={(event) => setText(event.target.value)}
           />
         </div>
@@ -120,7 +139,7 @@ export function LinkPluginView(props: ToolbarPluginProps) {
           <div className="text-sm font-medium">链接</div>
           <Input
             value={url}
-            placeholder="http://example.com"
+            placeholder="链接地址"
             aria-invalid={hasValidationError}
             className={cn(
               hasValidationError && "border-destructive focus-visible:ring-destructive",
