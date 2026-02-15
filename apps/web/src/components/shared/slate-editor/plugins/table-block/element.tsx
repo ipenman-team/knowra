@@ -56,6 +56,7 @@ type TableBlockContextValue = {
 };
 
 const TableBlockContext = createContext<TableBlockContextValue | null>(null);
+const TABLE_CONTROL_STRIP_SIZE = 20;
 
 export function TableBlockElementView(props: TableBlockElementViewProps) {
   const editor = useSlateStatic();
@@ -78,6 +79,8 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
   const rowCount = rowHeights.length;
   const tableWidth = Math.max(720, columnWidths.reduce((sum, width) => sum + width, 0));
   const tableHeight = Math.max(1, rowHeights.reduce((sum, height) => sum + height, 0));
+  const tableFrameWidth = tableWidth + TABLE_CONTROL_STRIP_SIZE;
+  const tableFrameHeight = tableHeight + TABLE_CONTROL_STRIP_SIZE;
 
   const columnBoundaries = useMemo(() => {
     let offset = 0;
@@ -305,37 +308,24 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
         <div className={cn("bg-background", isFullscreen ? "h-[100dvh]" : "h-auto")}>
           <div className="h-full overflow-auto p-2">
             <TableBlockContext.Provider value={contextValue}>
-              <div className="min-w-full w-fit pl-4 pt-4">
-                <div className="relative" style={{ width: `${tableWidth}px`, minHeight: `${tableHeight}px` }}>
-                  <table
-                    className={cn(
-                      "w-full table-fixed border-collapse text-sm",
-                      "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
-                    )}
-                    style={{ width: `${tableWidth}px` }}
-                  >
-                    <tbody>{props.children}</tbody>
-                  </table>
-
+              <div className="min-w-full w-fit">
+                <div
+                  className="relative grid overflow-visible"
+                  style={{
+                    gridTemplateColumns: `${TABLE_CONTROL_STRIP_SIZE}px ${tableWidth}px`,
+                    gridTemplateRows: `${TABLE_CONTROL_STRIP_SIZE}px ${tableHeight}px`,
+                    width: `${tableFrameWidth}px`,
+                    minHeight: `${tableFrameHeight}px`,
+                  }}
+                >
                   {!readOnly ? (
-                    <div contentEditable={false} className="pointer-events-none absolute inset-0 z-30">
-                      {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
-                        <div
-                          className="absolute inset-y-0 border border-blue-500/60 bg-blue-500/5"
-                          style={{ left: `${selectedColumnLeft}px`, width: `${selectedColumnWidth}px` }}
-                        />
-                      ) : null}
-
-                      {selectedRowTop !== null && selectedRowHeight !== null ? (
-                        <div
-                          className="absolute inset-x-0 border border-blue-500/60 bg-blue-500/5"
-                          style={{ top: `${selectedRowTop}px`, height: `${selectedRowHeight}px` }}
-                        />
-                      ) : null}
+                    <>
+                      <div className="col-start-1 row-start-1 border-r border-b border-border/70 bg-background/80" />
 
                       <div
+                        contentEditable={false}
                         className={cn(
-                          "absolute -top-7 left-0 z-40 flex h-5 w-full opacity-0 transition-opacity",
+                          "col-start-2 row-start-1 z-40 flex opacity-0 transition-opacity",
                           "group-hover/block:opacity-100",
                           shouldShowControls && "opacity-100",
                         )}
@@ -377,7 +367,7 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                               <button
                                 type="button"
                                 contentEditable={false}
-                                className="pointer-events-auto absolute -top-8 left-1/2 z-50 inline-flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-md border border-input bg-background shadow-sm transition-colors hover:bg-accent"
+                                className="pointer-events-auto absolute left-1/2 top-1/2 z-50 inline-flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border border-input bg-background shadow-sm transition-colors hover:bg-accent"
                                 onMouseDown={(event) => {
                                   event.preventDefault();
                                   event.stopPropagation();
@@ -390,7 +380,7 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                                 aria-label="在当前列后插入列"
                                 title="插入列"
                               >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-3.5 w-3.5" />
                               </button>
                             ) : null}
                           </div>
@@ -398,8 +388,9 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                       </div>
 
                       <div
+                        contentEditable={false}
                         className={cn(
-                          "absolute -left-7 top-0 z-40 flex w-5 flex-col overflow-visible opacity-0 transition-opacity",
+                          "col-start-1 row-start-2 z-40 flex flex-col opacity-0 transition-opacity",
                           "group-hover/block:opacity-100",
                           shouldShowControls && "opacity-100",
                         )}
@@ -441,7 +432,7 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                               <button
                                 type="button"
                                 contentEditable={false}
-                                className="pointer-events-auto absolute -left-9 top-1/2 z-50 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-input bg-background shadow-sm transition-colors hover:bg-accent"
+                                className="pointer-events-auto absolute left-1/2 top-1/2 z-50 inline-flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border border-input bg-background shadow-sm transition-colors hover:bg-accent"
                                 onMouseDown={(event) => {
                                   event.preventDefault();
                                   event.stopPropagation();
@@ -454,66 +445,96 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
                                 aria-label="在当前行后插入行"
                                 title="插入行"
                               >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-3.5 w-3.5" />
                               </button>
                             ) : null}
                           </div>
                         ))}
                       </div>
-
-                      {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
-                        <div
-                          className="pointer-events-auto absolute -top-14 z-50 -translate-x-1/2 rounded-md border bg-background p-1 shadow-md"
-                          style={{ left: `${selectedColumnLeft + selectedColumnWidth / 2}px` }}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
-                            disabled={columnCount <= 1}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              onDeleteSelectedColumn();
-                            }}
-                          >
-                            删除列
-                          </Button>
-                        </div>
-                      ) : null}
-
-                      {selectedRowTop !== null && selectedRowHeight !== null ? (
-                        <div
-                          className="pointer-events-auto absolute -left-24 z-50 -translate-y-1/2 rounded-md border bg-background p-1 shadow-md"
-                          style={{ top: `${selectedRowTop + selectedRowHeight / 2}px` }}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
-                            disabled={rowCount <= 1}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              onDeleteSelectedRow();
-                            }}
-                          >
-                            删除行
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
+                    </>
                   ) : null}
+
+                  <div className="relative col-start-2 row-start-2" style={{ width: `${tableWidth}px` }}>
+                    <table
+                      className={cn(
+                        "w-full table-fixed border-collapse text-sm",
+                        "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
+                      )}
+                      style={{ width: `${tableWidth}px` }}
+                    >
+                      <tbody>{props.children}</tbody>
+                    </table>
+
+                    {!readOnly ? (
+                      <div contentEditable={false} className="pointer-events-none absolute inset-0 z-30">
+                        {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
+                          <div
+                            className="absolute inset-y-0 border border-blue-500/60 bg-blue-500/5"
+                            style={{ left: `${selectedColumnLeft}px`, width: `${selectedColumnWidth}px` }}
+                          />
+                        ) : null}
+
+                        {selectedRowTop !== null && selectedRowHeight !== null ? (
+                          <div
+                            className="absolute inset-x-0 border border-blue-500/60 bg-blue-500/5"
+                            style={{ top: `${selectedRowTop}px`, height: `${selectedRowHeight}px` }}
+                          />
+                        ) : null}
+
+                        {selectedColumnLeft !== null && selectedColumnWidth !== null ? (
+                          <div
+                            className="pointer-events-auto absolute -top-10 z-50 -translate-x-1/2 rounded-md border bg-background p-1 shadow-md"
+                            style={{ left: `${selectedColumnLeft + selectedColumnWidth / 2}px` }}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                          >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                              disabled={columnCount <= 1}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onDeleteSelectedColumn();
+                              }}
+                            >
+                              删除列
+                            </Button>
+                          </div>
+                        ) : null}
+
+                        {selectedRowTop !== null && selectedRowHeight !== null ? (
+                          <div
+                            className="pointer-events-auto absolute -left-24 z-50 -translate-y-1/2 rounded-md border bg-background p-1 shadow-md"
+                            style={{ top: `${selectedRowTop + selectedRowHeight / 2}px` }}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                          >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                              disabled={rowCount <= 1}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onDeleteSelectedRow();
+                              }}
+                            >
+                              删除行
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </TableBlockContext.Provider>
