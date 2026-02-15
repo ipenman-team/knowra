@@ -2,6 +2,12 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -39,7 +45,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
-  tooltip?: string
+  tooltip?: string | React.ComponentPropsWithoutRef<typeof TooltipContent>
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -48,13 +54,34 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    return (
+    const button = (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        title={title ?? tooltip}
+        title={title}
         {...props}
       />
+    )
+
+    if (!tooltip) return button
+
+    const tooltipContentProps =
+      typeof tooltip === "string" ? { children: tooltip } : tooltip
+
+    const trigger =
+      props.disabled && !asChild ? (
+        <span className="inline-flex">{button}</span>
+      ) : (
+        button
+      )
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent {...tooltipContentProps} />
+        </Tooltip>
+      </TooltipProvider>
     )
   }
 )
