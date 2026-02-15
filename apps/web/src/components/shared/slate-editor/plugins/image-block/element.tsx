@@ -47,6 +47,18 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
     removeImageBlock(editor, path);
   }, [editor, element]);
 
+  const onMoveCursorAfter = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (readOnly) return;
+      if (event.button !== 0) return;
+      if (shouldIgnoreBlockPointerTarget(event.target)) return;
+
+      event.preventDefault();
+      focusCursorAfterBlockElement(editor, element);
+    },
+    [editor, element, readOnly],
+  );
+
   const onMoveCursorAfterByContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       if (readOnly || !selected) return;
@@ -62,10 +74,11 @@ export function ImageBlockElementView(props: ImageBlockElementViewProps) {
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? IMAGE_BLOCK_TYPE}
       className="group/block relative my-2"
+      onMouseDownCapture={onMoveCursorAfter}
       onContextMenuCapture={onMoveCursorAfterByContextMenu}
     >
       {!readOnly ? (
-        <BlockElementHandleMenu active={isActive} onDelete={onDelete} deleteLabel="删除图片" />
+        <BlockElementHandleMenu active={isActive} onDelete={onDelete} />
       ) : null}
 
       <div
