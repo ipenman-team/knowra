@@ -27,6 +27,7 @@ import {
 import { isBlockActive, toggleBlock, toggleMark } from "./editor-format";
 import { insertParagraphAfterSelectedBlockPlugin } from "./plugins/block-plugin-utils";
 import { setBlockAlign } from "./plugins/align/logic";
+import { handleEnterInBlockQuote } from "./plugins/block-quote/logic";
 import { CodeBlockElementView } from "./plugins/code-block/element";
 import { CODE_BLOCK_TYPE, insertCodeBlock, withCodeBlock } from "./plugins/code-block/logic";
 import { DiagramBlockElementView } from "./plugins/diagram-block/element";
@@ -659,6 +660,11 @@ export function SlateEditor(props: {
             }
 
             if (insertParagraphAfterSelectedBlockPlugin(editor)) {
+              e.preventDefault();
+              return;
+            }
+
+            if (handleEnterInBlockQuote(editor)) {
               e.preventDefault();
               return;
             }
