@@ -9,18 +9,18 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { Columns3, Expand, Minimize2, Plus, Rows3, Trash2 } from "lucide-react";
+import { Expand, Minimize2, Plus } from "lucide-react";
 import { useFocused, useSelected, useSlateStatic, type RenderElementProps } from "slate-react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
+import { BlockElementHandleMenu } from "../block-element-handle-menu";
 import { findElementPathSafe } from "../block-plugin-utils";
 import { PLUGIN_SCOPE_BLOCK } from "../types";
 import {
   TABLE_BLOCK_TYPE,
-  getCurrentTableCellPosition,
   getTableCellWidth,
   getTableColumnWidths,
   getTableRowHeight,
@@ -105,24 +105,6 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
   const getTablePath = useCallback(() => {
     return findElementPathSafe(editor, element);
   }, [editor, element]);
-
-  const onAddRow = useCallback(() => {
-    if (readOnly) return;
-    const tablePath = getTablePath();
-    if (!tablePath) return;
-
-    const position = getCurrentTableCellPosition(editor, tablePath);
-    insertTableRow(editor, tablePath, position?.rowIndex ?? rowCount - 1);
-  }, [editor, getTablePath, readOnly, rowCount]);
-
-  const onAddColumn = useCallback(() => {
-    if (readOnly) return;
-    const tablePath = getTablePath();
-    if (!tablePath) return;
-
-    const position = getCurrentTableCellPosition(editor, tablePath);
-    insertTableColumn(editor, tablePath, position?.columnIndex ?? columnCount - 1);
-  }, [columnCount, editor, getTablePath, readOnly]);
 
   const onInsertColumnAtBoundary = useCallback(
     (boundaryIndex: number) => {
@@ -290,8 +272,26 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
       {...props.attributes}
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? TABLE_BLOCK_TYPE}
-      className={cn("my-2", isFullscreen && "relative z-50")}
+      className={cn("group/block relative my-2", isFullscreen && "z-50")}
     >
+      <BlockElementHandleMenu
+        active={isActive || isFullscreen}
+        className={isFullscreen ? "left-3 top-3" : undefined}
+        onDelete={onDelete}
+        deleteDisabled={readOnly}
+        deleteLabel="删除表格"
+        actions={[
+          {
+            key: "table-fullscreen",
+            label: isFullscreen ? "退出全屏" : "全屏编辑",
+            icon: isFullscreen ? Minimize2 : Expand,
+            onSelect: () => {
+              setIsFullscreen((prev) => !prev);
+            },
+          },
+        ]}
+      />
+
       <div
         className={cn(
           "overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors",
@@ -300,57 +300,7 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
           isFullscreen && "fixed inset-0 rounded-none border-none shadow-none",
         )}
       >
-        <div contentEditable={false} className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            disabled={readOnly}
-            onClick={onAddRow}
-          >
-            <Rows3 className="h-4 w-4" />
-            插入行
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            disabled={readOnly}
-            onClick={onAddColumn}
-          >
-            <Columns3 className="h-4 w-4" />
-            插入列
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-8 px-2"
-            onClick={() => {
-              setIsFullscreen((prev) => !prev);
-            }}
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={readOnly}
-            onClick={onDelete}
-            aria-label="删除表格"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className={cn("bg-background", isFullscreen ? "h-[calc(100dvh-49px)]" : "h-auto")}>
+        <div className={cn("bg-background", isFullscreen ? "h-[100dvh]" : "h-auto")}>
           <div className="h-full overflow-auto p-2">
             <TableBlockContext.Provider value={contextValue}>
               <div className="min-w-full w-fit pl-4 pt-4">

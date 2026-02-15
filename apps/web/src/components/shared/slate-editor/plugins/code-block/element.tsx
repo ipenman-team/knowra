@@ -18,7 +18,7 @@ import {
   lineNumbers,
   placeholder,
 } from "@codemirror/view";
-import { Check, Copy, Trash2 } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { Resizable } from "re-resizable";
 import { Node } from "slate";
 import {
@@ -28,7 +28,6 @@ import {
   type RenderElementProps,
 } from "slate-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -39,6 +38,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
+import { BlockElementHandleMenu } from "../block-element-handle-menu";
 import {
   findElementPathSafe,
   focusCursorAfterBlockElement,
@@ -325,10 +325,27 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
       {...props.attributes}
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? CODE_BLOCK_TYPE}
-      className="relative my-2"
+      className="group/block relative my-2"
       onMouseDownCapture={onMoveCursorAfter}
       onContextMenuCapture={onMoveCursorAfterByContextMenu}
     >
+      <BlockElementHandleMenu
+        active={isActive}
+        onDelete={onDelete}
+        deleteDisabled={readOnly}
+        deleteLabel="删除代码块"
+        actions={[
+          {
+            key: "copy-code",
+            label: copied ? "已复制" : "复制代码",
+            icon: copied ? Check : Copy,
+            onSelect: () => {
+              void onCopy();
+            },
+          },
+        ]}
+      />
+
       <div
         contentEditable={false}
         className={cn(
@@ -363,30 +380,6 @@ export function CodeBlockElementView(props: CodeBlockElementViewProps) {
               onCheckedChange={(checked) => patchElement({ wrap: checked })}
             />
           </label>
-
-          <div className="ml-auto flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onCopy}
-              aria-label="复制代码"
-            >
-              {copied ? <Check /> : <Copy />}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              disabled={readOnly}
-              onClick={onDelete}
-              aria-label="删除代码块"
-            >
-              <Trash2 />
-            </Button>
-          </div>
         </div>
 
         <Resizable

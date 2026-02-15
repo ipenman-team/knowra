@@ -1,15 +1,17 @@
-"use client";
+'use client';
 
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Compartment, EditorState } from '@codemirror/state';
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Compartment, EditorState } from "@codemirror/state";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from '@codemirror/commands';
+import {
+  defaultHighlightStyle,
+  syntaxHighlighting,
+} from '@codemirror/language';
 import {
   drawSelection,
   EditorView,
@@ -17,7 +19,7 @@ import {
   keymap,
   lineNumbers,
   placeholder,
-} from "@codemirror/view";
+} from '@codemirror/view';
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,39 +28,39 @@ import {
   Expand,
   FoldVertical,
   Play,
-  Trash2,
   UnfoldVertical,
-} from "lucide-react";
-import { Node } from "slate";
+} from 'lucide-react';
+import { Node } from 'slate';
 import {
   useFocused,
   useSelected,
   useSlateStatic,
   type RenderElementProps,
-} from "slate-react";
+} from 'slate-react';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
+import { BlockElementHandleMenu } from '../block-element-handle-menu';
 import {
   findElementPathSafe,
   focusCursorAfterBlockElement,
   shouldIgnoreBlockPointerTarget,
-} from "../block-plugin-utils";
-import { PLUGIN_SCOPE_BLOCK } from "../types";
+} from '../block-plugin-utils';
+import { PLUGIN_SCOPE_BLOCK } from '../types';
 import {
   DIAGRAM_BLOCK_TYPE,
   DIAGRAM_ENGINE_OPTIONS,
@@ -73,8 +75,8 @@ import {
   type DiagramEngine,
   type DiagramTemplateId,
   updateDiagramBlock,
-} from "./logic";
-import { renderMermaidToSvg } from "./mermaid-renderer";
+} from './logic';
+import { renderMermaidToSvg } from './mermaid-renderer';
 
 type DiagramBlockElementViewProps = RenderElementProps & {
   readOnly?: boolean;
@@ -88,27 +90,27 @@ type DiagramPatch = {
 };
 
 const mermaidEditorTheme = EditorView.theme({
-  "&": {
-    height: "100%",
-    fontSize: "14px",
+  '&': {
+    height: '100%',
+    fontSize: '14px',
   },
-  ".cm-scroller": {
+  '.cm-scroller': {
     fontFamily:
-      "ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace",
+      'ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace',
   },
-  ".cm-content": {
-    minHeight: "100%",
-    padding: "12px 14px",
+  '.cm-content': {
+    minHeight: '100%',
+    padding: '12px 14px',
   },
-  ".cm-gutters": {
-    borderRight: "1px solid hsl(var(--border))",
-    backgroundColor: "hsl(var(--muted) / 0.35)",
+  '.cm-gutters': {
+    borderRight: '1px solid hsl(var(--border))',
+    backgroundColor: 'hsl(var(--muted) / 0.35)',
   },
-  ".cm-activeLine": {
-    backgroundColor: "hsl(var(--muted) / 0.35)",
+  '.cm-activeLine': {
+    backgroundColor: 'hsl(var(--muted) / 0.35)',
   },
-  "&.cm-focused": {
-    outline: "none",
+  '&.cm-focused': {
+    outline: 'none',
   },
 });
 
@@ -138,7 +140,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   const code = getDiagramCode(element.code, templateId) || Node.string(element);
   const previewEnabled = getDiagramPreview(element.preview);
 
-  const [svg, setSvg] = useState("");
+  const [svg, setSvg] = useState('');
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
@@ -147,7 +149,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   const renderSequenceRef = useRef(0);
   const sourceCollapsed = previewEnabled ? isSourceCollapsed : false;
   const mergedRenderError =
-    engine === "mermaid" ? renderError : "当前仅支持 Mermaid 预览";
+    engine === 'mermaid' ? renderError : '当前仅支持 Mermaid 预览';
 
   const patchElement = useCallback(
     (patch: DiagramPatch) => {
@@ -159,7 +161,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   );
 
   useEffect(() => {
-    if (engine !== "mermaid" || !previewEnabled) return;
+    if (engine !== 'mermaid' || !previewEnabled) return;
 
     let disposed = false;
     const taskId = ++renderSequenceRef.current;
@@ -215,6 +217,10 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
     removeDiagramBlock(editor, path);
   }, [editor, element]);
 
+  const onOpenFullscreen = useCallback(() => {
+    setIsFullscreenOpen(true);
+  }, []);
+
   const onMoveCursorAfterByContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       if (readOnly || !selected) return;
@@ -229,24 +235,39 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
       {...props.attributes}
       data-plugin-scope={element.pluginScope ?? PLUGIN_SCOPE_BLOCK}
       data-plugin-kind={element.pluginKind ?? DIAGRAM_BLOCK_TYPE}
-      className="my-2"
+      className="group/block relative my-2"
       onContextMenuCapture={onMoveCursorAfterByContextMenu}
     >
+      <BlockElementHandleMenu
+        active={isActive}
+        onDelete={onDelete}
+        deleteDisabled={readOnly}
+        deleteLabel="删除绘图块"
+        actions={[
+          {
+            key: 'diagram-fullscreen',
+            label: '全屏编辑',
+            icon: Expand,
+            onSelect: onOpenFullscreen,
+          },
+        ]}
+      />
+
       <div
         contentEditable={false}
         className={cn(
-          "overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors",
-          "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
-          isActive && "border-blue-500 ring-1 ring-blue-500/60",
+          'overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors',
+          'focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60',
+          isActive && 'border-blue-500 ring-1 ring-blue-500/60',
         )}
       >
         <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <span className="mr-2 text-sm font-medium">文本绘图</span>
-
           <Select
             value={engine}
             disabled
-            onValueChange={(nextEngine) => patchElement({ engine: nextEngine as DiagramEngine })}
+            onValueChange={(nextEngine) =>
+              patchElement({ engine: nextEngine as DiagramEngine })
+            }
           >
             <SelectTrigger className="h-8 w-[130px]">
               <SelectValue />
@@ -260,7 +281,11 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
             </SelectContent>
           </Select>
 
-          <Select value={templateId} disabled={readOnly} onValueChange={onTemplateChange}>
+          <Select
+            value={templateId}
+            disabled={readOnly}
+            onValueChange={onTemplateChange}
+          >
             <SelectTrigger className="h-8 w-[140px]">
               <SelectValue />
             </SelectTrigger>
@@ -275,14 +300,14 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
 
           <Button
             type="button"
-            variant={previewEnabled ? "secondary" : "ghost"}
+            variant={previewEnabled ? 'secondary' : 'ghost'}
             size="sm"
             className="h-8 px-2"
             disabled={readOnly}
             onClick={onTogglePreview}
+            tooltip="切换预览"
           >
             {previewEnabled ? <Eye /> : <EyeOff />}
-            预览
           </Button>
 
           <Button
@@ -294,33 +319,8 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
             onClick={onToggleSourceCollapsed}
           >
             {sourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
-            {sourceCollapsed ? "展开语法" : "折叠语法"}
           </Button>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-8 px-2"
-            onClick={() => {
-              setIsFullscreenOpen(true);
-            }}
-          >
-            <Expand />
-            全屏编辑
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={readOnly}
-            onClick={onDelete}
-            aria-label="删除绘图块"
-          >
-            <Trash2 />
-          </Button>
         </div>
 
         <DiagramWorkspace
@@ -418,14 +418,13 @@ function DiagramFullscreenDialog(props: {
 
             <Button
               type="button"
-              variant={props.previewEnabled ? "secondary" : "ghost"}
+              variant={props.previewEnabled ? 'secondary' : 'ghost'}
               size="sm"
               className="h-8 px-2"
               disabled={props.readOnly}
               onClick={props.onTogglePreview}
             >
               {props.previewEnabled ? <Eye /> : <EyeOff />}
-              预览
             </Button>
 
             <Button
@@ -437,11 +436,15 @@ function DiagramFullscreenDialog(props: {
               onClick={props.onToggleSourceCollapsed}
             >
               {props.isSourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
-              {props.isSourceCollapsed ? "展开语法" : "折叠语法"}
             </Button>
 
             <DialogClose asChild>
-              <Button type="button" variant="ghost" size="sm" className="ml-auto h-8 px-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-8 px-2"
+              >
                 退出全屏
               </Button>
             </DialogClose>
@@ -478,12 +481,14 @@ function DiagramWorkspace(props: {
   className?: string;
 }) {
   return (
-    <div className={cn("relative flex min-h-0 overflow-hidden", props.className)}>
+    <div
+      className={cn('relative flex min-h-0 overflow-hidden', props.className)}
+    >
       {!props.sourceCollapsed ? (
         <div
           className={cn(
-            "min-h-0 min-w-0",
-            props.previewEnabled ? "w-1/2 border-r" : "w-full",
+            'min-h-0 min-w-0',
+            props.previewEnabled ? 'w-1/2 border-r' : 'w-full',
           )}
         >
           <DiagramSourceEditor
@@ -500,7 +505,7 @@ function DiagramWorkspace(props: {
           renderError={props.renderError}
           isRendering={props.isRendering}
           previewEnabled={props.previewEnabled}
-          className={cn("min-h-0", props.sourceCollapsed ? "w-full" : "w-1/2")}
+          className={cn('min-h-0', props.sourceCollapsed ? 'w-full' : 'w-1/2')}
         />
       ) : null}
 
@@ -527,13 +532,17 @@ function PaneCollapseHandle(props: {
       <button
         type="button"
         className={cn(
-          "absolute top-1/2 z-[2] -translate-y-1/2 rounded-full border border-input bg-muted/90 p-1 text-muted-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground",
-          props.collapsed ? "left-2" : "left-1/2 -translate-x-1/2",
+          'absolute top-1/2 z-[2] -translate-y-1/2 rounded-full border border-input bg-muted/90 p-1 text-muted-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground',
+          props.collapsed ? 'left-2' : 'left-1/2 -translate-x-1/2',
         )}
         onClick={props.onToggle}
-        aria-label={props.collapsed ? "展开语法编辑区" : "折叠语法编辑区"}
+        aria-label={props.collapsed ? '展开语法编辑区' : '折叠语法编辑区'}
       >
-        {props.collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        {props.collapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
       </button>
     </>
   );
@@ -589,7 +598,7 @@ function DiagramSourceEditor(props: {
         EditorView.lineWrapping,
         mermaidEditorTheme,
         stopSlateEventBubbling,
-        placeholder("输入 Mermaid 语法..."),
+        placeholder('输入 Mermaid 语法...'),
         editableCompartment.of(EditorView.editable.of(!props.readOnly)),
         readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
         EditorView.updateListener.of((update) => {
@@ -623,8 +632,12 @@ function DiagramSourceEditor(props: {
 
     view.dispatch({
       effects: [
-        editableCompartment.reconfigure(EditorView.editable.of(!props.readOnly)),
-        readOnlyCompartment.reconfigure(EditorState.readOnly.of(props.readOnly)),
+        editableCompartment.reconfigure(
+          EditorView.editable.of(!props.readOnly),
+        ),
+        readOnlyCompartment.reconfigure(
+          EditorState.readOnly.of(props.readOnly),
+        ),
       ],
     });
   }, [editableCompartment, props.readOnly, readOnlyCompartment]);
@@ -643,7 +656,7 @@ function DiagramPreviewPane(props: {
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-muted/20 px-4 text-sm text-muted-foreground",
+          'flex items-center justify-center bg-muted/20 px-4 text-sm text-muted-foreground',
           props.className,
         )}
       >
@@ -656,7 +669,7 @@ function DiagramPreviewPane(props: {
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-muted/20 px-4 text-sm text-destructive",
+          'flex items-center justify-center bg-muted/20 px-4 text-sm text-destructive',
           props.className,
         )}
       >
@@ -669,7 +682,7 @@ function DiagramPreviewPane(props: {
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-muted/20 px-4 text-sm text-muted-foreground",
+          'flex items-center justify-center bg-muted/20 px-4 text-sm text-muted-foreground',
           props.className,
         )}
       >
@@ -679,11 +692,11 @@ function DiagramPreviewPane(props: {
   }
 
   return (
-    <div className={cn("overflow-auto bg-muted/20 p-4", props.className)}>
+    <div className={cn('overflow-auto bg-muted/20 p-4', props.className)}>
       <div
         className={cn(
-          "mx-auto w-fit rounded-md bg-background p-2",
-          "[&_svg]:h-auto [&_svg]:max-w-full",
+          'mx-auto w-fit rounded-md bg-background p-2',
+          '[&_svg]:h-auto [&_svg]:max-w-full',
         )}
         dangerouslySetInnerHTML={{ __html: props.svg }}
       />
@@ -692,8 +705,9 @@ function DiagramPreviewPane(props: {
 }
 
 function formatDiagramError(error: unknown) {
-  if (error instanceof Error && error.message) return `Mermaid 渲染失败：${error.message}`;
-  return "Mermaid 渲染失败，请检查语法。";
+  if (error instanceof Error && error.message)
+    return `Mermaid 渲染失败：${error.message}`;
+  return 'Mermaid 渲染失败，请检查语法。';
 }
 
 function stopEventPropagation(event: Event) {
