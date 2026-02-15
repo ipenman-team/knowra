@@ -73,6 +73,14 @@ function createEmptyParagraphNode() {
 function getSelectedBlockPluginPath(editor: Editor) {
   if (!editor.selection || !Range.isCollapsed(editor.selection)) return null;
 
+  const inTableCell = Editor.above(editor, {
+    at: editor.selection,
+    match: (node) =>
+      SlateElement.isElement(node) &&
+      (node as SlateElement & { type?: string }).type === "table-cell",
+  });
+  if (inTableCell) return null;
+
   const entry = Editor.above(editor, {
     at: editor.selection,
     mode: "lowest",

@@ -44,6 +44,7 @@ import {
 import { uploadEditorImage } from "./plugins/image-block/upload";
 import { LINK_MARK, normalizeLinkUrl } from "./plugins/link/logic";
 import {
+  handleEnterInTable,
   TABLE_BLOCK_TYPE,
   TABLE_CELL_TYPE,
   TABLE_ROW_TYPE,
@@ -344,6 +345,11 @@ export function SlateEditor(props: {
         readOnly={editorReadOnly}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
+            if (handleEnterInTable(editor)) {
+              e.preventDefault();
+              return;
+            }
+
             if (insertParagraphAfterSelectedBlockPlugin(editor)) {
               e.preventDefault();
               return;

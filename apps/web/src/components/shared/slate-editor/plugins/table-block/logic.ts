@@ -4,6 +4,7 @@ import {
   Element as SlateElement,
   Node,
   Path,
+  Range,
   Transforms,
   type NodeEntry,
 } from "slate";
@@ -319,6 +320,52 @@ export function getCurrentTableCellPosition(editor: Editor, tablePath: Path) {
     rowIndex: cellPath[tablePath.length],
     columnIndex: cellPath[tablePath.length + 1],
   };
+}
+
+export function handleEnterInTable(editor: Editor) {
+  if (!editor.selection) return false;
+
+  const [cellEntry] = Editor.nodes(editor, {
+    at: editor.selection,
+    match: (node) => isTableCellElement(node),
+    mode: "lowest",
+  });
+
+  if (!cellEntry) return false;
+
+  const [, cellPath] = cellEntry;
+  const tableEntry = Editor.above(editor, {
+    at: cellPath,
+    match: (node) => isTableBlockElement(node),
+  }) as [TableBlockElement, Path] | undefined;
+
+  if (!tableEntry) return false;
+
+  if (!Range.isCollapsed(editor.selection)) {
+    Transforms.delete(editor);
+  }
+
+  const [table, tablePath] = tableEntry;
+  const rowIndex = cellPath[tablePath.length];
+  const columnIndex = cellPath[tablePath.length + 1];
+
+  if (typeof rowIndex !== "number" || typeof columnIndex !== "number") return false;
+
+  const nextRowIndex = rowIndex + 1;
+  const safeColumnIndex = Math.max(0, Math.min(columnIndex, getTableColumnCount(table) - 1));
+
+  if (nextRowIndex < table.children.length) {
+    const nextCellPath = [...tablePath, nextRowIndex, safeColumnIndex];
+    Transforms.select(editor, Editor.start(editor, nextCellPath));
+    return true;
+  }
+
+  const inserted = insertTableRow(editor, tablePath, rowIndex);
+  if (!inserted) return false;
+
+  const appendedCellPath = [...tablePath, rowIndex + 1, safeColumnIndex];
+  Transforms.select(editor, Editor.start(editor, appendedCellPath));
+  return true;
 }
 
 function getTableAtPath(editor: Editor, tablePath: Path) {
