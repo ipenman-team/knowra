@@ -10,7 +10,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { ChevronDown, Expand, Minimize2, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Editor, Path, Transforms, type Range } from "slate";
 import {
   ReactEditor,
@@ -83,7 +83,6 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
   const readOnly = Boolean(props.readOnly ?? false);
   const isActive = selected && focused;
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
   const columnWidths = getTableColumnWidths(element);
@@ -239,54 +238,34 @@ export function TableBlockElementView(props: TableBlockElementViewProps) {
       className="group/block relative my-2"
     >
       <BlockElementHandleMenu
-        active={!isFullscreen && isActive}
-        className={isFullscreen ? "left-3 top-3" : undefined}
+        active={isActive}
         onDelete={onDelete}
         deleteDisabled={readOnly}
         deleteLabel="删除表格"
-        actions={[
-          {
-            key: "table-fullscreen",
-            label: isFullscreen ? "退出全屏" : "全屏编辑",
-            icon: isFullscreen ? Minimize2 : Expand,
-            onSelect: () => {
-              setIsFullscreen((prev) => !prev);
-            },
-          },
-        ]}
       />
 
-      <div
-        className={cn(
-          "bg-background transition-colors",
-          isFullscreen &&
-            "fixed inset-x-0 bottom-0 top-[calc(var(--page-header-sticky-height,3.5rem)+3.25rem)] z-10",
-        )}
-      >
-        <div className={cn(isFullscreen ? "h-full" : "h-auto")}>
-          <div className={cn("h-full overflow-auto", isFullscreen ? "px-3 py-2" : "p-0")}>
-            <div className={cn(isFullscreen && "flex min-h-full justify-center")}>
-              <TableBlockContext.Provider value={contextValue}>
-                <div
+      <div className="bg-background transition-colors">
+        <div className="h-auto">
+          <div className="h-full overflow-auto p-0">
+            <TableBlockContext.Provider value={contextValue}>
+              <div
+                className={cn(
+                  "relative w-fit border-input bg-background shadow-sm transition-colors",
+                  "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
+                  isActive && "border-blue-500 ring-1 ring-blue-500/60",
+                )}
+              >
+                <table
                   className={cn(
-                    "relative w-fit rounded-md border border-input bg-background shadow-sm transition-colors",
-                    "focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60",
-                    isActive && "border-blue-500 ring-1 ring-blue-500/60",
-                    isFullscreen && "rounded-none border-none shadow-none",
+                    "table-fixed border-collapse text-sm",
+                    "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
                   )}
+                  style={{ width: `${tableWidth}px` }}
                 >
-                  <table
-                    className={cn(
-                      "table-fixed border-collapse text-sm",
-                      "[&_tbody_tr_td]:border [&_tbody_tr_td]:border-border [&_tbody_tr_td]:align-top",
-                    )}
-                    style={{ width: `${tableWidth}px` }}
-                  >
-                    <tbody>{props.children}</tbody>
-                  </table>
-                </div>
-              </TableBlockContext.Provider>
-            </div>
+                  <tbody>{props.children}</tbody>
+                </table>
+              </div>
+            </TableBlockContext.Provider>
           </div>
         </div>
       </div>
