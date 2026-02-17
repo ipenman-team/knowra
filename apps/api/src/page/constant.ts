@@ -23,7 +23,7 @@ export const DefaultPageContent = [
     type: 'heading-one',
     children: [
       {
-        text: '✨ Contexta 编辑器插件示例',
+        text: '👋 欢迎来到 Contexta',
       },
     ],
   },
@@ -31,7 +31,7 @@ export const DefaultPageContent = [
     type: 'paragraph',
     children: [
       {
-        text: '此默认文档覆盖当前已支持的主要插件，便于初始化后直接体验。',
+        text: '这是你的第一篇文档。下面用几分钟带你体验常用编辑能力，你可以直接在这份内容上修改。',
       },
     ],
   },
@@ -39,7 +39,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '1) 标题与正文',
+        text: '第一步：标题与正文',
       },
     ],
   },
@@ -47,7 +47,7 @@ export const DefaultPageContent = [
     type: 'paragraph',
     children: [
       {
-        text: '这是正文段落（Paragraph）。',
+        text: '把光标放在任意一行，试试工具栏中的“正文 / 标题”切换。',
       },
     ],
   },
@@ -55,7 +55,7 @@ export const DefaultPageContent = [
     type: 'heading-one',
     children: [
       {
-        text: '这是标题 1',
+        text: '标题 1：页面主标题',
       },
     ],
   },
@@ -63,7 +63,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '这是标题 2',
+        text: '标题 2：章节标题',
       },
     ],
   },
@@ -71,7 +71,7 @@ export const DefaultPageContent = [
     type: 'heading-three',
     children: [
       {
-        text: '这是标题 3',
+        text: '标题 3：小节标题',
       },
     ],
   },
@@ -79,7 +79,7 @@ export const DefaultPageContent = [
     type: 'heading-four',
     children: [
       {
-        text: '这是标题 4',
+        text: '标题 4：说明级标题',
       },
     ],
   },
@@ -87,7 +87,7 @@ export const DefaultPageContent = [
     type: 'heading-five',
     children: [
       {
-        text: '这是标题 5',
+        text: '标题 5：更细一级',
       },
     ],
   },
@@ -95,7 +95,7 @@ export const DefaultPageContent = [
     type: 'heading-six',
     children: [
       {
-        text: '这是标题 6',
+        text: '标题 6：最小标题',
       },
     ],
   },
@@ -103,7 +103,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '2) 行内样式（加粗 / 斜体 / 下划线 / 文字颜色 / 背景色 / 字号 / Emoji）',
+        text: '第二步：行内样式',
       },
     ],
   },
@@ -111,7 +111,7 @@ export const DefaultPageContent = [
     type: 'paragraph',
     children: [
       {
-        text: '支持 ',
+        text: '你可以组合使用 ',
       },
       {
         text: '加粗',
@@ -132,17 +132,17 @@ export const DefaultPageContent = [
         underline: true,
       },
       {
-        text: '、',
+        text: '、字体',
       },
       {
-        text: '文字颜色',
+        text: '颜色',
         textColor: '#2563eb',
       },
       {
         text: '、',
       },
       {
-        text: '背景高亮',
+        text: '背景色',
         backgroundColor: '#fde68a',
       },
       {
@@ -153,7 +153,7 @@ export const DefaultPageContent = [
         fontSize: '24px',
       },
       {
-        text: '，以及 Emoji 😄🚀',
+        text: '，以及 Emoji 😄🚀。',
       },
     ],
   },
@@ -161,7 +161,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '3) 链接',
+        text: '第三步：插入链接',
       },
     ],
   },
@@ -169,8 +169,13 @@ export const DefaultPageContent = [
     type: 'paragraph',
     children: [
       {
-        text: '访问 ',
+        text: '选中文字后点击工具栏链接按钮，例如：',
       },
+    ],
+  },
+  {
+    type: 'paragraph',
+    children: [
       {
         type: 'link',
         url: 'https://www.baidu.com',
@@ -183,7 +188,7 @@ export const DefaultPageContent = [
         ],
       },
       {
-        text: ' 或 ',
+        text: ' · ',
       },
       {
         type: 'link',
@@ -205,7 +210,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '4) 对齐方式',
+        text: '第四步：对齐方式',
       },
     ],
   },
@@ -232,7 +237,7 @@ export const DefaultPageContent = [
     align: 'justify',
     children: [
       {
-        text: '这是一段两端对齐文本。用于展示段落排版效果，在宽度变化时可以看到更明显的对齐差异。',
+        text: '这是一段两端对齐文本。适合较长说明内容，阅读体验更整齐。',
       },
     ],
   },
@@ -240,7 +245,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '5) 列表',
+        text: '第五步：列表与引用',
       },
     ],
   },
@@ -251,7 +256,7 @@ export const DefaultPageContent = [
         type: 'list-item',
         children: [
           {
-            text: '无序列表项 A',
+            text: '待办：完善文档结构',
           },
         ],
       },
@@ -259,7 +264,7 @@ export const DefaultPageContent = [
         type: 'list-item',
         children: [
           {
-            text: '无序列表项 B',
+            text: '待办：补充关键截图',
           },
         ],
       },
@@ -272,7 +277,7 @@ export const DefaultPageContent = [
         type: 'list-item',
         children: [
           {
-            text: '有序列表项 1',
+            text: '第一步：先写结论',
           },
         ],
       },
@@ -280,17 +285,9 @@ export const DefaultPageContent = [
         type: 'list-item',
         children: [
           {
-            text: '有序列表项 2',
+            text: '第二步：再补背景与细节',
           },
         ],
-      },
-    ],
-  },
-  {
-    type: 'heading-two',
-    children: [
-      {
-        text: '6) 引用块',
       },
     ],
   },
@@ -301,7 +298,7 @@ export const DefaultPageContent = [
         type: 'paragraph',
         children: [
           {
-            text: '这是引用内容：把重要信息放进引用块，增强可读性。',
+            text: '提示：引用块适合放“结论、注意事项、引用原文”。',
           },
         ],
       },
@@ -309,7 +306,7 @@ export const DefaultPageContent = [
         type: 'paragraph',
         children: [
           {
-            text: '引用内按回车可继续同一引用块。',
+            text: '如果当前引用行为空，按回车可退出引用。',
           },
         ],
       },
@@ -319,7 +316,7 @@ export const DefaultPageContent = [
     type: 'heading-two',
     children: [
       {
-        text: '7) 代码块（CodeMirror）',
+        text: '第六步：代码块（支持语言、换行、行号）',
       },
     ],
   },
@@ -331,12 +328,18 @@ export const DefaultPageContent = [
     wrap: true,
     lineNumbers: true,
     height: 140,
-    code: `type User = { id: string; name: string };
+    code: `type QuickStart = {
+  step: number;
+  title: string;
+};
 
-const users: User[] = [{ id: "u_1", name: "Contexta" }];
+const steps: QuickStart[] = [
+  { step: 1, title: "写标题" },
+  { step: 2, title: "补正文" },
+];
 
-export function findUser(id: string) {
-  return users.find((item) => item.id === id) ?? null;
+export function getStepTitle(step: number) {
+  return steps.find((item) => item.step === step)?.title ?? "未定义";
 }`,
     children: [
       {
@@ -348,7 +351,7 @@ export function findUser(id: string) {
     type: 'heading-two',
     children: [
       {
-        text: '8) 文本绘图（Mermaid）',
+        text: '第七步：文本绘图（Mermaid）',
       },
     ],
   },
@@ -360,10 +363,12 @@ export function findUser(id: string) {
     templateId: 'flow-basic',
     preview: true,
     code: `flowchart TD
-    A[开始] --> B{是否继续?}
-    B -->|是| C[执行]
-    C --> D[结束]
-    B -->|否| D`,
+    A[开始写文档] --> B{需要插图吗?}
+    B -->|是| C[插入图片或图表]
+    B -->|否| D[继续写正文]
+    C --> E[检查排版]
+    D --> E
+    E --> F[发布]`,
     children: [
       {
         text: '',
@@ -374,7 +379,7 @@ export function findUser(id: string) {
     type: 'heading-two',
     children: [
       {
-        text: '9) 图片',
+        text: '第八步：图片',
       },
     ],
   },
@@ -394,7 +399,7 @@ export function findUser(id: string) {
     type: 'heading-two',
     children: [
       {
-        text: '10) 表格',
+        text: '第九步：表格',
       },
     ],
   },
@@ -415,7 +420,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: '姓名',
+                    text: '任务',
                     bold: true,
                   },
                 ],
@@ -430,7 +435,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: '角色',
+                    text: '负责人',
                     bold: true,
                   },
                 ],
@@ -445,7 +450,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: '备注',
+                    text: '说明',
                     bold: true,
                   },
                 ],
@@ -466,7 +471,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: 'Alice',
+                    text: '完善首页文案',
                   },
                 ],
               },
@@ -480,7 +485,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: 'Editor',
+                    text: '小王',
                   },
                 ],
               },
@@ -494,7 +499,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: '支持 Emoji 😄 与链接 ',
+                    text: '可以附上相关链接：',
                   },
                   {
                     type: 'link',
@@ -503,7 +508,7 @@ export function findUser(id: string) {
                     pluginKind: 'link',
                     children: [
                       {
-                        text: '示例',
+                        text: '参考文档',
                       },
                     ],
                   },
@@ -525,7 +530,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: 'Bob',
+                    text: '补充功能说明',
                   },
                 ],
               },
@@ -539,7 +544,7 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: 'Viewer',
+                    text: '小李',
                   },
                 ],
               },
@@ -553,13 +558,21 @@ export function findUser(id: string) {
                 type: 'paragraph',
                 children: [
                   {
-                    text: '可继续插入文本、图片等插件',
+                    text: '表格单元格内可继续编辑文本、emoji、链接等',
                   },
                 ],
               },
             ],
           },
         ],
+      },
+    ],
+  },
+  {
+    type: 'paragraph',
+    children: [
+      {
+        text: '🎉 已完成新手引导。你可以从这里开始写自己的内容，或直接清空后重新创作。',
       },
     ],
   },
