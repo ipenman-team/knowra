@@ -14,7 +14,6 @@ import {
   buildTrashUrl,
 } from '@/lib/navigation';
 import {
-  SidebarHeader,
   SidebarContent,
   SidebarGroup,
   SidebarMenu,
@@ -22,6 +21,7 @@ import {
   SidebarGroupContent,
   SidebarFooter,
   Sidebar,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   BoltIcon,
@@ -42,9 +42,12 @@ import { Separator } from '../ui/separator';
 import DirectoryList from './directory-list';
 import { SpaceIcon } from '../icon/space.icon';
 import { SettingsSidebarContent } from './settings-sidebar-content';
+import { useI18n } from '@/lib/i18n/provider';
 
 export const SpaceSidebar = memo(function SpaceSidebar() {
+  const { t } = useI18n();
   const { navigateToSpace } = useNavigation();
+  const { isMobile, setOpenMobile } = useSidebar();
   const spaces = useSpaces();
   const currentId = useCurrentSpaceId();
   const pathname = usePathname();
@@ -66,14 +69,20 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
     spaces.find((s) => s.id === currentId) ??
     spaces[0];
 
+  const closeMobileSidebar = useCallback(() => {
+    if (!isMobile) return;
+    setOpenMobile(false);
+  }, [isMobile, setOpenMobile]);
+
   const handleSelectSpace = useCallback(
     (id?: string) => {
       if (!id) return;
       // 使用 Navigation Service 直接跳转
       // store 会通过 RouteSync 自动同步
       navigateToSpace(id);
+      closeMobileSidebar();
     },
-    [navigateToSpace],
+    [closeMobileSidebar, navigateToSpace],
   );
 
   return (
@@ -93,7 +102,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
                       onValueChange={handleSelectSpace}
                     >
                       <SelectTrigger className="h-8">
-                        <SelectValue placeholder="选择空间" />
+                        <SelectValue placeholder={t('spaceSidebar.selectSpace')} />
                       </SelectTrigger>
                       <SelectContent>
                         {spaces.map((s) => (
@@ -112,7 +121,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel>
               <div className="flex justify-between flex-1">
-                页面
+                {t('spaceSidebar.pages')}
                 <CreatePageMenu />
               </div>
             </SidebarGroupLabel>
@@ -133,6 +142,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
             <Button
               variant={section === 'pages' ? 'secondary' : 'ghost'}
               size="lg"
+              onClick={closeMobileSidebar}
             >
               <ListTreeIcon />
             </Button>
@@ -142,6 +152,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
             <Button
               variant={section === 'trash' ? 'secondary' : 'ghost'}
               size="lg"
+              onClick={closeMobileSidebar}
             >
               <RecycleIcon />
             </Button>
@@ -151,6 +162,7 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
             <Button 
                 variant={section === 'settings' ? 'secondary' : 'ghost'}
                 size="lg"
+                onClick={closeMobileSidebar}
             >
               <BoltIcon />
             </Button>

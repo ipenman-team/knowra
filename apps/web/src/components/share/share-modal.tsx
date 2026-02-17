@@ -18,6 +18,7 @@ import { sharesApi, ShareDto } from '@/lib/api';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useRequiredSpaceId } from '@/hooks/use-required-space';
+import { useI18n } from '@/lib/i18n/provider';
 
 export const ShareModal = memo(function ShareModal({
   open,
@@ -32,6 +33,7 @@ export const ShareModal = memo(function ShareModal({
   type: 'PAGE';
   title: string;
 }) {
+  const { t } = useI18n();
   const spaceId = useRequiredSpaceId();
   const [share, setShare] = useState<ShareDto | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,13 +48,17 @@ export const ShareModal = memo(function ShareModal({
       setShare(share || null);
       if (share) {
         setUiMode(share.hasPassword ? 'password' : 'public');
+      } else {
+        setUiMode('public');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // 非 404 情况由全局 api 拦截器提示
+      setShare(null);
+      setUiMode('public');
     } finally {
       setLoading(false);
     }
-  }, [targetId, type]);
+  }, [targetId]);
 
   useEffect(() => {
     if (open) {
@@ -71,9 +77,9 @@ export const ShareModal = memo(function ShareModal({
         scopeId: spaceId,
       });
       setShare(newShare);
-      toast.success('已开启分享');
-    } catch (err) {
-      toast.error('开启分享失败');
+      toast.success(t('shareModal.openSuccess'));
+    } catch {
+      toast.error(t('shareModal.openFailed'));
     } finally {
       setLoading(false);
     }
@@ -92,9 +98,9 @@ export const ShareModal = memo(function ShareModal({
           setLoading(true);
           await sharesApi.update(share.id, { status: 'REVOKED' });
           setShare(null);
-          toast.success('已关闭分享');
-        } catch (err) {
-          toast.error('关闭失败');
+          toast.success(t('shareModal.closeSuccess'));
+        } catch {
+          toast.error(t('shareModal.closeFailed'));
         } finally {
           setLoading(false);
         }
@@ -110,16 +116,16 @@ export const ShareModal = memo(function ShareModal({
     if (value === 'public') {
       if (share.hasPassword) {
         // Remove password immediately if switching to public
-        setLoading(true);
-        try {
-          const updated = await sharesApi.update(share.id, { password: null });
-          setShare(updated);
-          toast.success('已切换为公开访问');
-        } catch {
-          toast.error('切换失败');
-          setUiMode('password'); // Revert on error
-        } finally {
-          setLoading(false);
+          setLoading(true);
+          try {
+            const updated = await sharesApi.update(share.id, { password: null });
+            setShare(updated);
+            toast.success(t('shareModal.publicSwitchSuccess'));
+          } catch {
+            toast.error(t('shareModal.switchFailed'));
+            setUiMode('password'); // Revert on error
+          } finally {
+            setLoading(false);
         }
       }
     } else {
@@ -132,7 +138,7 @@ export const ShareModal = memo(function ShareModal({
   const handleSavePassword = async () => {
     if (!share) return;
     if (!passwordInput.trim()) {
-      toast.error('密码不能为空');
+      toast.error(t('shareModal.passwordEmpty'));
       return;
     }
 
@@ -141,9 +147,9 @@ export const ShareModal = memo(function ShareModal({
       const updated = await sharesApi.update(share.id, { password: passwordInput });
       setShare(updated);
       setPasswordInput('');
-      toast.success('密码已设置');
-    } catch (err) {
-      toast.error('设置密码失败');
+      toast.success(t('shareModal.passwordSaved'));
+    } catch {
+      toast.error(t('shareModal.passwordSaveFailed'));
     } finally {
       setSavingPassword(false);
     }
@@ -156,23 +162,29 @@ export const ShareModal = memo(function ShareModal({
   const copyLink = () => {
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
-    toast.success('链接已复制');
+    toast.success(t('shareModal.linkCopied'));
   };
 
   return (
     <Modal
-      className="w-[600px]"
+      className="w-[calc(100vw-1rem)] max-w-[600px] max-h-[calc(100dvh-1rem)] overflow-hidden p-4 sm:p-6"
       open={open}
       onOpenChange={onOpenChange}
-      title="分享页面"
+      title={
+        title?.trim()
+          ? `${t('shareModal.title')} · ${title}`
+          : t('shareModal.title')
+      }
       footer={null}
     >
-      <div className="space-y-6">
+      <div className="max-h-[calc(100dvh-11rem)] space-y-6 overflow-y-auto pr-1">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label>公开分享</Label>
+            <Label>{t('shareModal.publicShare')}</Label>
             <div className="text-sm text-muted-foreground">
-              {share ? '任何人都可以访问此页面' : '页面目前仅自己可见'}
+              {share
+                ? t('shareModal.publicEnabledDesc')
+                : t('shareModal.publicDisabledDesc')}
             </div>
           </div>
           <Switch
@@ -184,11 +196,13 @@ export const ShareModal = memo(function ShareModal({
 
         {share && (
           <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-0.5">
-                <Label>访问权限</Label>
+                <Label>{t('shareModal.access')}</Label>
                 <div className="text-xs text-muted-foreground">
-                  {share.hasPassword ? '访问需要输入密码' : '任何拥有链接的人均可访问'}
+                  {share.hasPassword
+                    ? t('shareModal.accessPasswordDesc')
+                    : t('shareModal.accessPublicDesc')}
                 </div>
               </div>
               <Select
@@ -196,12 +210,14 @@ export const ShareModal = memo(function ShareModal({
                 onValueChange={handleAccessChange}
                 disabled={loading}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">公开访问</SelectItem>
-                  <SelectItem value="password">密码保护</SelectItem>
+                  <SelectItem value="public">{t('shareModal.publicOption')}</SelectItem>
+                  <SelectItem value="password">
+                    {t('shareModal.passwordOption')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -209,12 +225,18 @@ export const ShareModal = memo(function ShareModal({
             {uiMode === 'password' && (
               <div className="rounded-md border p-3 bg-muted/30 space-y-2">
                 <div className="text-sm font-medium">
-                  {share.hasPassword ? '修改密码' : '设置密码'}
+                  {share.hasPassword
+                    ? t('shareModal.changePassword')
+                    : t('shareModal.setPassword')}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     type="text"
-                    placeholder={share.hasPassword ? '输入新密码' : '设置访问密码'}
+                    placeholder={
+                      share.hasPassword
+                        ? t('shareModal.newPasswordPlaceholder')
+                        : t('shareModal.passwordPlaceholder')
+                    }
                     value={passwordInput}
                     onChange={e => setPasswordInput(e.target.value)}
                     className="flex-1"
@@ -223,18 +245,24 @@ export const ShareModal = memo(function ShareModal({
                     onClick={handleSavePassword}
                     disabled={savingPassword || !passwordInput.trim()}
                     size="sm"
+                    className="w-full sm:w-auto"
                   >
                     {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    保存
+                    {t('shareModal.save')}
                   </Button>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 
               <Input value={shareUrl} readOnly />
-              <Button size="icon" variant="outline" onClick={copyLink}>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={copyLink}
+                className="w-full sm:w-9"
+              >
                 <CopyIcon className="w-4 h-4" />
               </Button>
             </div>

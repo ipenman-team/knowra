@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/provider';
 
 import type { ContextaAiMessage } from '@/features/contexta-ai/types';
-import { formatZhDate } from './utils';
 import { ContextaAiMessageItem } from './contexta-ai-message-item';
 
 export function ContextaAiMessageList(props: {
@@ -13,16 +15,32 @@ export function ContextaAiMessageList(props: {
   onRetry: () => void;
   onRegenerate: () => void;
 }) {
+  const { t, locale } = useI18n();
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        month: 'numeric',
+        day: 'numeric',
+        weekday: 'short',
+      }),
+    [locale],
+  );
+  const todayLabel = dateFormatter.format(new Date());
+
   return (
     <>
-      <div className="flex items-center justify-center text-xs text-muted-foreground">
-        {formatZhDate(new Date())} · Contexta AI
+      <div
+        className="flex items-center justify-center text-xs text-muted-foreground"
+        suppressHydrationWarning
+      >
+        {todayLabel ? `${todayLabel} · ` : ''}
+        Contexta AI
       </div>
 
       {props.loading ? (
         <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>汲取中</span>
+          <span>{t('contextaAiMessageList.loading')}</span>
         </div>
       ) : null}
 
@@ -44,7 +62,7 @@ export function ContextaAiMessageList(props: {
             onClick={props.onRetry}
             disabled={props.loading}
           >
-            重试
+            {t('contextaAiMessageList.retry')}
           </Button>
         </div>
       ) : null}
@@ -57,7 +75,7 @@ export function ContextaAiMessageList(props: {
             variant="secondary"
             onClick={props.onRegenerate}
           >
-            重新生成
+            {t('contextaAiMessageList.regenerate')}
           </Button>
         </div>
       ) : null}

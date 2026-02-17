@@ -31,23 +31,45 @@ import { toast } from 'sonner';
 import { PageHeaderMoreMenu } from './page-header-more-menu';
 import { useEffect, useState } from 'react';
 import { ShareModal } from '../share/share-modal';
+import { useI18n } from '@/lib/i18n/provider';
 
-function formatRelativeDateTime(timestamp: string | null): string | null {
+function formatRelativeDateTime(
+  timestamp: string | null,
+  yesterdayLabel: string,
+  dayBeforeYesterdayLabel: string,
+): string | null {
   if (!timestamp) return null;
 
   const date = parseISO(timestamp);
   if (!isValid(date)) return null;
 
   if (isToday(date)) return format(date, 'HH:mm:ss');
-  if (isYesterday(date)) return `昨天 ${format(date, 'HH:mm:ss')}`;
+  if (isYesterday(date)) return `${yesterdayLabel} ${format(date, 'HH:mm:ss')}`;
 
   const days = differenceInCalendarDays(new Date(), date);
-  if (days === 2) return `前天 ${format(date, 'HH:mm:ss')}`;
+  if (days === 2) return `${dayBeforeYesterdayLabel} ${format(date, 'HH:mm:ss')}`;
 
   return format(date, 'yyyy-MM-dd HH:mm:ss');
 }
 
+function formatCompactDateTime(
+  timestamp: string | null,
+  yesterdayLabel: string,
+): string | null {
+  if (!timestamp) return null;
+
+  const date = parseISO(timestamp);
+  if (!isValid(date)) return null;
+
+  if (isToday(date)) return format(date, 'HH:mm');
+  if (isYesterday(date)) return `${yesterdayLabel} ${format(date, 'HH:mm')}`;
+
+  return format(date, 'MM-dd HH:mm');
+}
+
 export const PageHeader = () => {
+  const { t } = useI18n();
+  const [hydrated, setHydrated] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [favorite, setFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -64,10 +86,33 @@ export const PageHeader = () => {
     (s) => s.publishedSnapshot?.updatedAt ?? null,
   );
   const timeText =
-    pageMode === 'edit'
-      ? formatRelativeDateTime(lastSavedAt)
-      : formatRelativeDateTime(lastPublishedAt);
-  const timeTitle = pageMode === 'edit' ? '已保存' : '发布于';
+    hydrated
+      ? pageMode === 'edit'
+        ? formatRelativeDateTime(
+            lastSavedAt,
+            t('pageHeader.yesterday'),
+            t('pageHeader.dayBeforeYesterday'),
+          )
+        : formatRelativeDateTime(
+            lastPublishedAt,
+            t('pageHeader.yesterday'),
+            t('pageHeader.dayBeforeYesterday'),
+          )
+      : null;
+  const compactTimeText =
+    hydrated
+      ? pageMode === 'edit'
+        ? formatCompactDateTime(lastSavedAt, t('pageHeader.yesterday'))
+        : formatCompactDateTime(lastPublishedAt, t('pageHeader.yesterday'))
+      : null;
+  const timeTitle =
+    pageMode === 'edit' ? t('pageHeader.saved') : t('pageHeader.publishedAt');
+  const compactTimeTitle =
+    pageMode === 'edit' ? t('pageHeader.saved') : t('pageHeader.published');
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!activePage?.id) {
@@ -116,7 +161,11 @@ export const PageHeader = () => {
           spaceId: activePage.spaceId ?? null,
         },
       });
-      toast.success(nextFavorite ? '已收藏页面' : '已取消收藏');
+      toast.success(
+        nextFavorite
+          ? t('pageHeader.pageFavorited')
+          : t('pageHeader.pageUnfavorited'),
+      );
     } catch {
       setFavorite(!nextFavorite);
     } finally {
@@ -129,7 +178,7 @@ export const PageHeader = () => {
     if (pageSaving || pagePublishing) return;
 
     const contentStore = usePageContentStore.getState();
-    const normalizedTitle = pageTitle.trim() || '无标题文档';
+    const normalizedTitle = pageTitle.trim() || t('pageHeader.untitledDoc');
 
     let saved: PageDto | null = null;
 
@@ -165,7 +214,7 @@ export const PageHeader = () => {
         data: nextPage,
       });
 
-      toast.success('发布成功');
+      toast.success(t('pageHeader.publishSuccess'));
 
       try {
         const published = await pageVersionsApi.getVersion(
@@ -193,29 +242,46 @@ export const PageHeader = () => {
   };
 
   return (
-    <div className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur">
-      <div className="flex items-center">
-        <Button variant="link">
-          {pageLoading ? '加载中…' : activePage?.title?.trim() || '无标题文档'}
+    <div className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-background/95 px-3 py-2 backdrop-blur md:h-14 md:gap-3 md:px-4 md:py-0">
+      <div className="min-w-0 flex-1">
+        <Button
+          variant="link"
+          className="h-auto max-w-full justify-start p-0 text-base text-foreground"
+        >
+          {pageLoading
+            ? t('common.loading')
+            : activePage?.title?.trim() || t('pageHeader.untitledDoc')}
         </Button>
+        {compactTimeText ? (
+          <span
+            className="block text-[11px] text-muted-foreground tabular-nums md:hidden"
+            title={timeTitle + ' ' + timeText}
+          >
+            {compactTimeTitle + ' ' + compactTimeText}
+          </span>
+        ) : null}
         {timeText ? (
           <span
-            className="text-xs text-muted-foreground tabular-nums"
+            className="hidden whitespace-nowrap text-xs text-muted-foreground tabular-nums md:inline"
             title={timeTitle}
           >
             {timeTitle + ' ' + timeText}
           </span>
         ) : null}
       </div>
-      <div>
+      <div className="shrink-0">
         {pageMode === 'preview' ? (
-          <div className="flex items-center text-primary/70">
+          <div className="flex items-center gap-0.5 text-primary/70 md:gap-1">
             <Button
               variant="ghost"
               size="icon"
               disabled={!activePage || favoriteLoading}
               onClick={handleToggleFavorite}
-              title={favorite ? '取消收藏' : '收藏页面'}
+              title={
+                favorite
+                  ? t('pageHeader.unfavoritePage')
+                  : t('pageHeader.favoritePage')
+              }
             >
               <StarIcon
                 className={`h-4 w-4 ${favorite ? 'fill-current text-amber-500' : ''}`}
@@ -231,11 +297,22 @@ export const PageHeader = () => {
             </Button>
             <Button
               variant="ghost"
+              size="icon"
+              className="md:hidden"
+              disabled={!activePage}
+              onClick={() => setPageMode('edit')}
+              title={t('pageHeader.edit')}
+            >
+              <PencilLineIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              className="hidden md:inline-flex"
               disabled={!activePage}
               onClick={() => setPageMode('edit')}
             >
               <PencilLineIcon />
-              编辑
+              {t('pageHeader.edit')}
             </Button>
             <PageHeaderMoreMenu
               pageId={activePage?.id ?? null}
@@ -248,7 +325,7 @@ export const PageHeader = () => {
                 onOpenChange={setShareOpen}
                 targetId={activePage.id}
                 type="PAGE"
-                title={activePage.title || '无标题文档'}
+                title={activePage.title || t('pageHeader.untitledDoc')}
               />
             )}
           </div>
@@ -259,7 +336,7 @@ export const PageHeader = () => {
               className="gap-1"
               disabled={!activePage || pageSaving || pagePublishing}
             >
-              <SendIcon /> 发布
+              <SendIcon /> {t('pageHeader.publish')}
             </Button>
             <Separator orientation="vertical" className="h-5" />
             <Button
