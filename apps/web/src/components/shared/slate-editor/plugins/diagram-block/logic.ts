@@ -82,6 +82,7 @@ export type DiagramBlockElement = SlateElement & {
   templateId?: string;
   code?: string;
   preview?: boolean;
+  lineNumbers?: boolean;
   children: Descendant[];
 };
 
@@ -90,6 +91,7 @@ type DiagramBlockPatch = {
   templateId?: DiagramTemplateId;
   code?: string;
   preview?: boolean;
+  lineNumbers?: boolean;
 };
 
 export function withDiagramBlock<T extends Editor>(editor: T): T {
@@ -135,6 +137,7 @@ export function insertDiagramBlock(editor: Editor) {
       templateId: defaultTemplate.id,
       code: defaultTemplate.code,
       preview: true,
+      lineNumbers: false,
       children: [{ text: "" }],
     } as unknown as DiagramBlockElement,
     { at, select: true },
@@ -183,4 +186,8 @@ export function getDiagramCode(code?: string, templateId?: string) {
 
 export function getDiagramPreview(value?: boolean) {
   return Boolean(value ?? true);
+}
+
+export function getDiagramLineNumbers(value?: boolean) {
+  return Boolean(value ?? false);
 }

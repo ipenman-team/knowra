@@ -17,7 +17,7 @@ import {
   EditorView,
   highlightActiveLine,
   keymap,
-  lineNumbers,
+  lineNumbers as codeMirrorLineNumbers,
   placeholder,
 } from '@codemirror/view';
 import {
@@ -52,6 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 import { BlockElementHandleMenu } from '../block-element-handle-menu';
@@ -67,6 +68,7 @@ import {
   DIAGRAM_TEMPLATES,
   getDiagramCode,
   getDiagramEngine,
+  getDiagramLineNumbers,
   getDiagramPreview,
   getDiagramTemplate,
   getDiagramTemplateId,
@@ -87,6 +89,7 @@ type DiagramPatch = {
   templateId?: DiagramTemplateId;
   code?: string;
   preview?: boolean;
+  lineNumbers?: boolean;
 };
 
 const mermaidEditorTheme = EditorView.theme({
@@ -139,12 +142,16 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   const templateId = getDiagramTemplateId(element.templateId);
   const code = getDiagramCode(element.code, templateId) || Node.string(element);
   const previewEnabled = getDiagramPreview(element.preview);
+  const lineNumbersEnabled = getDiagramLineNumbers(element.lineNumbers);
 
   const [svg, setSvg] = useState('');
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isSourceCollapsed, setIsSourceCollapsed] = useState(false);
+  const [isSourceEditorFocused, setIsSourceEditorFocused] = useState(false);
+  const [isTemplateSelectOpen, setIsTemplateSelectOpen] = useState(false);
+  const [isRestoringEditorFocus, setIsRestoringEditorFocus] = useState(false);
 
   const renderSequenceRef = useRef(0);
   const sourceCollapsed = previewEnabled ? isSourceCollapsed : false;
@@ -199,6 +206,10 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         code: nextTemplate.code,
         preview: true,
       });
+      setIsRestoringEditorFocus(true);
+      window.requestAnimationFrame(() => {
+        setIsRestoringEditorFocus(false);
+      });
     },
     [patchElement],
   );
@@ -229,6 +240,12 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
     },
     [editor, element, readOnly, selected],
   );
+  const showFloatingToolbar =
+    !readOnly &&
+    (selected ||
+      isSourceEditorFocused ||
+      isTemplateSelectOpen ||
+      isRestoringEditorFocus);
 
   return (
     <div
@@ -252,74 +269,100 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         ]}
       />
 
+      {!readOnly ? (
+        <div
+          contentEditable={false}
+          className={cn(
+            'absolute left-0 top-0 z-30 -translate-y-[calc(100%+8px)] transition-opacity',
+            showFloatingToolbar
+              ? 'pointer-events-auto opacity-100'
+              : 'pointer-events-none opacity-0',
+          )}
+        >
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-input bg-background/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+            <Select value={engine} disabled>
+              <SelectTrigger className="h-8 w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DIAGRAM_ENGINE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={templateId}
+              disabled={readOnly}
+              onOpenChange={setIsTemplateSelectOpen}
+              onValueChange={onTemplateChange}
+            >
+              <SelectTrigger className="h-8 w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DIAGRAM_TEMPLATES.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>行号</span>
+              <Switch
+                checked={lineNumbersEnabled}
+                disabled={readOnly}
+                onCheckedChange={(checked) => patchElement({ lineNumbers: checked })}
+              />
+            </label>
+
+            <Button
+              type="button"
+              variant={previewEnabled ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-8 px-2"
+              disabled={readOnly}
+              onClick={onTogglePreview}
+              tooltip="切换预览"
+            >
+              {previewEnabled ? <Eye /> : <EyeOff />}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              disabled={!previewEnabled}
+              onClick={onToggleSourceCollapsed}
+              tooltip={sourceCollapsed ? '展开语法编辑区' : '折叠语法编辑区'}
+            >
+              {sourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div
         contentEditable={false}
-        className={cn(
-          'overflow-hidden rounded-md border border-input bg-background shadow-sm transition-colors',
-          'focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/60',
-          isActive && 'border-blue-500 ring-1 ring-blue-500/60',
-        )}
+        className="bg-background transition-colors"
       >
-        <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <Select
-            value={engine}
-            disabled
-            onValueChange={(nextEngine) =>
-              patchElement({ engine: nextEngine as DiagramEngine })
-            }
-          >
-            <SelectTrigger className="h-8 w-[130px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DIAGRAM_ENGINE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={templateId}
-            disabled={readOnly}
-            onValueChange={onTemplateChange}
-          >
-            <SelectTrigger className="h-8 w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DIAGRAM_TEMPLATES.map((template) => (
-                <SelectItem key={template.id} value={template.id}>
-                  {template.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            type="button"
-            variant={previewEnabled ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-8 px-2"
-            disabled={readOnly}
-            onClick={onTogglePreview}
-            tooltip="切换预览"
-          >
-            {previewEnabled ? <Eye /> : <EyeOff />}
-          </Button>
-        </div>
-
         <DiagramWorkspace
           code={code}
           readOnly={readOnly}
           previewEnabled={previewEnabled}
           sourceCollapsed={sourceCollapsed}
+          lineNumbersEnabled={lineNumbersEnabled}
           svg={svg}
           renderError={mergedRenderError}
           isRendering={isRendering}
           onCodeChange={(nextCode) => patchElement({ code: nextCode })}
           onToggleSourceCollapsed={onToggleSourceCollapsed}
+          onFocusChange={setIsSourceEditorFocused}
           className="h-[360px]"
         />
       </div>
@@ -332,6 +375,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         templateId={templateId}
         previewEnabled={previewEnabled}
         isSourceCollapsed={sourceCollapsed}
+        lineNumbersEnabled={lineNumbersEnabled}
         code={code}
         svg={svg}
         renderError={mergedRenderError}
@@ -339,6 +383,9 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         onToggleSourceCollapsed={onToggleSourceCollapsed}
         onTemplateChange={onTemplateChange}
         onTogglePreview={onTogglePreview}
+        onLineNumbersChange={(nextEnabled) =>
+          patchElement({ lineNumbers: nextEnabled })
+        }
         onCodeChange={(nextCode) => patchElement({ code: nextCode })}
       />
 
@@ -355,6 +402,7 @@ function DiagramFullscreenDialog(props: {
   templateId: DiagramTemplateId;
   previewEnabled: boolean;
   isSourceCollapsed: boolean;
+  lineNumbersEnabled: boolean;
   code: string;
   svg: string;
   renderError: string | null;
@@ -363,6 +411,7 @@ function DiagramFullscreenDialog(props: {
   onTemplateChange: (templateId: string) => void;
   onTogglePreview: () => void;
   onCodeChange: (code: string) => void;
+  onLineNumbersChange: (enabled: boolean) => void;
 }) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -414,6 +463,15 @@ function DiagramFullscreenDialog(props: {
               {props.previewEnabled ? <Eye /> : <EyeOff />}
             </Button>
 
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>行号</span>
+              <Switch
+                checked={props.lineNumbersEnabled}
+                disabled={props.readOnly}
+                onCheckedChange={props.onLineNumbersChange}
+              />
+            </label>
+
             <Button
               type="button"
               variant="ghost"
@@ -442,6 +500,7 @@ function DiagramFullscreenDialog(props: {
             readOnly={props.readOnly}
             previewEnabled={props.previewEnabled}
             sourceCollapsed={props.isSourceCollapsed}
+            lineNumbersEnabled={props.lineNumbersEnabled}
             svg={props.svg}
             renderError={props.renderError}
             isRendering={props.isRendering}
@@ -460,11 +519,13 @@ function DiagramWorkspace(props: {
   readOnly: boolean;
   previewEnabled: boolean;
   sourceCollapsed: boolean;
+  lineNumbersEnabled: boolean;
   svg: string;
   renderError: string | null;
   isRendering: boolean;
   onCodeChange: (code: string) => void;
   onToggleSourceCollapsed: () => void;
+  onFocusChange?: (focused: boolean) => void;
   className?: string;
 }) {
   return (
@@ -475,13 +536,15 @@ function DiagramWorkspace(props: {
         <div
           className={cn(
             'min-h-0 min-w-0',
-            props.previewEnabled ? 'w-1/2 border-r' : 'w-full',
+            props.previewEnabled ? 'w-1/2' : 'w-full',
           )}
         >
           <DiagramSourceEditor
             value={props.code}
             readOnly={props.readOnly}
+            lineNumbersEnabled={props.lineNumbersEnabled}
             onChange={props.onCodeChange}
+            onFocusChange={props.onFocusChange}
           />
         </div>
       ) : null}
@@ -512,10 +575,6 @@ function PaneCollapseHandle(props: {
 }) {
   return (
     <>
-      {!props.collapsed ? (
-        <div className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] w-px -translate-x-1/2 bg-border" />
-      ) : null}
-
       <button
         type="button"
         className={cn(
@@ -538,19 +597,32 @@ function PaneCollapseHandle(props: {
 function DiagramSourceEditor(props: {
   value: string;
   readOnly: boolean;
+  lineNumbersEnabled: boolean;
   onChange: (value: string) => void;
+  onFocusChange?: (focused: boolean) => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(props.onChange);
+  const onFocusChangeRef = useRef(props.onFocusChange);
   const latestValueRef = useRef(props.value);
+  const lineNumbersEnabledRef = useRef(props.lineNumbersEnabled);
 
+  const lineNumbersCompartment = useMemo(() => new Compartment(), []);
   const editableCompartment = useMemo(() => new Compartment(), []);
   const readOnlyCompartment = useMemo(() => new Compartment(), []);
 
   useEffect(() => {
     onChangeRef.current = props.onChange;
   }, [props.onChange]);
+
+  useEffect(() => {
+    onFocusChangeRef.current = props.onFocusChange;
+  }, [props.onFocusChange]);
+
+  useEffect(() => {
+    lineNumbersEnabledRef.current = props.lineNumbersEnabled;
+  }, [props.lineNumbersEnabled]);
 
   useEffect(() => {
     latestValueRef.current = props.value;
@@ -577,7 +649,9 @@ function DiagramSourceEditor(props: {
       doc: latestValueRef.current,
       extensions: [
         history(),
-        lineNumbers(),
+        lineNumbersCompartment.of(
+          lineNumbersEnabledRef.current ? codeMirrorLineNumbers() : [],
+        ),
         drawSelection(),
         highlightActiveLine(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
@@ -589,6 +663,9 @@ function DiagramSourceEditor(props: {
         editableCompartment.of(EditorView.editable.of(!props.readOnly)),
         readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
         EditorView.updateListener.of((update) => {
+          if (update.focusChanged) {
+            onFocusChangeRef.current?.(update.view.hasFocus);
+          }
           if (!update.docChanged) return;
 
           const nextValue = update.state.doc.toString();
@@ -611,7 +688,12 @@ function DiagramSourceEditor(props: {
       view.destroy();
       viewRef.current = null;
     };
-  }, [editableCompartment, props.readOnly, readOnlyCompartment]);
+  }, [
+    editableCompartment,
+    lineNumbersCompartment,
+    props.readOnly,
+    readOnlyCompartment,
+  ]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -619,6 +701,9 @@ function DiagramSourceEditor(props: {
 
     view.dispatch({
       effects: [
+        lineNumbersCompartment.reconfigure(
+          props.lineNumbersEnabled ? codeMirrorLineNumbers() : [],
+        ),
         editableCompartment.reconfigure(
           EditorView.editable.of(!props.readOnly),
         ),
@@ -627,7 +712,13 @@ function DiagramSourceEditor(props: {
         ),
       ],
     });
-  }, [editableCompartment, props.readOnly, readOnlyCompartment]);
+  }, [
+    editableCompartment,
+    lineNumbersCompartment,
+    props.lineNumbersEnabled,
+    props.readOnly,
+    readOnlyCompartment,
+  ]);
 
   return <div ref={rootRef} className="h-full w-full" />;
 }
@@ -682,7 +773,7 @@ function DiagramPreviewPane(props: {
     <div className={cn('overflow-auto bg-muted/20 p-4', props.className)}>
       <div
         className={cn(
-          'mx-auto w-fit rounded-md bg-background p-2',
+          'mx-auto w-fit bg-background p-2',
           '[&_svg]:h-auto [&_svg]:max-w-full',
         )}
         dangerouslySetInnerHTML={{ __html: props.svg }}
