@@ -11,12 +11,12 @@ import {
 import {
   useIsPageSelected,
   useNodeMenuState,
-  usePageSelectionStore,
   useUIStateStore,
 } from '@/stores';
 import type { PageDto } from '@/lib/api';
 import { useNavigation, useSpaceRoute } from '@/lib/navigation';
 import { usePageTreeCRUD } from '../hooks/use-pages';
+import { useSidebar } from '@/components/ui/sidebar';
 
 interface PageTreeItemProps<T> extends TreeRenderContext<T> {
   onCreateChildPage?: (node: TreeNode<T>) => void;
@@ -36,8 +36,8 @@ export const PageTreeItem = memo(
     const isMenuOpen = useNodeMenuState(node.id);
 
     const { navigateToPage } = useNavigation();
+    const { isMobile, setOpenMobile } = useSidebar();
     const currentSpaceId = useSpaceRoute();
-    const { setSelectedPage } = usePageSelectionStore();
     const { setOpenMenuNodeId, startRename, setDeleteTarget } =
       useUIStateStore();
     const { createPage } = usePageTreeCRUD();
@@ -47,8 +47,11 @@ export const PageTreeItem = memo(
       // 状态会通过 RouteSync 自动同步
       if (currentSpaceId) {
         navigateToPage(currentSpaceId, node.id);
+        if (isMobile) {
+          setOpenMobile(false);
+        }
       }
-    }, [currentSpaceId, navigateToPage, node.id]);
+    }, [currentSpaceId, isMobile, navigateToPage, node.id, setOpenMobile]);
 
     const handleToggleMenu = useCallback(() => {
       setOpenMenuNodeId(isMenuOpen ? null : node.id);

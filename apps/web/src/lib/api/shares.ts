@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { ApiError, apiClient } from './client';
 import { publicApiClient } from './public-client';
 import { PageDto } from './pages';
 
@@ -46,9 +46,18 @@ export const sharesApi = {
     return res.data;
   },
 
-  getByTargetId: async (targetId: string) => {
-    const res = await apiClient.get<ShareDto>(`/shares/${targetId}`);
-    return res.data;
+  getByTargetId: async (targetId: string): Promise<ShareDto | null> => {
+    try {
+      const res = await apiClient.get<ShareDto>(`/shares/${targetId}`, {
+        skipErrorToastForStatuses: [404],
+      });
+      return res.data;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
   },
 
   update: async (id: string, data: UpdateShareInput) => {

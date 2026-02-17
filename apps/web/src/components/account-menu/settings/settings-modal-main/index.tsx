@@ -43,6 +43,10 @@ export const SettingsModalMain = memo(function SettingsModalMain({
   profile: MeProfile | null | undefined;
   verification: MeVerification | null | undefined;
 }) {
+  type SendVerificationCodeResponse = {
+    cooldownSeconds?: number;
+  };
+
   const phoneValue =
     profile?.phone?.trim() || verification?.phone.identifier?.trim() || '';
   const phoneBound = verification?.phone.bound ?? Boolean(phoneValue);
@@ -164,11 +168,13 @@ export const SettingsModalMain = memo(function SettingsModalMain({
         })
         .catch(() => ({ data: null }));
 
+      const responseData =
+        data && typeof data === 'object'
+          ? (data as SendVerificationCodeResponse)
+          : null;
       const cooldownSeconds =
-        data &&
-        typeof data === 'object' &&
-        typeof (data as any).cooldownSeconds === 'number'
-          ? (data as any).cooldownSeconds
+        typeof responseData?.cooldownSeconds === 'number'
+          ? responseData.cooldownSeconds
           : 60;
 
       setCooldown(Math.max(0, Math.floor(cooldownSeconds)));
@@ -194,7 +200,7 @@ export const SettingsModalMain = memo(function SettingsModalMain({
   }, [cooldown]);
 
   return (
-    <section className="flex-1 px-8 py-6">
+    <section className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-4 md:px-8 md:py-6">
       <div className="flex flex-col gap-6">
         <Item variant="muted">
           <ItemMedia variant="icon">
@@ -208,8 +214,8 @@ export const SettingsModalMain = memo(function SettingsModalMain({
             <ItemTitle>手机号</ItemTitle>
             <ItemDescription>{phoneStatusText}</ItemDescription>
           </ItemContent>
-          <ItemActions>
-            <Button size="sm" variant="outline" disabled>
+          <ItemActions className="w-full justify-end sm:w-auto">
+            <Button size="sm" variant="outline" disabled className="w-full sm:w-auto">
               {phoneBound ? '更改' : '绑定'}
             </Button>
           </ItemActions>
@@ -227,8 +233,8 @@ export const SettingsModalMain = memo(function SettingsModalMain({
             <ItemTitle>邮箱</ItemTitle>
             <ItemDescription>{emailStatusText}</ItemDescription>
           </ItemContent>
-          <ItemActions>
-            <Button size="sm" variant="outline" disabled>
+          <ItemActions className="w-full justify-end sm:w-auto">
+            <Button size="sm" variant="outline" disabled className="w-full sm:w-auto">
               {emailBound ? '更改' : '绑定'}
             </Button>
           </ItemActions>
@@ -246,12 +252,13 @@ export const SettingsModalMain = memo(function SettingsModalMain({
             <ItemTitle>账户密码</ItemTitle>
             <ItemDescription>{passwordStatusText}</ItemDescription>
           </ItemContent>
-          <ItemActions>
+          <ItemActions className="w-full justify-end sm:w-auto">
             <Button
               size="sm"
               variant="outline"
               onClick={handleOpenReset}
               disabled={!canResetPassword}
+              className="w-full sm:w-auto"
             >
               {passwordSet ? '重置密码' : '设置密码'}
             </Button>
@@ -317,7 +324,7 @@ export const SettingsModalMain = memo(function SettingsModalMain({
             setResetting(false);
           }
         }}
-        className="w-[520px]"
+        className="w-[calc(100vw-1rem)] max-w-[520px] max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6"
       >
         <FieldGroup className="gap-4">
           <Field>
@@ -368,7 +375,7 @@ export const SettingsModalMain = memo(function SettingsModalMain({
           <Field>
             <FieldContent>
               <FieldTitle>验证码</FieldTitle>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   type="text"
                   value={code}
@@ -380,6 +387,7 @@ export const SettingsModalMain = memo(function SettingsModalMain({
                   size="sm"
                   disabled={!canSendCode}
                   onClick={handleSendCode}
+                  className="w-full sm:w-auto"
                 >
                   {cooldown > 0 ? `${cooldown}s` : '获取验证码'}
                 </Button>

@@ -115,11 +115,15 @@ export function EditSpaceModal(props: {
       try {
         const fetched = await spacesApi.get(spaceId);
         setDetail(fetched);
+        const fetchedType: 'PERSONAL' | 'ORG' =
+          fetched.type === 'PERSONAL' || fetched.type === 'ORG'
+            ? fetched.type
+            : 'ORG';
 
         reset({
           name: fetched.name ?? '',
           identifier: (fetched.identifier ?? '').trim(),
-          type: (isPersonalTenant ? 'PERSONAL' : (fetched.type as any)) || 'ORG',
+          type: isPersonalTenant ? 'PERSONAL' : fetchedType,
           description: (fetched.description ?? '') || '',
           color: (fetched.color ?? DEFAULT_COLOR) || DEFAULT_COLOR,
         });

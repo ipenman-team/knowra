@@ -35,14 +35,16 @@ export const SettingsModal = memo(function SettingsModal({
       title="设置"
       onOpenChange={onOpenChange}
       footer={null}
-      className="w-[920px]"
+      className="w-[calc(100vw-1rem)] max-w-[920px] max-h-[calc(100dvh-1rem)] gap-3 overflow-hidden p-3 sm:gap-6 sm:p-6 md:p-8"
     >
-      <div className="flex min-h-[520px] gap-0 overflow-hidden rounded-lg bg-background">
-        <SettingsModalSidebar
-          sections={sections}
-          activeId={activeId}
-          onSelect={setActiveId}
-        />
+      <div className="flex min-h-0 flex-col gap-0 overflow-hidden rounded-lg bg-background md:min-h-[520px] md:flex-row">
+        <div className="hidden md:block">
+          <SettingsModalSidebar
+            sections={sections}
+            activeId={activeId}
+            onSelect={setActiveId}
+          />
+        </div>
         <SettingsModalMain
           profile={profile}
           verification={verification}

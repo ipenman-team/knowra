@@ -83,12 +83,6 @@ export function CreateSpaceModal(props: {
   const descriptionId = useId();
   const wasOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (open) {
-      console.log('tenant', tenant);
-    }
-  }, [open, tenant]);
-
   const {
     register,
     handleSubmit,
@@ -162,7 +156,7 @@ export function CreateSpaceModal(props: {
         description: '',
         color: DEFAULT_COLOR,
       });
-    } catch (e) {
+    } catch {
       // ignore for now
     }
   };
@@ -170,7 +164,7 @@ export function CreateSpaceModal(props: {
   return (
     <Modal
       open={open}
-      className="w-[700px]"
+      className="max-w-lg"
       title="创建空间"
       onOpenChange={onOpenChange}
       onConfirm={handleSubmit(handleCreate)}
