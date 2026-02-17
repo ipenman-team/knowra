@@ -19,6 +19,7 @@ import type {
   FavoriteSection,
   FavoriteSpaceItem,
 } from '../types';
+import { StarIcon } from 'lucide-react';
 
 type FavoritesTableProps = {
   section: FavoriteSection;
@@ -72,7 +73,10 @@ function SpaceRows(props: {
   if (props.loading) {
     return (
       <TableRow>
-        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+        <TableCell
+          colSpan={5}
+          className="h-24 text-center text-muted-foreground"
+        >
           加载中…
         </TableCell>
       </TableRow>
@@ -114,7 +118,10 @@ function SpaceRows(props: {
             />
           </TableCell>
           <TableCell className="font-medium">
-            <CellLink text={item.name} onClick={() => navigateToSpace(item.targetId)} />
+            <CellLink
+              text={item.name}
+              onClick={() => navigateToSpace(item.targetId)}
+            />
           </TableCell>
           <TableCell className="text-muted-foreground">
             {item.identifier || '--'}
@@ -131,7 +138,7 @@ function SpaceRows(props: {
                 void props.onCancelOne(item.favoriteId);
               }}
             >
-              取消收藏
+              <StarIcon className={`h-4 w-4 fill-current text-amber-500`} />
             </Button>
           </TableCell>
         </TableRow>
@@ -154,7 +161,10 @@ function PageRows(props: {
   if (props.loading) {
     return (
       <TableRow>
-        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+        <TableCell
+          colSpan={5}
+          className="h-24 text-center text-muted-foreground"
+        >
           加载中…
         </TableCell>
       </TableRow>
@@ -227,7 +237,7 @@ function PageRows(props: {
                   void props.onCancelOne(item.favoriteId);
                 }}
               >
-                取消收藏
+                <StarIcon className={`h-4 w-4 fill-current text-amber-500`} />
               </Button>
             </TableCell>
           </TableRow>
@@ -245,8 +255,11 @@ export function FavoritesTable(props: FavoritesTableProps) {
     props.section === 'SPACE'
       ? props.spaceItems.map((item) => item.favoriteId)
       : props.pageItems.map((item) => item.favoriteId);
-  const selectedCount = currentIds.filter((id) => props.selectedIds.includes(id)).length;
-  const allSelected = currentIds.length > 0 && selectedCount === currentIds.length;
+  const selectedCount = currentIds.filter((id) =>
+    props.selectedIds.includes(id),
+  ).length;
+  const allSelected =
+    currentIds.length > 0 && selectedCount === currentIds.length;
 
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-md border">
@@ -256,7 +269,9 @@ export function FavoritesTable(props: FavoritesTableProps) {
             <TableHead className="w-[48px]">
               <Checkbox
                 checked={allSelected}
-                onCheckedChange={(checked) => props.onSelectAll(checked === true)}
+                onCheckedChange={(checked) =>
+                  props.onSelectAll(checked === true)
+                }
                 aria-label="全选"
                 disabled={loading || canceling || currentIds.length === 0}
               />

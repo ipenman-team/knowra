@@ -139,8 +139,8 @@ export function FavoritesContainer() {
                 {state.canceling
                   ? '处理中…'
                   : selectedCount > 0
-                    ? `批量取消收藏 (${selectedCount})`
-                    : '批量取消收藏'}
+                    ? `取消收藏 (${selectedCount})`
+                    : '取消收藏'}
               </Button>
             </div>
           </div>
