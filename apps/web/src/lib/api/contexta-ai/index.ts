@@ -6,6 +6,7 @@ import type {
   AiMessageDto,
 } from './types';
 import { ApiError, handleUnauthorized } from '../client';
+import { getCurrentLocale } from '@/lib/i18n/locale';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null;
@@ -108,6 +109,7 @@ export const contextaAiApi = {
       headers: {
         'content-type': 'application/json',
         accept: 'text/event-stream',
+        'Accept-Language': getCurrentLocale(),
       },
       body: JSON.stringify(input),
       signal: options?.signal,

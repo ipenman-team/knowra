@@ -7,6 +7,7 @@ import { PageModule } from './page/page.module';
 import { SpaceModule } from './space/space.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/tenant/tenant.middleware';
+import { LocaleMiddleware } from './common/i18n/locale.middleware';
 import { TaskModule } from './task/task.module';
 import { ImportsModule } from './imports/imports.module';
 import { AuthModule } from './auth/auth.module';
@@ -46,10 +47,10 @@ import { FavoriteModule } from './favorite/favorite.module';
     FavoriteModule,
   ],
   controllers: [AppController],
-  providers: [AppService, TenantMiddleware],
+  providers: [AppService, TenantMiddleware, LocaleMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('*');
+    consumer.apply(LocaleMiddleware, TenantMiddleware).forRoutes('*');
   }
 }

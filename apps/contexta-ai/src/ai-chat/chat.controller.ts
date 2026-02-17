@@ -11,6 +11,8 @@ import type { Response } from 'express';
 import { AiConversationNotFoundError } from '@contexta/application';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { ChatService } from './chat.service';
+import { localizeErrorMessage } from '../common/i18n/error-message.mapper';
+import { resolveRequestLocale } from '../common/i18n/locale.utils';
 
 type ChatBody = {
   conversationId?: unknown;
@@ -110,6 +112,10 @@ export class ChatController {
     const onClose = () => controller.abort();
     res.req.on('close', onClose);
     res.req.on('aborted', onClose);
+    const locale = resolveRequestLocale({
+      cookieHeader: res.req.headers.cookie,
+      acceptLanguage: res.req.headers['accept-language'],
+    });
 
     try {
       const stream = await this.chatService.answerStream({
@@ -129,10 +135,21 @@ export class ChatController {
       writeEvent('done', { ok: true });
     } catch (err) {
       if (err instanceof AiConversationNotFoundError) {
-        writeEvent('error', { message: 'conversation not found' });
+        const localized = localizeErrorMessage(
+          'conversation not found',
+          locale,
+        );
+        writeEvent('error', {
+          message: localized.message,
+          errorCode: localized.errorCode,
+        });
       } else {
-        const message = err instanceof Error ? err.message : 'stream error';
-        writeEvent('error', { message });
+        const rawMessage = err instanceof Error ? err.message : 'stream error';
+        const localized = localizeErrorMessage(rawMessage, locale);
+        writeEvent('error', {
+          message: localized.message,
+          errorCode: localized.errorCode,
+        });
       }
     } finally {
       res.end();

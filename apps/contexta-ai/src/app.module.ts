@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenantMiddleware } from './common/tenant/tenant.middleware';
+import { LocaleMiddleware } from './common/i18n/locale.middleware';
 import { AiChatModule } from './ai-chat/ai-chat.module';
 import { ActivityModule } from './activity/activity.module';
 import { ShareModule } from './share/share.module';
@@ -28,11 +29,10 @@ import { ShareModule } from './share/share.module';
     ShareModule,
   ],
   controllers: [AppController],
-  providers: [AppService, TenantMiddleware],
+  providers: [AppService, TenantMiddleware, LocaleMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('*');
+    consumer.apply(LocaleMiddleware, TenantMiddleware).forRoutes('*');
   }
 }
-

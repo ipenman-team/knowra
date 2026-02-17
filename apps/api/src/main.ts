@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { I18nHttpExceptionFilter } from './common/i18n/i18n-http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,8 +17,9 @@ async function bootstrap() {
     origin: corsOrigin,
     credentials: true,
   });
+  app.useGlobalFilters(new I18nHttpExceptionFilter());
 
   // Avoid port conflict with Next.js dev server (default 3000).
   await app.listen(process.env.PORT ?? 3001);
 }
-bootstrap();
+void bootstrap();

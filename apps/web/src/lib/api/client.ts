@@ -1,5 +1,13 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { useMeStore } from '@/stores';
+import { getCurrentLocale } from '@/lib/i18n/locale';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipErrorToast?: boolean;
+    skipErrorToastForStatuses?: number[];
+  }
+}
 
 export class ApiError extends Error {
   readonly status?: number;
@@ -23,6 +31,15 @@ export function getApiBaseUrl(): string {
 export const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
   withCredentials: true,
+});
+
+apiClient.interceptors.request.use((config) => {
+  const headers = AxiosHeaders.from(config.headers);
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', getCurrentLocale());
+  }
+  config.headers = headers;
+  return config;
 });
 
 let unauthorizedHandling = false;
@@ -82,7 +99,7 @@ apiClient.interceptors.response.use(
           res.data !== null &&
           !Array.isArray(res.data)
         ) {
-          (res.data as any).references = references;
+          (res.data as Record<string, unknown>).references = references;
         }
       }
     }
@@ -92,6 +109,17 @@ apiClient.interceptors.response.use(
     if (axios.isAxiosError(error)) {
       const axiosError: AxiosError = error;
       const status = axiosError.response?.status;
+      const skipByStatus =
+        typeof status === 'number' &&
+        Array.isArray(axiosError.config?.skipErrorToastForStatuses) &&
+        axiosError.config.skipErrorToastForStatuses.includes(status);
+      const skipErrorToastFlag =
+        axiosError.config &&
+        typeof axiosError.config === 'object' &&
+        'skipErrorToast' in axiosError.config
+          ? Boolean(axiosError.config.skipErrorToast)
+          : false;
+      const skipErrorToast = skipErrorToastFlag || skipByStatus;
 
       if (status === 401) {
         void handleUnauthorized();
@@ -101,7 +129,9 @@ apiClient.interceptors.response.use(
       const message = hasMessage(payload)
         ? String(payload.message)
         : axiosError.message;
-      notifyApiError(message, status, axiosError.code);
+      if (!skipErrorToast) {
+        notifyApiError(message, status, axiosError.code);
+      }
       throw new ApiError(message, status, payload);
     }
 

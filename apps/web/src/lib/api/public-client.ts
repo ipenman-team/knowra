@@ -1,5 +1,6 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { ApiError, getApiBaseUrl } from './client';
+import { getCurrentLocale } from '@/lib/i18n/locale';
 
 function hasMessage(x: unknown): x is { message: unknown } {
   return typeof x === 'object' && x !== null && 'message' in x;
@@ -8,6 +9,15 @@ function hasMessage(x: unknown): x is { message: unknown } {
 export const publicApiClient = axios.create({
   baseURL: getApiBaseUrl(),
   withCredentials: true,
+});
+
+publicApiClient.interceptors.request.use((config) => {
+  const headers = AxiosHeaders.from(config.headers);
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', getCurrentLocale());
+  }
+  config.headers = headers;
+  return config;
 });
 
 publicApiClient.interceptors.response.use(
@@ -49,4 +59,3 @@ publicApiClient.interceptors.response.use(
     throw error;
   },
 );
-

@@ -7,9 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
+import { useI18n } from "@/lib/i18n/provider";
 
 export const LogoutMenuItem = memo(function LogoutMenuItem() {
   const router = useRouter();
+  const { t } = useI18n();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = useCallback(async () => {
@@ -33,7 +35,7 @@ export const LogoutMenuItem = memo(function LogoutMenuItem() {
 
   return (
     <DropdownMenuItem disabled={loggingOut} onSelect={handleSelect}>
-      退出登录
+      {t('account.logout')}
       <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
     </DropdownMenuItem>
   );

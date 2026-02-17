@@ -17,6 +17,8 @@ import { LogoutMenuItem } from './logout-menu-item';
 import { SettingsModal } from './settings/settings-modal';
 import { ProfileMenuItem } from './profile/profile-menu.item';
 import { ProfileModal } from './profile/profile-modal';
+import { ThemeMenuItem } from './theme-menu-item';
+import { LocaleMenuItem } from './locale-menu-item';
 
 type AccountMenuProps = {
   profile?: MeProfile | null;
@@ -29,6 +31,7 @@ export const AccountMenu = memo(function AccountMenu({
 }: AccountMenuProps = {}) {
   const [mounted, setMounted] = useState(false);
   const pointerDownOutsideRef = useRef(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const cachedProfile = useMeProfile();
   const cachedVerification = useMeVerification();
@@ -37,6 +40,7 @@ export const AccountMenu = memo(function AccountMenu({
     verificationProp === undefined ? cachedVerification : verificationProp;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -45,6 +49,20 @@ export const AccountMenu = memo(function AccountMenu({
   const fallbackText = nickname ? nickname.slice(0, 1) : 'CN';
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const openProfile = () => {
+    setMenuOpen(false);
+    window.setTimeout(() => {
+      setProfileOpen(true);
+    }, 0);
+  };
+
+  const openSettings = () => {
+    setMenuOpen(false);
+    window.setTimeout(() => {
+      setSettingsOpen(true);
+    }, 0);
+  };
 
   if (!mounted) {
     return (
@@ -58,7 +76,7 @@ export const AccountMenu = memo(function AccountMenu({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
@@ -86,9 +104,11 @@ export const AccountMenu = memo(function AccountMenu({
         >
           <DropdownMenuGroup>
             <AccountNameItem nickname={nickname} />
-            <ProfileMenuItem onOpenProfile={() => setProfileOpen(true)} />
+            <ProfileMenuItem onOpenProfile={openProfile} />
             <InviteMenuItem />
-            <SettingsMenuItem onOpenSettings={() => setSettingsOpen(true)} />
+            <SettingsMenuItem onOpenSettings={openSettings} />
+            <LocaleMenuItem />
+            <ThemeMenuItem />
           </DropdownMenuGroup>
 
           <DropdownMenuSeparator />

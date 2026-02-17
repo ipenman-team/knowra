@@ -1,6 +1,7 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 
 import { ApiError, handleUnauthorized } from '../client';
+import { getCurrentLocale } from '@/lib/i18n/locale';
 
 export function getContextaAiBaseUrl(): string {
   const base =
@@ -14,6 +15,15 @@ export function getContextaAiBaseUrl(): string {
 export const contextaAiClient = axios.create({
   baseURL: getContextaAiBaseUrl(),
   withCredentials: true,
+});
+
+contextaAiClient.interceptors.request.use((config) => {
+  const headers = AxiosHeaders.from(config.headers);
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', getCurrentLocale());
+  }
+  config.headers = headers;
+  return config;
 });
 
 function hasMessage(x: unknown): x is { message: unknown } {
