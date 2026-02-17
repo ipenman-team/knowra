@@ -154,7 +154,12 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   const [isRestoringEditorFocus, setIsRestoringEditorFocus] = useState(false);
 
   const renderSequenceRef = useRef(0);
-  const sourceCollapsed = previewEnabled ? isSourceCollapsed : false;
+  const effectivePreviewEnabled = readOnly ? true : previewEnabled;
+  const sourceCollapsed = readOnly
+    ? true
+    : effectivePreviewEnabled
+      ? isSourceCollapsed
+      : false;
   const mergedRenderError =
     engine === 'mermaid' ? renderError : '当前仅支持 Mermaid 预览';
 
@@ -168,7 +173,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   );
 
   useEffect(() => {
-    if (engine !== 'mermaid' || !previewEnabled) return;
+    if (engine !== 'mermaid' || !effectivePreviewEnabled) return;
 
     let disposed = false;
     const taskId = ++renderSequenceRef.current;
@@ -196,7 +201,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
       disposed = true;
       window.clearTimeout(timer);
     };
-  }, [code, engine, previewEnabled]);
+  }, [code, effectivePreviewEnabled, engine]);
 
   const onTemplateChange = useCallback(
     (nextTemplateId: string) => {
@@ -215,12 +220,14 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
   );
 
   const onTogglePreview = useCallback(() => {
+    if (readOnly) return;
     patchElement({ preview: !previewEnabled });
-  }, [patchElement, previewEnabled]);
+  }, [patchElement, previewEnabled, readOnly]);
 
   const onToggleSourceCollapsed = useCallback(() => {
+    if (readOnly) return;
     setIsSourceCollapsed((prev) => !prev);
-  }, []);
+  }, [readOnly]);
 
   const onDelete = useCallback(() => {
     const path = findElementPathSafe(editor, element);
@@ -280,7 +287,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
           )}
         >
           <div className="flex flex-wrap items-center gap-2 rounded-md border border-input bg-background/95 px-3 py-2 shadow-sm backdrop-blur-sm">
-            <Select value={engine} disabled>
+            {/* <Select value={engine} disabled>
               <SelectTrigger className="h-8 w-[130px]">
                 <SelectValue />
               </SelectTrigger>
@@ -291,7 +298,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select> */}
 
             <Select
               value={templateId}
@@ -299,7 +306,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
               onOpenChange={setIsTemplateSelectOpen}
               onValueChange={onTemplateChange}
             >
-              <SelectTrigger className="h-8 w-[140px]">
+              <SelectTrigger className="h-8 w-[100px] border-none shadow-none focus:ring-0 focus:ring-offset-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -354,7 +361,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         <DiagramWorkspace
           code={code}
           readOnly={readOnly}
-          previewEnabled={previewEnabled}
+          previewEnabled={effectivePreviewEnabled}
           sourceCollapsed={sourceCollapsed}
           lineNumbersEnabled={lineNumbersEnabled}
           svg={svg}
@@ -363,7 +370,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
           onCodeChange={(nextCode) => patchElement({ code: nextCode })}
           onToggleSourceCollapsed={onToggleSourceCollapsed}
           onFocusChange={setIsSourceEditorFocused}
-          className="h-[360px]"
+          className="h-[360px] border"
         />
       </div>
 
@@ -373,7 +380,7 @@ export function DiagramBlockElementView(props: DiagramBlockElementViewProps) {
         readOnly={readOnly}
         engine={engine}
         templateId={templateId}
-        previewEnabled={previewEnabled}
+        previewEnabled={effectivePreviewEnabled}
         isSourceCollapsed={sourceCollapsed}
         lineNumbersEnabled={lineNumbersEnabled}
         code={code}
@@ -477,7 +484,7 @@ function DiagramFullscreenDialog(props: {
               variant="ghost"
               size="sm"
               className="h-8 px-2"
-              disabled={!props.previewEnabled}
+              disabled={!props.previewEnabled || props.readOnly}
               onClick={props.onToggleSourceCollapsed}
             >
               {props.isSourceCollapsed ? <UnfoldVertical /> : <FoldVertical />}
@@ -559,7 +566,7 @@ function DiagramWorkspace(props: {
         />
       ) : null}
 
-      {props.previewEnabled ? (
+      {props.previewEnabled && !props.readOnly ? (
         <PaneCollapseHandle
           collapsed={props.sourceCollapsed}
           onToggle={props.onToggleSourceCollapsed}
