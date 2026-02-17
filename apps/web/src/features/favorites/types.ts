@@ -20,5 +20,6 @@ export type FavoritePageItem = {
 
 export type FavoriteListState = {
   loading: boolean;
+  canceling: boolean;
   error: string | null;
 };

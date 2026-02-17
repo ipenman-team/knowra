@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { favoritesApi } from '@/lib/api';
 import type {
   FavoriteListState,
   FavoritePageItem,
@@ -21,6 +22,10 @@ type FavoriteDataState = {
   state: FavoriteListState;
   spaceItems: FavoriteSpaceItem[];
   pageItems: FavoritePageItem[];
+  cancelFavorites: (favoriteIds: string[]) => Promise<{
+    removedIds: string[];
+    failedCount: number;
+  }>;
 };
 
 function normalizeKeyword(query: string): string {
@@ -67,6 +72,7 @@ export function useFavoritesData(): FavoriteDataState {
   const [pageLoaded, setPageLoaded] = useState(false);
   const [state, setState] = useState<FavoriteListState>({
     loading: false,
+    canceling: false,
     error: null,
   });
 
@@ -78,7 +84,7 @@ export function useFavoritesData(): FavoriteDataState {
       const needLoadPage = section === 'PAGE' && !pageLoaded;
       if (!needLoadSpace && !needLoadPage) return;
 
-      setState({ loading: true, error: null });
+      setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
         if (needLoadSpace) {
@@ -96,10 +102,14 @@ export function useFavoritesData(): FavoriteDataState {
         }
 
         if (canceled) return;
-        setState({ loading: false, error: null });
+        setState((prev) => ({ ...prev, loading: false, error: null }));
       } catch (error) {
         if (canceled) return;
-        setState({ loading: false, error: getFavoritesErrorMessage(error) });
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: getFavoritesErrorMessage(error),
+        }));
       }
     }
 
@@ -120,6 +130,57 @@ export function useFavoritesData(): FavoriteDataState {
     [pageItemsRaw, query],
   );
 
+  async function cancelFavorites(favoriteIds: string[]) {
+    const uniqIds = [...new Set(favoriteIds)];
+    if (uniqIds.length === 0) {
+      return { removedIds: [], failedCount: 0 };
+    }
+
+    const source = section === 'SPACE' ? spaceItemsRaw : pageItemsRaw;
+    const pendingItems = source.filter((item) => uniqIds.includes(item.favoriteId));
+    if (pendingItems.length === 0) {
+      return { removedIds: [], failedCount: 0 };
+    }
+
+    setState((prev) => ({ ...prev, canceling: true, error: null }));
+
+    const removedIds: string[] = [];
+    let failedCount = 0;
+
+    for (const item of pendingItems) {
+      try {
+        await favoritesApi.set({
+          targetType: section,
+          targetId: item.targetId,
+          favorite: false,
+        });
+        removedIds.push(item.favoriteId);
+      } catch {
+        failedCount += 1;
+      }
+    }
+
+    if (removedIds.length > 0) {
+      if (section === 'SPACE') {
+        setSpaceItemsRaw((prev) =>
+          prev.filter((item) => !removedIds.includes(item.favoriteId)),
+        );
+      } else {
+        setPageItemsRaw((prev) =>
+          prev.filter((item) => !removedIds.includes(item.favoriteId)),
+        );
+      }
+    }
+
+    setState((prev) => ({
+      ...prev,
+      canceling: false,
+      error: prev.error,
+    }));
+
+    return { removedIds, failedCount };
+  }
+
   return {
     section,
     setSection,
@@ -128,5 +189,6 @@ export function useFavoritesData(): FavoriteDataState {
     state,
     spaceItems,
     pageItems,
+    cancelFavorites,
   };
 }
