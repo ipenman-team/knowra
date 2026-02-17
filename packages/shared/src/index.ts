@@ -2,3 +2,4 @@ export * from './page-tree';
 export * from './activity-api';
 export * from './daily-copy-api';
 export * from './http/response.dto';
+export * from './http/error-codes';
