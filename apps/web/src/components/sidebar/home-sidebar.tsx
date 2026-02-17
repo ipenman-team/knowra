@@ -1,7 +1,6 @@
 'use client';
 
 import { memo, useCallback, useEffect, useState } from 'react';
-import { usePageSelectionStore } from '@/stores';
 import type { ViewId } from '@/features/home/types';
 import { AccountMenu } from '../account-menu';
 import { useNavigation } from '@/lib/navigation';
@@ -24,7 +23,7 @@ import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
 import { SpaceIcon } from '@/components/icon/space.icon';
 
-import { EllipsisIcon, PlusIcon } from 'lucide-react';
+import { EllipsisIcon, PlusIcon, StarIcon } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
 import EditSpaceModal from '../space/edit-space-modal';
 import { Button } from '../ui/button';
@@ -170,6 +169,19 @@ export const HomeSidebar = memo(function HomeSidebar() {
                       {!isCollapsed && (
                         <span className="truncate">ContextA AI</span>
                       )}
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem
+                  key="favorites"
+                  onClick={() => handleSelectView('favorites')}
+                >
+                  <SidebarMenuButton asChild tooltip="我的收藏">
+                    <div
+                      className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
+                    >
+                      <StarIcon size={iconSize} />
+                      {!isCollapsed && <span className="truncate">我的收藏</span>}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

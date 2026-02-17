@@ -94,6 +94,9 @@ export function useViewRoute(): NavigationView | null {
     if (pathname === '/contexta-ai' || pathname.startsWith('/contexta-ai/')) {
       return 'contexta-ai';
     }
+    if (pathname === '/favorites' || pathname.startsWith('/favorites/')) {
+      return 'favorites';
+    }
     if (pathname === '/settings' || pathname.startsWith('/settings/')) {
       return 'settings';
     }

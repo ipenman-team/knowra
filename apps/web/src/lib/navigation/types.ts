@@ -9,9 +9,10 @@
  *
  * - workbench: 工作台
  * - contexta-ai: ContextA AI 模块
+ * - favorites: 我的收藏
  * - settings: 设置页面
  */
-export type NavigationView = 'workbench' | 'contexta-ai' | 'settings';
+export type NavigationView = 'workbench' | 'contexta-ai' | 'favorites' | 'settings';
 
 /**
  * 导航选项

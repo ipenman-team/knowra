@@ -110,6 +110,9 @@ export const PageHeader = () => {
         targetType: 'PAGE',
         targetId: activePage.id,
         favorite: nextFavorite,
+        extraData: {
+          spaceId: activePage.spaceId ?? null,
+        },
       });
       toast.success(nextFavorite ? '已收藏页面' : '已取消收藏');
     } catch {
