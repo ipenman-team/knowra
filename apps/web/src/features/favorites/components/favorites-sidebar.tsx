@@ -33,7 +33,6 @@ export function FavoritesSidebar(props: FavoritesSidebarProps) {
                 isActive={props.section === 'SPACE'}
                 onClick={() => props.onSectionChange('SPACE')}
               >
-                <Building2 className="h-4 w-4" />
                 <span>空间</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -42,7 +41,6 @@ export function FavoritesSidebar(props: FavoritesSidebarProps) {
                 isActive={props.section === 'PAGE'}
                 onClick={() => props.onSectionChange('PAGE')}
               >
-                <FileText className="h-4 w-4" />
                 <span>页面</span>
               </SidebarMenuButton>
             </SidebarMenuItem>

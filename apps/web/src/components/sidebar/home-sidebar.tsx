@@ -23,7 +23,7 @@ import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
 import { SpaceIcon } from '@/components/icon/space.icon';
 
-import { EllipsisIcon, PlusIcon, StarIcon } from 'lucide-react';
+import { BookmarkCheckIcon, EllipsisIcon, PlusIcon, StarIcon } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
 import EditSpaceModal from '../space/edit-space-modal';
 import { Button } from '../ui/button';
@@ -37,6 +37,7 @@ import {
 import { BotIcon } from '../icon/bot.icon';
 import { WorkbenchIcon } from '../icon/workbench.icon';
 import { Empty } from '../empty';
+import { MarkIcon } from '../icon/mark';
 
 export const HomeSidebar = memo(function HomeSidebar() {
   const { navigateToView, navigateToSpace } = useNavigation();
@@ -180,7 +181,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     <div
                       className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
-                      <StarIcon size={iconSize} />
+                      <MarkIcon size={iconSize} />
                       {!isCollapsed && <span className="truncate">我的收藏</span>}
                     </div>
                   </SidebarMenuButton>

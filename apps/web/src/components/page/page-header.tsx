@@ -60,7 +60,9 @@ export const PageHeader = () => {
   const pagePublishing = usePageContentStore((s) => s.pagePublishing);
   const pageLoading = usePageContentStore((s) => s.pageLoading);
   const lastSavedAt = activePage?.updatedAt ?? null;
-  const lastPublishedAt = usePageContentStore((s) => s.publishedSnapshot?.updatedAt ?? null);
+  const lastPublishedAt = usePageContentStore(
+    (s) => s.publishedSnapshot?.updatedAt ?? null,
+  );
   const timeText =
     pageMode === 'edit'
       ? formatRelativeDateTime(lastSavedAt)
@@ -147,7 +149,10 @@ export const PageHeader = () => {
 
     try {
       contentStore.setPagePublishing(true);
-      const publishedResult = await pagesApi.publish(activePage.spaceId, activePage.id);
+      const publishedResult = await pagesApi.publish(
+        activePage.spaceId,
+        activePage.id,
+      );
 
       const nextPage = {
         ...saved,
@@ -188,12 +193,10 @@ export const PageHeader = () => {
   };
 
   return (
-    <div
-      className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur"
-    >
+    <div className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur">
       <div className="flex items-center">
         <Button variant="link">
-          {pageLoading ? '加载中…' : (activePage?.title?.trim() || '无标题文档')}
+          {pageLoading ? '加载中…' : activePage?.title?.trim() || '无标题文档'}
         </Button>
         {timeText ? (
           <span
@@ -206,9 +209,10 @@ export const PageHeader = () => {
       </div>
       <div>
         {pageMode === 'preview' ? (
-          <div className="flex items-center">
+          <div className="flex items-center text-primary/70">
             <Button
-              variant="link"
+              variant="ghost"
+              size="icon"
               disabled={!activePage || favoriteLoading}
               onClick={handleToggleFavorite}
               title={favorite ? '取消收藏' : '收藏页面'}
@@ -218,14 +222,15 @@ export const PageHeader = () => {
               />
             </Button>
             <Button
-              variant="link"
+              variant="ghost"
+              size="icon"
               disabled={!activePage}
               onClick={() => setShareOpen(true)}
             >
               <Share2Icon className="w-4 h-4" />
             </Button>
             <Button
-              variant="link"
+              variant="ghost"
               disabled={!activePage}
               onClick={() => setPageMode('edit')}
             >
