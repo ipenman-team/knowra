@@ -196,7 +196,7 @@ function PageRows(props: {
       {props.items.map((item) => {
         const spaceText = item.spaceName
           ? item.spaceIdentifier
-            ? `${item.spaceName} (${item.spaceIdentifier})`
+            ? `${item.spaceName}`
             : item.spaceName
           : '--';
 
@@ -278,7 +278,7 @@ export function FavoritesTable(props: FavoritesTableProps) {
             </TableHead>
             <TableHead className="w-[31%]">名称</TableHead>
             <TableHead className="w-[31%]">
-              {props.section === 'SPACE' ? '标识' : '所属空间'}
+              {props.section === 'SPACE' ? '标识' : '所属'}
             </TableHead>
             <TableHead className="w-[23%]">收藏时间</TableHead>
             <TableHead className="w-[15%] text-right">操作</TableHead>
