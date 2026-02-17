@@ -141,7 +141,7 @@ export const ProfileModal = memo(function ProfileModal({
       className="w-[calc(100vw-1rem)] max-w-[640px] max-h-[calc(100dvh-1rem)] overflow-hidden p-4 sm:p-6"
     >
       <form
-        className="max-h-[calc(100dvh-12rem)] space-y-4 overflow-y-auto pr-1"
+        className="max-h-[calc(100dvh-12rem)] space-y-4 overflow-y-auto px-1"
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
