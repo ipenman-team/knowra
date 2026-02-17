@@ -1,5 +1,4 @@
 import type { ComponentProps } from 'react';
-import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,9 +12,9 @@ import {
 import { ActivityGrid } from './activity-grid';
 import { ActivityLineChart } from './activity-line-chart';
 import { ChartLineIcon, Grid3X3Icon, RotateCcwIcon } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/provider';
 
 type ActivityOverviewCardProps = {
-  today: Date;
   selectedYear: number;
   yearOptions: number[];
   viewMode: 'grid' | 'line';
@@ -28,7 +27,6 @@ type ActivityOverviewCardProps = {
 };
 
 export function ActivityOverviewCard({
-  today,
   selectedYear,
   yearOptions,
   viewMode,
@@ -39,12 +37,14 @@ export function ActivityOverviewCard({
   statusText,
   onJumpToToday,
 }: ActivityOverviewCardProps) {
+  const { t } = useI18n();
+
   return (
-    <Card className='border-none shadow-none'>
+    <Card className="relative border-none shadow-none">
       <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center">
-            <CardTitle>活跃度</CardTitle>
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex items-center gap-1">
+            <CardTitle>{t('workbench.activity')}</CardTitle>
             {onJumpToToday ? (
               <Button
                 type="button"
@@ -55,13 +55,8 @@ export function ActivityOverviewCard({
                 <RotateCcwIcon />
               </Button>
             ) : null}
-            {statusText ? (
-              <div className="mt-1 text-xs text-muted-foreground">
-                {statusText}
-              </div>
-            ) : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <div className="flex items-center gap-1 rounded-md p-1">
               <Button
                 type="button"
@@ -82,20 +77,23 @@ export function ActivityOverviewCard({
             </div>
             <Select value={String(selectedYear)} onValueChange={onYearChange}>
               <SelectTrigger className="h-9 w-[110px]">
-                <SelectValue placeholder="选择年份" />
+                <SelectValue placeholder={t('workbench.selectYear')} />
               </SelectTrigger>
               <SelectContent>
                 {yearOptions.map((year) => (
                   <SelectItem key={year} value={String(year)}>
-                    {year} 年
+                    {year}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {statusText ? (
+            <div className="text-xs text-muted-foreground">{statusText}</div>
+          ) : null}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 overflow-hidden">
         {viewMode === 'grid' ? (
           <ActivityGrid {...gridProps} />
         ) : (

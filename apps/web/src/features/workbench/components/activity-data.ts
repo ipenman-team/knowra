@@ -18,22 +18,22 @@ export const ACTIVITY_LEVELS = [
 ];
 
 export const CHART_RANGES = [
-  { label: '近 30 天', value: 30 },
-  { label: '近 90 天', value: 90 },
-  { label: '近 180 天', value: 180 },
-  { label: '近 365 天', value: 365 },
+  { labelKey: 'workbench.range30', value: 30 },
+  { labelKey: 'workbench.range90', value: 90 },
+  { labelKey: 'workbench.range180', value: 180 },
+  { labelKey: 'workbench.range365', value: 365 },
 ];
 
 export const getDateKey = (date: Date) => format(date, 'yyyy-MM-dd');
 
-export const getGreeting = (date: Date) => {
+export const getGreetingKey = (date: Date) => {
   const hour = date.getHours();
-  if (hour < 6) return '凌晨好';
-  if (hour < 9) return '早上好';
-  if (hour < 12) return '上午好';
-  if (hour < 14) return '中午好';
-  if (hour < 18) return '下午好';
-  return '晚上好';
+  if (hour < 6) return 'workbench.greeting.beforeDawn';
+  if (hour < 9) return 'workbench.greeting.morning';
+  if (hour < 12) return 'workbench.greeting.forenoon';
+  if (hour < 14) return 'workbench.greeting.noon';
+  if (hour < 18) return 'workbench.greeting.afternoon';
+  return 'workbench.greeting.evening';
 };
 
 export const getActivityLevel = (count: number) => {

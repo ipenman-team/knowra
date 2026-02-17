@@ -9,9 +9,10 @@ import {
 } from 'react';
 
 import type { DailyCopyDto, DailyCopyMetadata } from '@contexta/shared';
-import { Bookmark, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 import { dailyCopiesApi } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/provider';
 import { cn } from '@/lib/utils';
 
 type DailyCopyWidgetProps = {
@@ -19,6 +20,7 @@ type DailyCopyWidgetProps = {
 };
 
 export function DailyCopyWidget({ className }: DailyCopyWidgetProps) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [item, setItem] = useState<DailyCopyDto | null>(null);
@@ -26,7 +28,6 @@ export function DailyCopyWidget({ className }: DailyCopyWidgetProps) {
   const [likeBurst, setLikeBurst] = useState(false);
   const [likePending, setLikePending] = useState(false);
   const likeTimerRef = useRef<number | null>(null);
-  const bookmarkTimerRef = useRef<number | null>(null);
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     if (err instanceof Error) return err.message || fallback;
@@ -41,11 +42,11 @@ export function DailyCopyWidget({ className }: DailyCopyWidgetProps) {
       const res = await dailyCopiesApi.getToday();
       setItem(res.item);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, '加载失败'));
+      setError(getErrorMessage(err, t('workbench.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -57,14 +58,14 @@ export function DailyCopyWidget({ className }: DailyCopyWidgetProps) {
     setLiked(Boolean(metadata?.liked));
   }, [item]);
 
-  useEffect(() => {
-    return () => {
-      if (likeTimerRef.current) window.clearTimeout(likeTimerRef.current);
-      if (bookmarkTimerRef.current) {
-        window.clearTimeout(bookmarkTimerRef.current);
-      }
-    };
+  const clearLikeTimer = useCallback(() => {
+    if (likeTimerRef.current) {
+      window.clearTimeout(likeTimerRef.current);
+      likeTimerRef.current = null;
+    }
   }, []);
+
+  useEffect(() => clearLikeTimer, [clearLikeTimer]);
 
   const triggerBurst = (
     setter: (value: boolean) => void,
@@ -105,12 +106,12 @@ export function DailyCopyWidget({ className }: DailyCopyWidgetProps) {
     <div className={cn('text-left', className)}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs font-medium tracking-[0.3em] text-muted-foreground">
-          每日一句
+          {t('workbench.dailyQuote')}
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            aria-label={liked ? '取消喜欢' : '喜欢'}
+            aria-label={liked ? t('workbench.unlike') : t('workbench.like')}
             aria-pressed={liked}
             onClick={triggerLike}
             disabled={!item || likePending}
@@ -137,7 +138,7 @@ export function DailyCopyWidget({ className }: DailyCopyWidgetProps) {
       </div>
 
       <div className="mt-2 min-h-[44px] text-base leading-relaxed text-foreground/70">
-        {loading ? '加载中…' : item?.content ?? '今天还没有生成文案。'}
+        {loading ? t('common.loading') : item?.content ?? t('workbench.noCopyToday')}
       </div>
       {error ? <div className="mt-3 text-xs text-destructive">{error}</div> : null}
     </div>

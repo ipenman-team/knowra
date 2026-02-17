@@ -12,15 +12,17 @@ import {
   buildDailySeries,
   buildYearGrid,
   getDateKey,
-  getGreeting,
+  getGreetingKey,
 } from './components/activity-data';
 import { ActivityList } from './components/activity-list';
 import { ActivityOverviewCard } from './components/activity-overview-card';
 import { ProfileCard } from './components/profile-card';
 import { workbenchApi } from '@/lib/api';
 import { useMeStore } from '@/stores';
+import { useI18n } from '@/lib/i18n/provider';
 
 export const WorkbenchContainer = () => {
+  const { t } = useI18n();
   const today = useMemo(() => new Date(), []);
   const todayYear = today.getFullYear();
   const ensureMeLoaded = useMeStore((s) => s.ensureLoaded);
@@ -95,10 +97,11 @@ export const WorkbenchContainer = () => {
     });
   };
 
-  const greeting = getGreeting(today);
-  const displayName = profile?.nickname?.trim() || '未命名用户';
+  const greeting = t(getGreetingKey(today));
+  const displayName = profile?.nickname?.trim() || t('workbench.unnamedUser');
   const avatarUrl = profile?.avatarUrl ?? undefined;
   const actorUserId = user?.id;
+  const loadFailedText = t('workbench.loadFailed');
 
   useEffect(() => {
     void ensureMeLoaded();
@@ -129,7 +132,7 @@ export const WorkbenchContainer = () => {
         gridFetchedKeyRef.current = requestKey;
       } catch (error) {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : '加载失败';
+        const message = error instanceof Error ? error.message : loadFailedText;
         setGridError(message);
         if (gridRequestKeyRef.current === requestKey) {
           gridRequestKeyRef.current = null;
@@ -150,7 +153,7 @@ export const WorkbenchContainer = () => {
         setGridLoading(false);
       }
     };
-  }, [actorUserId, meLoaded, selectedYear, viewMode]);
+  }, [actorUserId, loadFailedText, meLoaded, selectedYear, viewMode]);
 
   useEffect(() => {
     if (!meLoaded || !actorUserId || viewMode !== 'line') return;
@@ -180,7 +183,7 @@ export const WorkbenchContainer = () => {
         lineFetchedKeyRef.current = requestKey;
       } catch (error) {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : '加载失败';
+        const message = error instanceof Error ? error.message : loadFailedText;
         setLineError(message);
         if (lineRequestKeyRef.current === requestKey) {
           lineRequestKeyRef.current = null;
@@ -201,7 +204,14 @@ export const WorkbenchContainer = () => {
         setLineLoading(false);
       }
     };
-  }, [actorUserId, lineRange.endDate, lineRange.startDate, meLoaded, viewMode]);
+  }, [
+    actorUserId,
+    lineRange.endDate,
+    lineRange.startDate,
+    loadFailedText,
+    meLoaded,
+    viewMode,
+  ]);
 
   useEffect(() => {
     if (!meLoaded || !actorUserId) return;
@@ -221,7 +231,7 @@ export const WorkbenchContainer = () => {
         setTodayCount(res.items?.[0]?.count ?? 0);
       } catch (error) {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : '加载失败';
+        const message = error instanceof Error ? error.message : loadFailedText;
         setTodayError(message);
       } finally {
         if (cancelled) return;
@@ -232,7 +242,7 @@ export const WorkbenchContainer = () => {
     return () => {
       cancelled = true;
     };
-  }, [actorUserId, meLoaded, today]);
+  }, [actorUserId, loadFailedText, meLoaded, today]);
 
   useEffect(() => {
     if (!meLoaded || !actorUserId) return;
@@ -255,7 +265,7 @@ export const WorkbenchContainer = () => {
         setDailyItems(res.items ?? []);
       } catch (error) {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : '加载失败';
+        const message = error instanceof Error ? error.message : loadFailedText;
         setDailyError(message);
       } finally {
         if (cancelled) return;
@@ -266,7 +276,7 @@ export const WorkbenchContainer = () => {
     return () => {
       cancelled = true;
     };
-  }, [actorUserId, meLoaded, selectedDate]);
+  }, [actorUserId, loadFailedText, meLoaded, selectedDate]);
 
   return (
     <ContainerLayout
@@ -274,8 +284,8 @@ export const WorkbenchContainer = () => {
       sidebar={<HomeSidebar />}
       insetClassName="min-h-0 overflow-auto lg:overflow-hidden"
     >
-      <div className="flex h-full min-h-0 flex-col gap-6 px-6 py-6 lg:px-11">
-        <div className="grid flex-1 min-h-0 grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+      <div className="flex min-h-full flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:h-full lg:min-h-0 lg:px-11">
+        <div className="grid min-h-0 grid-cols-1 gap-6 lg:flex-1 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
           <ProfileCard
             name={displayName}
             greeting={greeting}
@@ -286,9 +296,8 @@ export const WorkbenchContainer = () => {
             error={todayError}
           />
 
-          <div className="flex h-full min-h-0 flex-col gap-6">
+          <div className="flex min-h-0 flex-col gap-6 lg:h-full">
             <ActivityOverviewCard
-              today={today}
               selectedYear={selectedYear}
               yearOptions={yearOptions}
               viewMode={viewMode}
@@ -317,19 +326,19 @@ export const WorkbenchContainer = () => {
               statusText={
                 viewMode === 'grid'
                   ? gridLoading
-                    ? '加载中…'
+                    ? t('common.loading')
                     : gridError
-                      ? '加载失败'
+                      ? t('workbench.loadFailed')
                       : null
                   : lineLoading
-                    ? '加载中…'
+                    ? t('common.loading')
                     : lineError
-                      ? '加载失败'
+                      ? t('workbench.loadFailed')
                       : null
               }
             />
 
-            <div className="flex-1 min-h-0">
+            <div className="min-h-[20rem] lg:flex-1 lg:min-h-0">
               <ActivityList
                 selectedDate={selectedDate}
                 items={dailyItems}

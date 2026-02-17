@@ -23,7 +23,7 @@ import { useSpaceStore, useSpaces, useSpacesLoading } from '@/stores';
 import type { Space } from '@/stores/space-store';
 import { SpaceIcon } from '@/components/icon/space.icon';
 
-import { BookmarkCheckIcon, EllipsisIcon, PlusIcon, StarIcon } from 'lucide-react';
+import { EllipsisIcon, PlusIcon } from 'lucide-react';
 import CreateSpaceModal from '../space/create-space-modal';
 import EditSpaceModal from '../space/edit-space-modal';
 import { Button } from '../ui/button';
@@ -38,10 +38,12 @@ import { BotIcon } from '../icon/bot.icon';
 import { WorkbenchIcon } from '../icon/workbench.icon';
 import { Empty } from '../empty';
 import { MarkIcon } from '../icon/mark';
+import { useI18n } from '@/lib/i18n/provider';
 
 export const HomeSidebar = memo(function HomeSidebar() {
+  const { t } = useI18n();
   const { navigateToView, navigateToSpace } = useNavigation();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const spaces = useSpaces();
   const loading = useSpacesLoading();
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
@@ -56,11 +58,25 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
   const iconSize = isCollapsed ? '1.25rem' : '1rem';
 
+  const closeMobileSidebar = useCallback(() => {
+    if (!isMobile) return;
+    setOpenMobile(false);
+  }, [isMobile, setOpenMobile]);
+
   const handleSelectView = useCallback(
     (id: ViewId) => {
       navigateToView(id);
+      closeMobileSidebar();
     },
-    [navigateToView],
+    [closeMobileSidebar, navigateToView],
+  );
+
+  const handleSelectSpace = useCallback(
+    (spaceId: string) => {
+      navigateToSpace(spaceId);
+      closeMobileSidebar();
+    },
+    [closeMobileSidebar, navigateToSpace],
   );
 
   useEffect(() => {
@@ -100,7 +116,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
       try {
         await spacesApi.setFavorite(space.id, { favorite: nextFavorite });
-      } catch (error) {
+      } catch {
         setFavoriteIds((prev) => ({
           ...prev,
           [space.id]: !nextFavorite,
@@ -149,12 +165,16 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   key="workbench"
                   onClick={() => handleSelectView('workbench')}
                 >
-                  <SidebarMenuButton asChild tooltip="工作台">
+                  <SidebarMenuButton asChild tooltip={t('homeSidebar.workbench')}>
                     <div
-                      className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
+                      className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
                       <WorkbenchIcon size={iconSize} />
-                      {!isCollapsed && <span className="truncate">工作台</span>}
+                      {!isCollapsed && (
+                        <span className="min-w-0 flex-1 truncate">
+                          {t('homeSidebar.workbench')}
+                        </span>
+                      )}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -164,11 +184,13 @@ export const HomeSidebar = memo(function HomeSidebar() {
                 >
                   <SidebarMenuButton asChild tooltip="ContextA AI">
                     <div
-                      className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
+                      className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
                       <BotIcon fill color="#525252" size={iconSize} />
                       {!isCollapsed && (
-                        <span className="truncate">ContextA AI</span>
+                        <span className="min-w-0 flex-1 truncate">
+                          ContextA AI
+                        </span>
                       )}
                     </div>
                   </SidebarMenuButton>
@@ -177,12 +199,16 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   key="favorites"
                   onClick={() => handleSelectView('favorites')}
                 >
-                  <SidebarMenuButton asChild tooltip="我的收藏">
+                  <SidebarMenuButton asChild tooltip={t('homeSidebar.myFavorites')}>
                     <div
-                      className={`flex items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
+                      className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
                       <MarkIcon size={iconSize} />
-                      {!isCollapsed && <span className="truncate">我的收藏</span>}
+                      {!isCollapsed && (
+                        <span className="min-w-0 flex-1 truncate">
+                          {t('homeSidebar.myFavorites')}
+                        </span>
+                      )}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -193,7 +219,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
             {!isCollapsed && (
               <SidebarGroupLabel>
                 <div className="flex justify-between flex-1 items-center">
-                  空间
+                  {t('homeSidebar.spaces')}
                   <Button
                     variant="ghost"
                     className="h-6 w-6"
@@ -205,11 +231,11 @@ export const HomeSidebar = memo(function HomeSidebar() {
                 </div>
               </SidebarGroupLabel>
             )}
-            <SidebarGroupContent className="min-h-0 overflow-y-auto">
+            <SidebarGroupContent className="min-h-0 overflow-y-auto overflow-x-hidden">
               <SidebarMenu>
                 {isCollapsed && (
                   <SidebarMenuItem onClick={() => setOpenCreate(true)}>
-                    <SidebarMenuButton asChild tooltip="创建">
+                    <SidebarMenuButton asChild tooltip={t('homeSidebar.createSpace')}>
                       <div className="flex items-center gap-2 cursor-pointer text-muted-foreground justify-center">
                         <PlusIcon />
                       </div>
@@ -219,7 +245,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
 
                 {loading ? (
                   <div className="px-2 text-sm text-muted-foreground">
-                    加载中…
+                    {t('homeSidebar.loadingSpaces')}
                   </div>
                 ) : spaces.length === 0 ? (
                   <SidebarMenuItem>
@@ -230,19 +256,21 @@ export const HomeSidebar = memo(function HomeSidebar() {
                     <SidebarMenuItem
                       key={space.id}
                       onClick={() => {
-                        navigateToSpace(space.id);
+                        handleSelectSpace(space.id);
                       }}
                     >
                       <SidebarMenuButton asChild tooltip={space.name}>
                         <div
-                          className={`flex items-center gap-2 cursor-pointer text-muted-foreground text-lg ${isCollapsed && 'justify-center'}`}
+                          className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground text-lg ${isCollapsed && 'justify-center'}`}
                         >
                           <SpaceIcon
                             color={space.color as string}
                             size={iconSize}
                           />
                           {!isCollapsed && (
-                            <span className="truncate">{space.name}</span>
+                            <span className="min-w-0 flex-1 truncate">
+                              {space.name}
+                            </span>
                           )}
                         </div>
                       </SidebarMenuButton>
@@ -256,7 +284,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                                 event.preventDefault();
                                 event.stopPropagation();
                               }}
-                              aria-label="更多"
+                              aria-label={t('common.more')}
                             >
                               <EllipsisIcon />
                             </SidebarMenuAction>
@@ -275,7 +303,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
                                 openEditor(space);
                               }}
                             >
-                              编辑
+                              {t('common.edit')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -287,7 +315,9 @@ export const HomeSidebar = memo(function HomeSidebar() {
                                 void toggleFavorite(space);
                               }}
                             >
-                              {favoriteIds[space.id] ? '取消收藏' : '收藏'}
+                              {favoriteIds[space.id]
+                                ? t('common.unfavorite')
+                                : t('common.favorite')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

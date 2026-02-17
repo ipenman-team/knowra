@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { useMemo } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,6 +12,7 @@ import {
 import { ActivityItem } from '@contexta/shared';
 import { mapActivityItems } from './activity-list-helper';
 import { Empty } from '@/components/empty';
+import { useI18n } from '@/lib/i18n/provider';
 
 type ActivityListProps = {
   selectedDate: Date;
@@ -26,15 +27,26 @@ export function ActivityList({
   loading,
   error,
 }: ActivityListProps) {
+  const { t, locale } = useI18n();
   const activityItems = mapActivityItems(items);
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [locale],
+  );
 
   return (
     <Card className="flex h-full flex-col border-none shadow-none">
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>当日动态</CardTitle>
+          <CardTitle>{t('workbench.dayActivityTitle')}</CardTitle>
           <div className="text-sm text-muted-foreground">
-            {format(selectedDate, 'yyyy年M月d日')} · {items.length} 条
+            {dateFormatter.format(selectedDate)} · {items.length}{' '}
+            {t('workbench.itemSuffix')}
           </div>
         </div>
       </CardHeader>
@@ -43,9 +55,9 @@ export function ActivityList({
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow className="text-xs text-muted-foreground">
-              <TableHead className="w-[140px]">名称</TableHead>
-              <TableHead>详情</TableHead>
-              <TableHead className="w-[80px]">时间</TableHead>
+                <TableHead className="w-[140px]">{t('workbench.name')}</TableHead>
+                <TableHead>{t('workbench.detail')}</TableHead>
+                <TableHead className="w-[80px]">{t('workbench.time')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -53,7 +65,7 @@ export function ActivityList({
                 <TableRow>
                   <TableCell colSpan={3} className="p-0">
                     <div className="rounded-lg p-6 text-center text-sm text-muted-foreground">
-                      加载中…
+                      {t('common.loading')}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -68,7 +80,7 @@ export function ActivityList({
               ) : activityItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="p-0">
-                    <Empty className="border-0 p-4" text="暂无动态" />
+                    <Empty className="border-0 p-4" text={t('workbench.noActivity')} />
                   </TableCell>
                 </TableRow>
               ) : (

@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { useMemo } from 'react';
 
 import {
   Select,
@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CHART_RANGES } from './activity-data';
+import { useI18n } from '@/lib/i18n/provider';
 
 type ActivityLineChartProps = {
   lineData: { date: Date; count: number }[];
@@ -28,27 +29,38 @@ export function ActivityLineChart({
   maxLineCount,
   today,
 }: ActivityLineChartProps) {
+  const { t, locale } = useI18n();
   const startDate = lineData[0]?.date ?? today;
   const endDate = lineData.at(-1)?.date ?? today;
   const span = lineData.length - 1 || 1;
+  const monthDayFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        month: 'short',
+        day: 'numeric',
+      }),
+    [locale],
+  );
+  const startLabel = monthDayFormatter.format(startDate);
+  const endLabel = monthDayFormatter.format(endDate);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm text-muted-foreground">
-          时间区间：{format(startDate, 'M月d日')}-{format(endDate, 'M月d日')}
+          {t('workbench.timeRange')}: {startLabel}-{endLabel}
         </div>
         <Select
           value={String(rangeDays)}
           onValueChange={(value) => onRangeChange(Number(value))}
         >
           <SelectTrigger className="h-9 w-[120px]">
-            <SelectValue placeholder="选择区间" />
+            <SelectValue placeholder={t('workbench.selectRange')} />
           </SelectTrigger>
           <SelectContent>
             {CHART_RANGES.map((range) => (
               <SelectItem key={range.value} value={String(range.value)}>
-                {range.label}
+                {t(range.labelKey)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -59,7 +71,7 @@ export function ActivityLineChart({
           viewBox={`0 0 ${chartSize.width} ${chartSize.height}`}
           className="h-[220px] w-full"
           role="img"
-          aria-label="动态折线图"
+          aria-label={t('workbench.lineChartAria')}
         >
           <line
             x1={chartSize.padding}
@@ -109,9 +121,11 @@ export function ActivityLineChart({
           })}
         </svg>
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-          <span>{format(startDate, 'M月d日')}</span>
-          <span>峰值 {maxLineCount} 次</span>
-          <span>{format(endDate, 'M月d日')}</span>
+          <span>{startLabel}</span>
+          <span>
+            {t('workbench.peak')} {maxLineCount} {t('workbench.times')}
+          </span>
+          <span>{endLabel}</span>
         </div>
       </div>
     </div>

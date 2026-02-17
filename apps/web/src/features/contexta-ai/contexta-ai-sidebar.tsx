@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 
 import {
   Sidebar,
@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   InputGroup,
@@ -42,6 +43,7 @@ import { Search, Plus, EllipsisIcon, Pin } from 'lucide-react';
 import type { ContextaAiConversation } from '@/features/contexta-ai/types';
 import { Separator } from '@/components/ui/separator';
 import { buttonVariants } from '@/components/ui/button';
+import { useI18n } from '@/lib/i18n/provider';
 
 export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   conversations: ContextaAiConversation[];
@@ -52,6 +54,9 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
   onTogglePinConversation: (id: string) => void;
   onDeleteConversation: (id: string) => Promise<void>;
 }) {
+  const { t } = useI18n();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const { onSelectConversation, onNewConversation } = props;
   const [keyword, setKeyword] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -73,6 +78,24 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
       return b.updatedAt - a.updatedAt;
     });
   }, [filtered]);
+
+  const closeMobileSidebar = useCallback(() => {
+    if (!isMobile) return;
+    setOpenMobile(false);
+  }, [isMobile, setOpenMobile]);
+
+  const handleSelectConversation = useCallback(
+    (id: string) => {
+      onSelectConversation(id);
+      closeMobileSidebar();
+    },
+    [closeMobileSidebar, onSelectConversation],
+  );
+
+  const handleNewConversation = useCallback(() => {
+    onNewConversation();
+    closeMobileSidebar();
+  }, [closeMobileSidebar, onNewConversation]);
 
   function beginRename(id: string, title: string) {
     setRenamingId(id);
@@ -119,7 +142,7 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
       <SidebarHeader className="p-4">
         <InputGroup>
           <InputGroupInput
-            placeholder="搜索..."
+            placeholder={t('contextaAiSidebar.searchPlaceholder')}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
@@ -131,18 +154,18 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
 
       <SidebarContent className="gap-0">
         <SidebarGroup className="pt-0">
-          <SidebarGroupLabel>历史对话</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('contextaAiSidebar.history')}</SidebarGroupLabel>
           <SidebarMenu>
             {items.length === 0 ? (
               <div className="px-2 py-2 text-sm text-muted-foreground">
-                暂无对话
+                {t('contextaAiSidebar.empty')}
               </div>
             ) : (
               items.map((c) => (
                 <SidebarMenuItem key={c.id}>
                   <SidebarMenuButton
                     isActive={c.id === props.activeId}
-                    onClick={() => props.onSelectConversation(c.id)}
+                    onClick={() => handleSelectConversation(c.id)}
                   >
                     {c.pinned ? (
                       <Pin className="text-muted-foreground" />
@@ -166,7 +189,9 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
                         className="h-7 flex-1"
                       />
                     ) : (
-                      <span>{c.title || '未命名对话'}</span>
+                      <span>
+                        {c.title || t('contextaAiSidebar.untitledConversation')}
+                      </span>
                     )}
                   </SidebarMenuButton>
 
@@ -178,7 +203,7 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
                           e.preventDefault();
                           e.stopPropagation();
                         }}
-                        aria-label="更多"
+                        aria-label={t('common.more')}
                       >
                         <EllipsisIcon />
                       </SidebarMenuAction>
@@ -189,14 +214,16 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
                           beginRename(c.id, c.title);
                         }}
                       >
-                        重命名
+                        {t('contextaAiSidebar.rename')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={() => {
                           props.onTogglePinConversation(c.id);
                         }}
                       >
-                        {c.pinned ? '取消置顶' : '置顶'}
+                        {c.pinned
+                          ? t('contextaAiSidebar.unpin')
+                          : t('contextaAiSidebar.pin')}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -205,7 +232,7 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
                           handleOpenDelete(c);
                         }}
                       >
-                        删除
+                        {t('common.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -220,11 +247,12 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={props.onNewConversation}
-              className="border-2 border-blue-400 hover:bg-blue-100 bg-blue-50 flex justify-center"
+              onClick={handleNewConversation}
+              variant="outline"
+              className="justify-center font-medium"
             >
               <Plus />
-              <span>新对话</span>
+              <span>{t('contextaAiSidebar.newConversation')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -235,15 +263,19 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>删除对话</AlertDialogTitle>
+            <AlertDialogTitle>{t('contextaAiSidebar.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget
-                ? `确认删除“${deleteTarget.title || '未命名对话'}”？删除后无法恢复。`
+                ? `${t('contextaAiSidebar.deletePrompt')}“${
+                    deleteTarget.title || t('contextaAiSidebar.untitledConversation')
+                  }”${t('contextaAiSidebar.deletePromptSuffix')}`
                 : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletePending}>取消</AlertDialogCancel>
+            <AlertDialogCancel disabled={deletePending}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={!deleteTarget || deletePending}
               className={buttonVariants({ variant: 'destructive' })}
@@ -252,7 +284,7 @@ export const ContextaAiSidebar = memo(function ContextaAiSidebar(props: {
                 void handleConfirmDelete();
               }}
             >
-              {deletePending ? '删除中…' : '确认删除'}
+              {deletePending ? t('common.deleting') : t('common.confirmDelete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

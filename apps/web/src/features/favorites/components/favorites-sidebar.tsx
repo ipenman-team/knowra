@@ -1,17 +1,18 @@
 'use client';
 
-import { Building2, FileText } from 'lucide-react';
+import { useCallback } from 'react';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import type { FavoriteSection } from '../types';
+import { useI18n } from '@/lib/i18n/provider';
 
 type FavoritesSidebarProps = {
   section: FavoriteSection;
@@ -19,28 +20,42 @@ type FavoritesSidebarProps = {
 };
 
 export function FavoritesSidebar(props: FavoritesSidebarProps) {
+  const { t } = useI18n();
+  const { section, onSectionChange } = props;
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleSectionChange = useCallback(
+    (section: FavoriteSection) => {
+      onSectionChange(section);
+      if (isMobile) {
+        setOpenMobile(false);
+      }
+    },
+    [isMobile, onSectionChange, setOpenMobile],
+  );
+
   return (
     <Sidebar collapsible="icon" variant="sidebar" className="h-full">
       <SidebarHeader className="p-4">
-        <div className="text-sm font-semibold">我的收藏</div>
+        <div className="text-sm font-semibold">{t('favoritesSidebar.title')}</div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                isActive={props.section === 'SPACE'}
-                onClick={() => props.onSectionChange('SPACE')}
+                isActive={section === 'SPACE'}
+                onClick={() => handleSectionChange('SPACE')}
               >
-                <span>空间</span>
+                <span>{t('favoritesSidebar.space')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                isActive={props.section === 'PAGE'}
-                onClick={() => props.onSectionChange('PAGE')}
+                isActive={section === 'PAGE'}
+                onClick={() => handleSectionChange('PAGE')}
               >
-                <span>页面</span>
+                <span>{t('favoritesSidebar.page')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

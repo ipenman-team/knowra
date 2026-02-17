@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import {
 } from '@/components/ui/hover-card';
 import { Separator } from '@/components/ui/separator';
 import { DailyCopyWidget } from './daily-copy-widget';
+import { useI18n } from '@/lib/i18n/provider';
 
 type ProfileCardProps = {
   name: string;
@@ -32,8 +32,45 @@ export function ProfileCard({
   loading,
   error,
 }: ProfileCardProps) {
+  const { t, locale } = useI18n();
   const fallback = name?.trim().slice(0, 1) || 'U';
   const [now, setNow] = useState(() => new Date());
+
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [locale],
+  );
+  const weekdayFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        weekday: 'short',
+      }),
+    [locale],
+  );
+  const clockFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }),
+    [locale],
+  );
+  const updateTimeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+    [locale],
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -43,10 +80,13 @@ export function ProfileCard({
     return () => window.clearInterval(timer);
   }, []);
 
-  const weekLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  const weekdayLabel = weekLabels[now.getDay()] ?? '周日';
-  const dateLabel = format(now, 'yyyy年M月d日');
-  const timeLabel = format(now, 'HH:mm:ss');
+  const weekdayLabel = weekdayFormatter.format(now);
+  const dateLabel = dateFormatter.format(now);
+  const timeLabel = clockFormatter.format(now);
+  const updatedAtLabel = updateTimeFormatter.format(updatedAt);
+  const todayCountText = loading
+    ? t('common.loading')
+    : `${todayCount} ${t('workbench.itemSuffix')}`;
 
   return (
     <Card className="relative h-fit overflow-hidden border-none bg-card/90 shadow-none">
@@ -70,7 +110,7 @@ export function ProfileCard({
             <HoverCardTrigger asChild>
               <div className="flex flex-col items-center gap-3">
                 <Avatar className="h-24 w-24 border shadow-sm transition-transform duration-300 hover:scale-[1.02]">
-                  <AvatarImage src={avatarUrl ?? ''} alt={`${name} 头像`} />
+                  <AvatarImage src={avatarUrl ?? ''} alt={name} />
                   <AvatarFallback className="text-xl">
                     {fallback}
                   </AvatarFallback>
@@ -79,10 +119,10 @@ export function ProfileCard({
             </HoverCardTrigger>
             <HoverCardContent className="w-64">
               <div className="text-sm font-medium">
-                今日动态：{loading ? '加载中…' : `${todayCount} 条`}
+                {t('workbench.todayEvents')}: {todayCountText}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
-                最近更新时间：{format(updatedAt, 'HH:mm')}
+                {t('workbench.lastUpdated')}: {updatedAtLabel}
               </div>
             </HoverCardContent>
           </HoverCard>
@@ -103,7 +143,7 @@ export function ProfileCard({
 
         <div className="rounded-2xl border bg-muted/30 p-5 text-center shadow-sm">
           <div className="text-xs font-medium tracking-[0.25em] text-muted-foreground">
-            今日活跃度
+            {t('workbench.todayActivity')}
           </div>
           <div className="mt-2 text-3xl font-semibold text-foreground">
             {loading ? '—' : todayCount}
