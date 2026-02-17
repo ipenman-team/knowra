@@ -16,6 +16,7 @@ import { ActivityModule } from './activity/activity.module';
 import { DailyCopyModule } from './daily-copy/daily-copy.module';
 import { ShareModule } from './share/share.module';
 import { SiteBuilderModule } from './site-builder/site-builder.module';
+import { FavoriteModule } from './favorite/favorite.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { SiteBuilderModule } from './site-builder/site-builder.module';
     DailyCopyModule,
     ShareModule,
     SiteBuilderModule,
+    FavoriteModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware],

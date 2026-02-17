@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,7 +8,9 @@ import {
   Post,
   Put,
   Query,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { SetFavoriteUseCase } from '@contexta/application';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { SpaceService } from './space.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
@@ -19,7 +22,10 @@ import { ListResponse, Response } from '@contexta/shared';
 
 @Controller('spaces')
 export class SpaceController {
-  constructor(private readonly spaceService: SpaceService) {}
+  constructor(
+    private readonly spaceService: SpaceService,
+    private readonly setFavoriteUseCase: SetFavoriteUseCase,
+  ) {}
 
   @Post()
   async createSpace(
@@ -73,12 +79,21 @@ export class SpaceController {
     @Param('id') id: string,
     @Body() body: SetSpaceFavoriteDto,
   ) {
-    const result = await this.spaceService.setFavorite(
+    if (!userId) throw new UnauthorizedException('unauthorized');
+    if (typeof body?.favorite !== 'boolean') {
+      throw new BadRequestException('favorite must be boolean');
+    }
+
+    await this.spaceService.get(tenantId, id);
+
+    const result = await this.setFavoriteUseCase.set({
       tenantId,
-      id,
-      body,
       userId,
-    );
+      targetType: 'SPACE',
+      targetId: id,
+      favorite: body.favorite,
+    });
+
     return new Response(result);
   }
 

@@ -153,7 +153,7 @@ export const PageEditor = memo(function PageEditor() {
         disabled={pageLoading}
         readOnly={isPreview}
         showToolbar={!isPreview}
-        placeholder={isPreview ? undefined : '直接输入正文…'}
+        placeholder={isPreview ? undefined : '输入 / 唤起工具栏'}
         topContent={
           isPreview ? (
             <EditorTitleDisplay title={previewTitle} />

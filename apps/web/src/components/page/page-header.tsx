@@ -1,6 +1,6 @@
 'use client';
 
-import { pageVersionsApi, pagesApi } from '@/lib/api';
+import { favoritesApi, pageVersionsApi, pagesApi } from '@/lib/api';
 import type { PageDto } from '@/lib/api';
 import { saveDraft } from '@/lib/page/save-draft';
 import {
@@ -14,7 +14,7 @@ import {
   PencilLineIcon,
   SendIcon,
   Share2Icon,
-  UserRoundPlusIcon,
+  StarIcon,
   XIcon,
 } from 'lucide-react';
 import {
@@ -29,7 +29,7 @@ import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { toast } from 'sonner';
 import { PageHeaderMoreMenu } from './page-header-more-menu';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShareModal } from '../share/share-modal';
 
 function formatRelativeDateTime(timestamp: string | null): string | null {
@@ -49,6 +49,8 @@ function formatRelativeDateTime(timestamp: string | null): string | null {
 
 export const PageHeader = () => {
   const [shareOpen, setShareOpen] = useState(false);
+  const [favorite, setFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const activePage = useActivePage();
   const setPageMode = usePageContentStore((s) => s.setPageMode);
   const pageMode = usePageContentStore((s) => s.pageMode);
@@ -64,6 +66,58 @@ export const PageHeader = () => {
       ? formatRelativeDateTime(lastSavedAt)
       : formatRelativeDateTime(lastPublishedAt);
   const timeTitle = pageMode === 'edit' ? '已保存' : '发布于';
+
+  useEffect(() => {
+    if (!activePage?.id) {
+      setFavorite(false);
+      setFavoriteLoading(false);
+      return;
+    }
+
+    let canceled = false;
+    setFavoriteLoading(true);
+
+    favoritesApi
+      .getStatus({ targetType: 'PAGE', targetId: activePage.id })
+      .then((result) => {
+        if (canceled) return;
+        setFavorite(Boolean(result.favorite));
+      })
+      .catch(() => {
+        if (canceled) return;
+        setFavorite(false);
+      })
+      .finally(() => {
+        if (canceled) return;
+        setFavoriteLoading(false);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [activePage?.id]);
+
+  const handleToggleFavorite = async () => {
+    if (!activePage?.id) return;
+    if (favoriteLoading) return;
+
+    const nextFavorite = !favorite;
+    setFavorite(nextFavorite);
+    setFavoriteLoading(true);
+
+    try {
+      await favoritesApi.set({
+        targetType: 'PAGE',
+        targetId: activePage.id,
+        favorite: nextFavorite,
+      });
+      toast.success(nextFavorite ? '已收藏页面' : '已取消收藏');
+    } catch {
+      setFavorite(!nextFavorite);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   const handlePublish = async () => {
     if (!activePage?.id || !activePage.spaceId) return;
@@ -150,6 +204,16 @@ export const PageHeader = () => {
       <div>
         {pageMode === 'preview' ? (
           <div className="flex items-center">
+            <Button
+              variant="link"
+              disabled={!activePage || favoriteLoading}
+              onClick={handleToggleFavorite}
+              title={favorite ? '取消收藏' : '收藏页面'}
+            >
+              <StarIcon
+                className={`h-4 w-4 ${favorite ? 'fill-current text-amber-500' : ''}`}
+              />
+            </Button>
             <Button
               variant="link"
               disabled={!activePage}

@@ -377,7 +377,7 @@ model User {
   memberships TenantMembership[]
   sessions    AuthSession[]
   spaceMembers SpaceMember[]
-  spaceFavorites SpaceFavorite[]
+  favorites Favorite[]
 
   @@index([id])
   @@map("users")
@@ -503,7 +503,6 @@ model Space {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   members SpaceMember[]
-  favorites SpaceFavorite[]
 
   @@index([tenantId])
   @@index([tenantId, identifier])
@@ -537,10 +536,14 @@ model SpaceMember {
   @@map("space_members")
 }
 
-model SpaceFavorite {
-  id      String @id @default(cuid())
-  spaceId String @map("space_id")
-  userId  String @map("user_id")
+model Favorite {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  userId   String @map("user_id")
+
+  targetType String @map("target_type")
+  targetId   String @map("target_id")
+  extraData  Json?  @db.JsonB @map("extra_data")
 
   createdBy String @map("created_by")
   updatedBy String @map("updated_by")
@@ -549,14 +552,13 @@ model SpaceFavorite {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([spaceId, userId])
+  @@unique([tenantId, userId, targetType, targetId])
+  @@index([tenantId, userId, isDeleted], map: "favorites_tenant_user_deleted_idx")
+  @@index([tenantId, targetType, targetId, isDeleted], map: "favorites_tenant_target_deleted_idx")
   @@index([userId])
-  @@index([spaceId])
-  @@map("space_favorites")
+  @@map("favorites")
 }
 
 model AuthSession {
