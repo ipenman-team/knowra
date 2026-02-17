@@ -138,9 +138,10 @@ export const ProfileModal = memo(function ProfileModal({
       confirmText={savingProfile ? "更新中…" : "更新信息"}
       confirmDisabled={savingProfile || uploadingAvatar}
       cancelText="取消"
-      className="w-[640px]"
+      className="w-[calc(100vw-1rem)] max-w-[640px] max-h-[calc(100dvh-1rem)] overflow-hidden p-4 sm:p-6"
     >
       <form
+        className="max-h-[calc(100dvh-12rem)] space-y-4 overflow-y-auto pr-1"
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
@@ -192,7 +193,7 @@ export const ProfileModal = memo(function ProfileModal({
               昵称 <span className="text-destructive">*</span>
             </div>
             <input
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={draftNickname}
               onChange={(e) => {
                 draftTouchedRef.current = true;
@@ -207,7 +208,7 @@ export const ProfileModal = memo(function ProfileModal({
           <div className="space-y-2">
             <div className="text-sm font-medium">个人简介</div>
             <textarea
-              className="min-h-24 w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+              className="min-h-24 w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={draftBio}
               onChange={(e) => {
                 draftTouchedRef.current = true;
