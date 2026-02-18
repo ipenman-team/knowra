@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import type { ShareDto } from '@/lib/api';
 import { publicSharesApi } from '@/lib/api/public-shares';
 import { toast } from 'sonner';
+import { useMeStore } from '@/stores';
 
 type ShareSnapshot = { payload?: unknown; createdAt?: string };
 
@@ -64,6 +65,7 @@ function extractErrorMessage(error: unknown): string {
 export default function PublicSpaceSharePage() {
   const params = useParams();
   const publicId = params.publicId as string;
+  const user = useMeStore((s) => s.user);
 
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState<ShareDto | null>(null);
@@ -169,7 +171,15 @@ export default function PublicSpaceSharePage() {
   }
 
   if (share && snapshot) {
-    return <PublicSpaceViewer share={share} snapshot={snapshot} />;
+    return (
+      <PublicSpaceViewer
+        share={share}
+        snapshot={snapshot}
+        publicId={publicId}
+        password={password || undefined}
+        canWrite={Boolean(user?.id)}
+      />
+    );
   }
 
   return null;

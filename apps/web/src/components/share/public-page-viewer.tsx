@@ -5,13 +5,26 @@ import { EditorTitleDisplay } from '@/components/editor/components/title-display
 import { SharePageHeader } from '@/components/share/share-page-header';
 import { ShareDto } from '@/lib/api';
 import { ICP_FILING_NUMBER } from '@/lib/filing';
+import { CommentSection } from '@/features/comments';
 
 type PublicPageSnapshot = {
   payload?: unknown;
   createdAt?: string;
 } | null;
 
-export function PublicPageViewer({ snapshot }: { share: ShareDto; snapshot: PublicPageSnapshot }) {
+export function PublicPageViewer({
+  share,
+  snapshot,
+  publicId,
+  password,
+  canWrite,
+}: {
+  share: ShareDto;
+  snapshot: PublicPageSnapshot;
+  publicId: string;
+  password?: string;
+  canWrite: boolean;
+}) {
   const payload =
     snapshot?.payload && typeof snapshot.payload === 'object'
       ? (snapshot.payload as Record<string, unknown>)
@@ -42,6 +55,13 @@ export function PublicPageViewer({ snapshot }: { share: ShareDto; snapshot: Publ
         <div className="text-center text-sm text-muted-foreground pt-10 border-t mt-10">
           {ICP_FILING_NUMBER}
         </div>
+        <CommentSection
+          mode="public"
+          pageId={share.targetId}
+          publicId={publicId}
+          password={password}
+          canWrite={canWrite}
+        />
       </div>
     </div>
   )

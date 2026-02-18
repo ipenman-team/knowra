@@ -18,6 +18,7 @@ import { DailyCopyModule } from './daily-copy/daily-copy.module';
 import { ShareModule } from './share/share.module';
 import { SiteBuilderModule } from './site-builder/site-builder.module';
 import { FavoriteModule } from './favorite/favorite.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { FavoriteModule } from './favorite/favorite.module';
     ActivityModule,
     DailyCopyModule,
     ShareModule,
+    CommentModule,
     SiteBuilderModule,
     FavoriteModule,
   ],

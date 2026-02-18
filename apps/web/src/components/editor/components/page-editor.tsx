@@ -19,6 +19,7 @@ import {
 import { pageVersionsApi } from '@/lib/api';
 import { saveDraft } from '@/lib/page/save-draft';
 import { cn } from '@/lib/utils';
+import { CommentSection } from '@/features/comments';
 
 export const PageEditor = memo(function PageEditor() {
   const pageMode = usePageMode();
@@ -26,6 +27,7 @@ export const PageEditor = memo(function PageEditor() {
   const editorValue = useEditorValue();
   const selectedPageId = useSelectedPageId();
   const activePageId = usePageContentStore((s) => s.activePage?.id ?? null);
+  const activeSpaceId = usePageContentStore((s) => s.activePage?.spaceId ?? null);
   const latestPublishedVersionId = usePageContentStore(
     (s) => s.activePage?.latestPublishedVersionId,
   );
@@ -167,6 +169,9 @@ export const PageEditor = memo(function PageEditor() {
         }
         topContentClassName="space-y-2"
       />
+      {activePageId && activeSpaceId ? (
+        <CommentSection mode="internal" pageId={activePageId} spaceId={activeSpaceId} />
+      ) : null}
     </div>
   );
 });

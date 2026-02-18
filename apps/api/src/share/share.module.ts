@@ -93,6 +93,7 @@ import { ShareController } from './share.controller';
     ListSharesUseCase,
     UpdateShareStatusUseCase,
     CreateShareSnapshotUseCase,
+    GetShareAccessUseCase,
   ],
 })
 export class ShareModule {}

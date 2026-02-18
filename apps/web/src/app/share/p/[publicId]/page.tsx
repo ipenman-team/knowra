@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useMeStore } from '@/stores';
 
 type ShareSnapshot = { payload?: unknown; createdAt?: string };
 
@@ -64,6 +65,7 @@ function extractErrorMessage(error: unknown): string {
 export default function PublicSharePage() {
   const params = useParams();
   const publicId = params.publicId as string;
+  const user = useMeStore((s) => s.user);
   
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState<ShareDto | null>(null);
@@ -154,7 +156,15 @@ export default function PublicSharePage() {
   }
 
   if (share && snapshot) {
-    return <PublicPageViewer share={share} snapshot={snapshot} />;
+    return (
+      <PublicPageViewer
+        share={share}
+        snapshot={snapshot}
+        publicId={publicId}
+        password={password || undefined}
+        canWrite={Boolean(user?.id)}
+      />
+    );
   }
 
   return null;

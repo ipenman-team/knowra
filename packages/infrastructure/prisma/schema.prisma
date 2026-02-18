@@ -88,6 +88,30 @@ enum ShareScopeType {
   SPACE
 }
 
+enum CommentSource {
+  INTERNAL
+  EXTERNAL
+}
+
+enum CommentThreadStatus {
+  OPEN
+  RESOLVED
+  ARCHIVED
+}
+
+enum CommentAuthorType {
+  MEMBER
+  COLLABORATOR
+  REGISTERED_EXTERNAL
+  GUEST_EXTERNAL
+}
+
+enum CommentModerationStatus {
+  PASS
+  REVIEW
+  REJECT
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -338,6 +362,110 @@ model ShareAccessLog {
 
   @@index([tenantId, shareId, accessedAt])
   @@map("share_access_logs")
+}
+
+model CommentThread {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  spaceId  String @map("space_id")
+  pageId   String @map("page_id")
+  shareId  String? @map("share_id")
+
+  source      CommentSource
+  status      CommentThreadStatus @default(OPEN)
+  quoteText   String? @map("quote_text") @db.Text
+  anchorType  String? @map("anchor_type")
+  anchorPayload Json? @map("anchor_payload") @db.JsonB
+
+  messageCount     Int      @default(0) @map("message_count")
+  participantCount Int      @default(0) @map("participant_count")
+  lastMessageId    String?  @map("last_message_id")
+  lastMessageAt    DateTime? @map("last_message_at")
+  lastActorType    CommentAuthorType? @map("last_actor_type")
+  lastActorUserId  String?  @map("last_actor_user_id")
+  lastActorGuestId String?  @map("last_actor_guest_id")
+  resolvedAt       DateTime? @map("resolved_at")
+  resolvedBy       String? @map("resolved_by")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  messages CommentMessage[]
+
+  @@index([tenantId, pageId, isDeleted, status, lastMessageAt, id], map: "comment_threads_tenant_page_status_last_idx")
+  @@index([tenantId, pageId, source, isDeleted, lastMessageAt, id], map: "comment_threads_tenant_page_source_last_idx")
+  @@index([tenantId, shareId, isDeleted, lastMessageAt, id], map: "comment_threads_tenant_share_last_idx")
+  @@map("comment_threads")
+}
+
+model CommentMessage {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  threadId String @map("thread_id")
+  parentId String? @map("parent_id")
+  replyToMessageId String? @map("reply_to_message_id")
+
+  authorType    CommentAuthorType @map("author_type")
+  authorUserId  String? @map("author_user_id")
+  authorGuestId String? @map("author_guest_id")
+
+  content     Json   @db.JsonB
+  contentText String @map("content_text") @db.Text
+
+  moderationStatus CommentModerationStatus @default(PASS) @map("moderation_status")
+  riskCategories Json? @map("risk_categories") @db.JsonB
+  riskScore Int? @map("risk_score")
+  isVisible Boolean @default(true) @map("is_visible")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  thread CommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, threadId, isDeleted, createdAt, id], map: "comment_messages_tenant_thread_created_idx")
+  @@index([tenantId, threadId, isVisible, createdAt, id], map: "comment_messages_tenant_thread_visible_created_idx")
+  @@index([tenantId, moderationStatus, createdAt], map: "comment_messages_tenant_moderation_created_idx")
+  @@index([tenantId, authorUserId, createdAt], map: "comment_messages_tenant_author_user_created_idx")
+  @@index([tenantId, authorGuestId, createdAt], map: "comment_messages_tenant_author_guest_created_idx")
+  @@map("comment_messages")
+}
+
+model CommentModerationLog {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  pageId   String @map("page_id")
+  threadId String? @map("thread_id")
+  messageId String? @map("message_id")
+
+  actorType    CommentAuthorType? @map("actor_type")
+  actorUserId  String? @map("actor_user_id")
+  actorGuestId String? @map("actor_guest_id")
+
+  inputTextHash String @map("input_text_hash")
+  result       CommentModerationStatus
+  hitCategories Json? @map("hit_categories") @db.JsonB
+  hitTerms      Json? @map("hit_terms") @db.JsonB
+  policyVersion String? @map("policy_version")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, pageId, createdAt], map: "comment_mod_logs_tenant_page_created_idx")
+  @@index([tenantId, result, createdAt], map: "comment_mod_logs_tenant_result_created_idx")
+  @@index([tenantId, actorGuestId, createdAt], map: "comment_mod_logs_tenant_guest_created_idx")
+  @@map("comment_moderation_logs")
 }
 
 model VerificationCode {

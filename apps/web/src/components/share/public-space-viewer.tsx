@@ -14,6 +14,7 @@ import { Tree } from '@/components/shared/tree';
 import { ShareDto } from '@/lib/api';
 import { ICP_FILING_NUMBER } from '@/lib/filing';
 import { cn } from '@/lib/utils';
+import { CommentSection } from '@/features/comments';
 
 function normalizeSnapshotPayload(payload: unknown): SpaceShareSnapshotPayload | null {
   if (!payload || typeof payload !== 'object') return null;
@@ -79,9 +80,15 @@ function normalizeSnapshotPayload(payload: unknown): SpaceShareSnapshotPayload |
 
 export function PublicSpaceViewer({
   snapshot,
+  publicId,
+  password,
+  canWrite,
 }: {
   share: ShareDto;
   snapshot: { payload?: unknown; createdAt?: string } | null;
+  publicId: string;
+  password?: string;
+  canWrite: boolean;
 }) {
   const payload = useMemo(
     () => normalizeSnapshotPayload(snapshot?.payload),
@@ -207,6 +214,15 @@ export function PublicSpaceViewer({
             <div className="border-t pt-8 text-center text-sm text-muted-foreground">
               {ICP_FILING_NUMBER}
             </div>
+            {selectedPage ? (
+              <CommentSection
+                mode="public"
+                pageId={selectedPage.id}
+                publicId={publicId}
+                password={password}
+                canWrite={canWrite}
+              />
+            ) : null}
           </div>
         </main>
       </div>

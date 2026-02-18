@@ -9,6 +9,8 @@ export { workbenchApi } from './workbench';
 export { dailyCopiesApi } from './daily-copies';
 export { favoritesApi } from './favorites';
 export { sharesApi, type ShareDto } from './shares';
+export { commentsApi } from './comments';
+export { publicCommentsApi } from './public-comments';
 export { siteBuilderApi } from './site-builder';
 export { filesApi } from './files';
 export type { CreatePageInput, PageDto, SavePageInput } from './pages';
