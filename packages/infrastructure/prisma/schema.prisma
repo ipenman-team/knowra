@@ -112,6 +112,15 @@ enum CommentModerationStatus {
   REJECT
 }
 
+enum NotificationType {
+  SYSTEM
+  MENTION
+  COMMENT_REPLY
+  TASK_DONE
+  AI_DONE
+  CUSTOM
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -714,6 +723,35 @@ model Favorite {
   @@index([tenantId, targetType, targetId, isDeleted], map: "favorites_tenant_target_deleted_idx")
   @@index([userId])
   @@map("favorites")
+}
+
+model Notification {
+  id         String @id @default(cuid())
+  tenantId   String @map("tenant_id")
+  receiverId String @map("receiver_id")
+  senderId   String? @map("sender_id")
+
+  type      NotificationType
+  title     String
+  body      String @db.Text
+  link      String?
+  metadata  Json? @db.JsonB
+  requestId String? @map("request_id")
+
+  isRead Boolean   @default(false) @map("is_read")
+  readAt DateTime? @map("read_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, receiverId, isRead, isDeleted, createdAt, id], map: "notif_tenant_receiver_read_del_created_id_idx")
+  @@index([tenantId, receiverId, isDeleted, createdAt, id], map: "notif_tenant_receiver_del_created_id_idx")
+  @@unique([tenantId, receiverId, requestId], map: "notif_tenant_receiver_request_uidx")
+  @@map("notifications")
 }
 
 model AuthSession {
