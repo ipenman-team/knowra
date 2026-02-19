@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-const DEFAULT_ACCOUNT = process.env.PW_LOGIN_ACCOUNT ?? 'm18210870360@163.com';
-const DEFAULT_PASSWORD = process.env.PW_LOGIN_PASSWORD ?? 'ajieiaxin';
+const DEFAULT_ACCOUNT = process.env.PW_LOGIN_ACCOUNT ?? 'user@example.com';
+const DEFAULT_PASSWORD = process.env.PW_LOGIN_PASSWORD ?? 'password123';
 
 test('notification bell shows unread badge and opens panel', async ({ page }) => {
   let unreadCount = 2;
