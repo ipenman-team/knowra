@@ -50,13 +50,6 @@ type CommentSectionProps =
       canWrite: boolean;
     };
 
-function formatDate(input?: string | null) {
-  if (!input) return '-';
-  const d = new Date(input);
-  if (!Number.isFinite(d.getTime())) return '-';
-  return d.toLocaleString();
-}
-
 function formatCommentTime(input?: string | null) {
   if (!input) return '-';
   const d = new Date(input);
@@ -94,6 +87,13 @@ function moderationToToast(status?: string) {
 type CommentMessageNode = {
   message: CommentMessageDto;
   children: CommentMessageNode[];
+};
+
+type CommentAuthorIdentity = {
+  authorType?: string | null;
+  authorUserId?: string | null;
+  authorGuestId?: string | null;
+  id?: string | null;
 };
 
 type ReplyTarget = {
@@ -156,22 +156,22 @@ function buildMessageTree(messages: CommentMessageDto[]): CommentMessageNode[] {
 }
 
 function resolveAuthorName(params: {
-  message: CommentMessageDto;
+  author: CommentAuthorIdentity;
   currentUserId: string | null;
   currentNickname: string | null;
 }): string {
-  const { message, currentUserId, currentNickname } = params;
+  const { author, currentUserId, currentNickname } = params;
 
-  if (message.authorUserId && message.authorUserId === currentUserId) {
+  if (author.authorUserId && author.authorUserId === currentUserId) {
     return currentNickname ?? '我';
   }
 
-  if (message.authorType === 'GUEST_EXTERNAL') return '访客';
-  if (message.authorType === 'REGISTERED_EXTERNAL') return '外部用户';
-  if (message.authorType === 'COLLABORATOR') return '协作者';
+  if (author.authorType === 'GUEST_EXTERNAL') return '访客';
+  if (author.authorType === 'REGISTERED_EXTERNAL') return '外部用户';
+  if (author.authorType === 'COLLABORATOR') return '协作者';
 
-  if (message.authorUserId) {
-    return `成员 ${message.authorUserId.slice(-4)}`;
+  if (author.authorUserId) {
+    return `成员 ${author.authorUserId.slice(-4)}`;
   }
 
   return '成员';
@@ -181,6 +181,54 @@ function fallbackByName(name: string): string {
   const text = name.trim();
   if (!text) return '评';
   return text[0];
+}
+
+function hashText(text: string): number {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function buildDefaultAvatarDataUri(seed: string, displayName: string): string {
+  const hash = hashText(seed || displayName || 'comment');
+  const hue = hash % 360;
+  const hue2 = (hue + 38) % 360;
+  const initial = fallbackByName(displayName);
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'>
+  <defs>
+    <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='hsl(${hue} 70% 62%)' />
+      <stop offset='100%' stop-color='hsl(${hue2} 70% 52%)' />
+    </linearGradient>
+  </defs>
+  <rect width='64' height='64' rx='32' fill='url(#g)' />
+  <text x='32' y='36' text-anchor='middle' font-size='26' font-family='Arial, sans-serif' fill='white'>${initial}</text>
+</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function resolveAuthorAvatarSrc(params: {
+  author: CommentAuthorIdentity;
+  authorName: string;
+  currentUserId: string | null;
+  currentAvatarUrl: string | null;
+}): string {
+  const { author, authorName, currentUserId, currentAvatarUrl } = params;
+
+  if (author.authorUserId && author.authorUserId === currentUserId && currentAvatarUrl) {
+    return currentAvatarUrl;
+  }
+
+  const seed =
+    (author.authorUserId && `u:${author.authorUserId}`) ||
+    (author.authorGuestId && `g:${author.authorGuestId}`) ||
+    (author.id && `m:${author.id}`) ||
+    `a:${author.authorType ?? 'member'}:${authorName}`;
+
+  return buildDefaultAvatarDataUri(seed, authorName);
 }
 
 function InternalActionIconButton(props: {
@@ -228,6 +276,9 @@ export function CommentSection(props: CommentSectionProps) {
     open: number;
     resolved: number;
   } | null>(null);
+  const [internalSourceFilter, setInternalSourceFilter] = useState<
+    'ALL' | 'INTERNAL' | 'EXTERNAL'
+  >('ALL');
 
   const [expandedThreadIds, setExpandedThreadIds] = useState<Record<string, boolean>>({});
   const [messagesByThread, setMessagesByThread] = useState<Record<string, CommentMessageDto[]>>({});
@@ -247,6 +298,15 @@ export function CommentSection(props: CommentSectionProps) {
   const isPublicRegisteredUser = props.mode === 'public' ? props.canWrite : false;
   const commentCountForPublic = summary?.external ?? summary?.all ?? 0;
   const internalDraftText = useMemo(() => slateToPlainText(internalDraft), [internalDraft]);
+  const composerAvatarSrc = useMemo(
+    () =>
+      currentAvatarUrl ??
+      buildDefaultAvatarDataUri(
+        `composer:${currentUserId ?? currentNickname ?? 'me'}`,
+        currentNickname ?? '我',
+      ),
+    [currentAvatarUrl, currentNickname, currentUserId],
+  );
 
   const authHrefs = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -297,6 +357,7 @@ export function CommentSection(props: CommentSectionProps) {
         if (props.mode === 'internal') {
           const res = await commentsApi.listThreads({
             pageId: props.pageId,
+            source: internalSourceFilter,
             status: 'ALL',
             cursor: cursor ?? undefined,
             limit: 20,
@@ -344,7 +405,7 @@ export function CommentSection(props: CommentSectionProps) {
         setLoading(false);
       }
     },
-    [props],
+    [internalSourceFilter, props],
   );
 
   const loadAgreement = useCallback(async () => {
@@ -575,10 +636,16 @@ export function CommentSection(props: CommentSectionProps) {
     const authorName =
       authorNameByMessageId.get(message.id) ??
       resolveAuthorName({
-        message,
+        author: message,
         currentUserId,
         currentNickname,
       });
+    const avatarSrc = resolveAuthorAvatarSrc({
+      author: message,
+      authorName,
+      currentUserId,
+      currentAvatarUrl,
+    });
     const replyToName = message.replyToMessageId
       ? authorNameByMessageId.get(message.replyToMessageId) ?? null
       : null;
@@ -590,7 +657,7 @@ export function CommentSection(props: CommentSectionProps) {
       >
         <div className="flex items-start gap-3">
           <Avatar className="h-8 w-8 border border-border/70">
-            <AvatarImage src={undefined} alt={authorName} />
+            <AvatarImage src={avatarSrc} alt={authorName} />
             <AvatarFallback className="text-xs">{fallbackByName(authorName)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-1">
@@ -651,14 +718,54 @@ export function CommentSection(props: CommentSectionProps) {
       <div className="mx-auto mt-10 w-full max-w-5xl space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">评论</h3>
-          <div className="text-sm text-muted-foreground">
-            全部 {summary?.all ?? 0} · 进行中 {summary?.open ?? 0} · 已解决 {summary?.resolved ?? 0}
+          <div className="flex items-center gap-3">
+            <div className="inline-flex rounded-full border border-border/70 bg-background p-1 text-xs">
+              <button
+                type="button"
+                className={cn(
+                  'rounded-full px-3 py-1 transition-colors',
+                  internalSourceFilter === 'ALL'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => setInternalSourceFilter('ALL')}
+              >
+                全部 {summary?.all ?? 0}
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'rounded-full px-3 py-1 transition-colors',
+                  internalSourceFilter === 'INTERNAL'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => setInternalSourceFilter('INTERNAL')}
+              >
+                内部 {summary?.internal ?? 0}
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'rounded-full px-3 py-1 transition-colors',
+                  internalSourceFilter === 'EXTERNAL'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                onClick={() => setInternalSourceFilter('EXTERNAL')}
+              >
+                外部 {summary?.external ?? 0}
+              </button>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              进行中 {summary?.open ?? 0} · 已解决 {summary?.resolved ?? 0}
+            </div>
           </div>
         </div>
 
         <div className="flex items-start gap-4">
           <Avatar className="h-10 w-10 border">
-            <AvatarImage src={currentAvatarUrl ?? undefined} alt={currentNickname ?? '我'} />
+            <AvatarImage src={composerAvatarSrc} alt={currentNickname ?? '我'} />
             <AvatarFallback>{fallbackByName(currentNickname ?? '我')}</AvatarFallback>
           </Avatar>
           <div className="flex-1 rounded-2xl border border-input bg-background p-3">
@@ -691,11 +798,30 @@ export function CommentSection(props: CommentSectionProps) {
             const messages = messagesByThread[thread.id] ?? [];
             const messageTree = buildMessageTree(messages);
             const messagesLoaded = thread.id in messagesByThread;
+            const latestAuthor: CommentAuthorIdentity = item.latestMessage
+              ? {
+                  id: item.latestMessage.id,
+                  authorType: item.latestMessage.authorType,
+                  authorUserId: item.latestMessage.authorUserId ?? null,
+                  authorGuestId: item.latestMessage.authorGuestId ?? null,
+                }
+              : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
+            const latestAuthorName = resolveAuthorName({
+              author: latestAuthor,
+              currentUserId,
+              currentNickname,
+            });
+            const latestAvatarSrc = resolveAuthorAvatarSrc({
+              author: latestAuthor,
+              authorName: latestAuthorName,
+              currentUserId,
+              currentAvatarUrl,
+            });
             const authorNameByMessageId = new Map(
               messages.map((message) => [
                 message.id,
                 resolveAuthorName({
-                  message,
+                  author: message,
                   currentUserId,
                   currentNickname,
                 }),
@@ -709,11 +835,21 @@ export function CommentSection(props: CommentSectionProps) {
             return (
               <article key={thread.id} className="space-y-4 border-b pb-6 last:border-b-0">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">
-                      最近活跃 {formatCommentTime(thread.lastMessageAt)}
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <Avatar className="mt-0.5 h-8 w-8 border border-border/70">
+                      <AvatarImage src={latestAvatarSrc} alt={latestAuthorName} />
+                      <AvatarFallback className="text-xs">
+                        {fallbackByName(latestAuthorName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 space-y-1">
+                      <div className="text-sm text-muted-foreground">
+                        {latestAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
+                      </div>
+                      <div className="truncate text-sm">
+                        {item.latestMessage?.contentText ?? '暂无内容'}
+                      </div>
                     </div>
-                    <div className="text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="pr-1 text-xs text-muted-foreground">
@@ -904,15 +1040,44 @@ export function CommentSection(props: CommentSectionProps) {
               const thread = item.thread;
               const expanded = Boolean(expandedThreadIds[thread.id]);
               const messages = messagesByThread[thread.id] ?? [];
+              const latestAuthor: CommentAuthorIdentity = item.latestMessage
+                ? {
+                    id: item.latestMessage.id,
+                    authorType: item.latestMessage.authorType,
+                    authorUserId: item.latestMessage.authorUserId ?? null,
+                    authorGuestId: item.latestMessage.authorGuestId ?? null,
+                  }
+                : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
+              const latestAuthorName = resolveAuthorName({
+                author: latestAuthor,
+                currentUserId,
+                currentNickname,
+              });
+              const latestAvatarSrc = resolveAuthorAvatarSrc({
+                author: latestAuthor,
+                authorName: latestAuthorName,
+                currentUserId,
+                currentAvatarUrl,
+              });
               return (
                 <Card key={thread.id} className="border-dashed">
                   <CardContent className="space-y-3 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="text-sm text-muted-foreground">
-                          最近活跃 {formatDate(thread.lastMessageAt)}
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <Avatar className="mt-0.5 h-8 w-8 border border-border/70">
+                          <AvatarImage src={latestAvatarSrc} alt={latestAuthorName} />
+                          <AvatarFallback className="text-xs">
+                            {fallbackByName(latestAuthorName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 space-y-1">
+                          <div className="text-sm text-muted-foreground">
+                            {latestAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
+                          </div>
+                          <div className="truncate text-sm">
+                            {item.latestMessage?.contentText ?? '暂无内容'}
+                          </div>
                         </div>
-                        <div className="text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => void toggleThread(thread.id)}>
@@ -924,12 +1089,36 @@ export function CommentSection(props: CommentSectionProps) {
                     {expanded ? (
                       <div className="space-y-3 border-t pt-3">
                         <div className="space-y-2">
-                          {messages.map((message) => (
-                            <div key={message.id} className="rounded-md bg-muted/40 p-2 text-sm">
-                              <div className="text-xs text-muted-foreground">{formatDate(message.createdAt)}</div>
-                              <div>{message.contentText}</div>
-                            </div>
-                          ))}
+                          {messages.map((message) => {
+                            const authorName = resolveAuthorName({
+                              author: message,
+                              currentUserId,
+                              currentNickname,
+                            });
+                            const avatarSrc = resolveAuthorAvatarSrc({
+                              author: message,
+                              authorName,
+                              currentUserId,
+                              currentAvatarUrl,
+                            });
+
+                            return (
+                              <div key={message.id} className="flex items-start gap-3 rounded-md bg-muted/30 p-3 text-sm">
+                                <Avatar className="mt-0.5 h-7 w-7 border border-border/70">
+                                  <AvatarImage src={avatarSrc} alt={authorName} />
+                                  <AvatarFallback className="text-[11px]">
+                                    {fallbackByName(authorName)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0 space-y-1">
+                                  <div className="text-xs text-muted-foreground">
+                                    {authorName} · {formatCommentTime(message.createdAt)}
+                                  </div>
+                                  <div className="whitespace-pre-wrap">{message.contentText}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                         <div className="space-y-2">
                           <Textarea
