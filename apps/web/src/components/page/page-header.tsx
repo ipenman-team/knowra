@@ -1,6 +1,7 @@
 'use client';
 
 import { favoritesApi, pageVersionsApi, pagesApi } from '@/lib/api';
+import { pageLikesApi } from '@/lib/api/page-likes';
 import type { PageDto } from '@/lib/api';
 import { saveDraft } from '@/lib/page/save-draft';
 import {
@@ -15,6 +16,7 @@ import {
   SendIcon,
   Share2Icon,
   StarIcon,
+  ThumbsUpIcon,
   XIcon,
 } from 'lucide-react';
 import {
@@ -73,6 +75,9 @@ export const PageHeader = () => {
   const [shareOpen, setShareOpen] = useState(false);
   const [favorite, setFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
   const activePage = useActivePage();
   const setPageMode = usePageContentStore((s) => s.setPageMode);
   const pageMode = usePageContentStore((s) => s.pageMode);
@@ -144,6 +149,39 @@ export const PageHeader = () => {
     };
   }, [activePage?.id]);
 
+  useEffect(() => {
+    if (!activePage?.id || !activePage?.spaceId) {
+      setLiked(false);
+      setLikeCount(0);
+      setLikeLoading(false);
+      return;
+    }
+
+    let canceled = false;
+    setLikeLoading(true);
+
+    pageLikesApi
+      .getSummary({ spaceId: activePage.spaceId, pageId: activePage.id })
+      .then((result) => {
+        if (canceled) return;
+        setLiked(Boolean(result.liked));
+        setLikeCount(Math.max(0, Number(result.likeCount) || 0));
+      })
+      .catch(() => {
+        if (canceled) return;
+        setLiked(false);
+        setLikeCount(0);
+      })
+      .finally(() => {
+        if (canceled) return;
+        setLikeLoading(false);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [activePage?.id, activePage?.spaceId]);
+
   const handleToggleFavorite = async () => {
     if (!activePage?.id) return;
     if (favoriteLoading) return;
@@ -170,6 +208,35 @@ export const PageHeader = () => {
       setFavorite(!nextFavorite);
     } finally {
       setFavoriteLoading(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!activePage?.id || !activePage.spaceId) return;
+    if (likeLoading) return;
+
+    const previousCount = likeCount;
+    const nextLiked = !liked;
+    const nextCount = Math.max(0, previousCount + (nextLiked ? 1 : -1));
+
+    setLiked(nextLiked);
+    setLikeCount(nextCount);
+    setLikeLoading(true);
+
+    try {
+      const result = await pageLikesApi.setLike({
+        spaceId: activePage.spaceId,
+        pageId: activePage.id,
+        liked: nextLiked,
+      });
+      setLiked(Boolean(result.liked));
+      setLikeCount(Math.max(0, Number(result.likeCount) || 0));
+      toast.success(nextLiked ? t('pageHeader.pageLiked') : t('pageHeader.pageUnliked'));
+    } catch {
+      setLiked(!nextLiked);
+      setLikeCount(previousCount);
+    } finally {
+      setLikeLoading(false);
     }
   };
 
@@ -272,6 +339,18 @@ export const PageHeader = () => {
       <div className="shrink-0">
         {pageMode === 'preview' ? (
           <div className="flex items-center gap-0.5 text-primary/70 md:gap-1">
+            <Button
+              variant="ghost"
+              className="h-8 gap-1 px-2"
+              disabled={!activePage || likeLoading}
+              onClick={handleToggleLike}
+              title={liked ? t('pageHeader.unlikePage') : t('pageHeader.likePage')}
+            >
+              <ThumbsUpIcon
+                className={`h-4 w-4 ${liked ? 'fill-current text-blue-500' : ''}`}
+              />
+              <span className="text-xs tabular-nums">{likeCount}</span>
+            </Button>
             <Button
               variant="ghost"
               size="icon"

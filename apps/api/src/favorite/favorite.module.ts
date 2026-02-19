@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import {
+  CountFavoriteByTargetUseCase,
   GetFavoriteStatusUseCase,
   ListFavoritesUseCase,
   SetFavoriteUseCase,
@@ -34,7 +35,18 @@ import { FAVORITE_REPOSITORY } from './favorite.tokens';
       useFactory: (repo: PrismaFavoriteRepository) => new ListFavoritesUseCase(repo),
       inject: [FAVORITE_REPOSITORY],
     },
+    {
+      provide: CountFavoriteByTargetUseCase,
+      useFactory: (repo: PrismaFavoriteRepository) =>
+        new CountFavoriteByTargetUseCase(repo),
+      inject: [FAVORITE_REPOSITORY],
+    },
   ],
-  exports: [SetFavoriteUseCase, GetFavoriteStatusUseCase, ListFavoritesUseCase],
+  exports: [
+    SetFavoriteUseCase,
+    GetFavoriteStatusUseCase,
+    ListFavoritesUseCase,
+    CountFavoriteByTargetUseCase,
+  ],
 })
 export class FavoriteModule {}

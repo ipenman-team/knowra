@@ -1,6 +1,7 @@
 export const FavoriteTarget = {
   Space: 'SPACE',
   Page: 'PAGE',
+  PageLike: 'PAGE_LIKE',
 } as const;
 
 export type FavoriteKnownTargetType =
@@ -62,4 +63,10 @@ export type ListFavoritesParams = {
 export type ListFavoritesResult = {
   items: Favorite[];
   total: number;
+};
+
+export type CountFavoritesByTargetParams = {
+  tenantId: string;
+  targetType: FavoriteTargetType;
+  targetId: string;
 };

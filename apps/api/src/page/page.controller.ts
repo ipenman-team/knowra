@@ -10,12 +10,15 @@ import {
   Put,
   Query,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Response as ExpressResponse } from 'express';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { CreatePageDto } from './dto/create-page.dto';
 import { SavePageDto } from './dto/save-page.dto';
+import { SetPageLikeDto } from './dto/set-page-like.dto';
 import { PageService } from './page.service';
+import { PageLikeService } from './page-like.service';
 import { RagIndexService } from '../rag/rag.index.service';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
@@ -27,6 +30,7 @@ import { ExportPageQuery } from './dto/export-page.query';
 export class PageController {
   constructor(
     private readonly pageService: PageService,
+    private readonly pageLikeService: PageLikeService,
     private readonly ragIndexService: RagIndexService,
     private readonly exportPageUseCase: ExportPageUseCase,
   ) {}
@@ -92,6 +96,49 @@ export class PageController {
 
       return new Response(published);
     })();
+  }
+
+  @Get(':id/like')
+  async getLikeSummary(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('spaceId') spaceId: string,
+    @Param('id') id: string,
+  ) {
+    if (!userId) throw new UnauthorizedException('unauthorized');
+
+    return new Response(
+      await this.pageLikeService.getSummary({
+        tenantId,
+        userId,
+        spaceId,
+        pageId: id,
+      }),
+    );
+  }
+
+  @Put(':id/like')
+  async setLike(
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Param('spaceId') spaceId: string,
+    @Param('id') id: string,
+    @Body() body: SetPageLikeDto,
+  ) {
+    if (!userId) throw new UnauthorizedException('unauthorized');
+    if (typeof body?.liked !== 'boolean') {
+      throw new BadRequestException('liked must be boolean');
+    }
+
+    return new Response(
+      await this.pageLikeService.setLike({
+        tenantId,
+        userId,
+        spaceId,
+        pageId: id,
+        liked: body.liked,
+      }),
+    );
   }
 
   @Get(':id/versions')

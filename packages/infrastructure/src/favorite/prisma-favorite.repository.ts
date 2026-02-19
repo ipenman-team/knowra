@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import type {
+  CountFavoritesByTargetParams,
   DeleteFavoriteParams,
   FavoriteRepository,
   GetFavoriteParams,
@@ -65,6 +66,17 @@ export class PrismaFavoriteRepository implements FavoriteRepository {
       where: {
         tenantId: params.tenantId,
         userId: params.userId,
+        targetType: params.targetType,
+        targetId: params.targetId,
+        isDeleted: false,
+      },
+    });
+  }
+
+  async countByTarget(params: CountFavoritesByTargetParams): Promise<number> {
+    return await this.prisma.favorite.count({
+      where: {
+        tenantId: params.tenantId,
         targetType: params.targetType,
         targetId: params.targetId,
         isDeleted: false,

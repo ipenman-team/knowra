@@ -12,6 +12,7 @@ export type {
   GetFavoriteParams,
   ListFavoritesParams,
   ListFavoritesResult,
+  CountFavoritesByTargetParams,
 } from './types';
 
 export type { FavoriteRepository } from './ports/favorite.repository';

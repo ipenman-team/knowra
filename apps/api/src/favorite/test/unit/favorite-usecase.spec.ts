@@ -1,9 +1,11 @@
 import {
+  CountFavoriteByTargetUseCase,
   GetFavoriteStatusUseCase,
   ListFavoritesUseCase,
   SetFavoriteUseCase,
 } from '../../../../../../packages/application/src/favorite';
 import type {
+  CountFavoritesByTargetParams,
   DeleteFavoriteParams,
   Favorite,
   FavoriteRepository,
@@ -89,6 +91,16 @@ function makeRepo(seed?: Favorite[]): FavoriteRepository {
             !item.isDeleted,
         ) ?? null
       );
+    },
+
+    async countByTarget(params: CountFavoritesByTargetParams): Promise<number> {
+      return items.filter(
+        (item) =>
+          item.tenantId === params.tenantId &&
+          item.targetType === params.targetType &&
+          item.targetId === params.targetId &&
+          !item.isDeleted,
+      ).length;
     },
 
     async list(params: ListFavoritesParams): Promise<ListFavoritesResult> {
@@ -248,5 +260,59 @@ describe('Favorite usecases', () => {
       total: 1,
       items: [{ id: 'f2', targetType: 'PAGE', targetId: 'p1' }],
     });
+  });
+
+  test('CountFavoriteByTargetUseCase counts non-deleted items in tenant', async () => {
+    const now = new Date();
+    const repo = makeRepo([
+      {
+        id: 'f1',
+        tenantId: 't1',
+        userId: 'u1',
+        targetType: 'PAGE_LIKE',
+        targetId: 'p1',
+        extraData: null,
+        createdBy: 'u1',
+        updatedBy: 'u1',
+        isDeleted: false,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'f2',
+        tenantId: 't1',
+        userId: 'u2',
+        targetType: 'PAGE_LIKE',
+        targetId: 'p1',
+        extraData: null,
+        createdBy: 'u2',
+        updatedBy: 'u2',
+        isDeleted: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'f3',
+        tenantId: 't2',
+        userId: 'u3',
+        targetType: 'PAGE_LIKE',
+        targetId: 'p1',
+        extraData: null,
+        createdBy: 'u3',
+        updatedBy: 'u3',
+        isDeleted: false,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+    const useCase = new CountFavoriteByTargetUseCase(repo);
+
+    await expect(
+      useCase.count({
+        tenantId: 't1',
+        targetType: 'page_like',
+        targetId: 'p1',
+      }),
+    ).resolves.toEqual({ count: 1 });
   });
 });
