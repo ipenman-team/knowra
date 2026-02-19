@@ -90,7 +90,7 @@ export const publicCommentsApi = {
     publicId: string,
     payload: {
       pageId: string;
-      content: { text: string };
+      content: { text: string; slate?: unknown };
       quoteText?: string;
       anchorType?: string;
       anchorPayload?: unknown;
@@ -113,7 +113,7 @@ export const publicCommentsApi = {
     publicId: string,
     threadId: string,
     payload: {
-      content: { text: string };
+      content: { text: string; slate?: unknown };
       parentId?: string;
       replyToMessageId?: string;
       password?: string;

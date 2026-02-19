@@ -14,7 +14,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Segmented } from '@/components/ui/segmented';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
   SlateEditor,
@@ -296,8 +295,10 @@ export function CommentSection(props: CommentSectionProps) {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [draft, setDraft] = useState('');
   const [internalDraft, setInternalDraft] = useState<SlateValue>(() =>
+    parseContentToSlateValue(''),
+  );
+  const [publicDraft, setPublicDraft] = useState<SlateValue>(() =>
     parseContentToSlateValue(''),
   );
   const [creating, setCreating] = useState(false);
@@ -315,7 +316,7 @@ export function CommentSection(props: CommentSectionProps) {
 
   const [expandedThreadIds, setExpandedThreadIds] = useState<Record<string, boolean>>({});
   const [messagesByThread, setMessagesByThread] = useState<Record<string, CommentMessageDto[]>>({});
-  const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
+  const [publicReplyDraft, setPublicReplyDraft] = useState<Record<string, SlateValue>>({});
   const [internalReplyDraft, setInternalReplyDraft] = useState<Record<string, SlateValue>>({});
   const [replyTargetByThread, setReplyTargetByThread] = useState<Record<string, ReplyTarget>>(
     {},
@@ -338,6 +339,7 @@ export function CommentSection(props: CommentSectionProps) {
   const isPublicRegisteredUser = props.mode === 'public' ? props.canWrite : false;
   const commentCountForPublic = summary?.external ?? summary?.all ?? 0;
   const internalDraftText = useMemo(() => slateToPlainText(internalDraft), [internalDraft]);
+  const publicDraftText = useMemo(() => slateToPlainText(publicDraft), [publicDraft]);
   const composerAvatarSrc = useMemo(
     () =>
       currentAvatarUrl ??
@@ -508,12 +510,12 @@ export function CommentSection(props: CommentSectionProps) {
     setExpandedThreadIds({});
     setMessagesByThread({});
     setReplyTargetByThread({});
-    setReplyDraft({});
+    setPublicReplyDraft({});
     setInternalReplyDraft({});
     if (mode === 'internal') {
       setInternalDraft(parseContentToSlateValue(''));
     } else {
-      setDraft('');
+      setPublicDraft(parseContentToSlateValue(''));
     }
   }, [mode, pageId, publicId]);
 
@@ -527,7 +529,7 @@ export function CommentSection(props: CommentSectionProps) {
   }, [loadAgreement]);
 
   const createThread = useCallback(async () => {
-    const text = props.mode === 'internal' ? internalDraftText : draft.trim();
+    const text = props.mode === 'internal' ? internalDraftText : publicDraftText;
     if (!text) return;
 
     if (props.mode === 'public' && !isPublicRegisteredUser && !guestId) {
@@ -550,7 +552,10 @@ export function CommentSection(props: CommentSectionProps) {
       } else {
         const res = await publicCommentsApi.createThread(props.publicId, {
           pageId: props.pageId,
-          content: { text },
+          content: {
+            text,
+            slate: publicDraft,
+          },
           password: props.password,
           guestId: isPublicRegisteredUser ? undefined : guestId ?? undefined,
           guestProfile:
@@ -567,7 +572,7 @@ export function CommentSection(props: CommentSectionProps) {
       if (props.mode === 'internal') {
         setInternalDraft(parseContentToSlateValue(''));
       } else {
-        setDraft('');
+        setPublicDraft(parseContentToSlateValue(''));
       }
       await loadThreads(null);
     } catch (error) {
@@ -577,12 +582,13 @@ export function CommentSection(props: CommentSectionProps) {
       setCreating(false);
     }
   }, [
-    draft,
     guestId,
     guestProfile.email,
     guestProfile.nickname,
     internalDraft,
     internalDraftText,
+    publicDraft,
+    publicDraftText,
     isPublicRegisteredUser,
     loadThreads,
     props,
@@ -655,10 +661,11 @@ export function CommentSection(props: CommentSectionProps) {
 
   const submitReply = useCallback(
     async (threadId: string) => {
-      const text =
+      const replyValue =
         props.mode === 'internal'
-          ? slateToPlainText(internalReplyDraft[threadId] ?? parseContentToSlateValue(''))
-          : (replyDraft[threadId] ?? '').trim();
+          ? (internalReplyDraft[threadId] ?? parseContentToSlateValue(''))
+          : (publicReplyDraft[threadId] ?? parseContentToSlateValue(''));
+      const text = slateToPlainText(replyValue);
       if (!text) return;
 
       if (props.mode === 'public' && !isPublicRegisteredUser && !guestId) {
@@ -673,15 +680,21 @@ export function CommentSection(props: CommentSectionProps) {
           const res = await commentsApi.replyThread(threadId, {
             content: {
               text,
-              slate: internalReplyDraft[threadId] ?? parseContentToSlateValue(''),
+              slate: replyValue,
             },
             parentId: target?.parentId ?? undefined,
             replyToMessageId: target?.replyToMessageId ?? undefined,
           });
           moderationToToast(res.moderation?.status);
         } else {
+          const target = replyTargetByThread[threadId];
           const res = await publicCommentsApi.replyThread(props.publicId, threadId, {
-            content: { text },
+            content: {
+              text,
+              slate: replyValue,
+            },
+            parentId: target?.parentId ?? undefined,
+            replyToMessageId: target?.replyToMessageId ?? undefined,
             password: props.password,
             guestId: isPublicRegisteredUser ? undefined : guestId ?? undefined,
             guestProfile:
@@ -695,7 +708,10 @@ export function CommentSection(props: CommentSectionProps) {
           moderationToToast(res.moderation?.status);
         }
 
-        setReplyDraft((prev) => ({ ...prev, [threadId]: '' }));
+        setPublicReplyDraft((prev) => ({
+          ...prev,
+          [threadId]: parseContentToSlateValue(''),
+        }));
         setInternalReplyDraft((prev) => ({
           ...prev,
           [threadId]: parseContentToSlateValue(''),
@@ -718,8 +734,8 @@ export function CommentSection(props: CommentSectionProps) {
       isPublicRegisteredUser,
       loadThreadMessages,
       loadThreads,
+      publicReplyDraft,
       props,
-      replyDraft,
       replyTargetByThread,
     ],
   );
@@ -1074,17 +1090,20 @@ export function CommentSection(props: CommentSectionProps) {
       ) : null}
 
       <div className="mt-4 space-y-3">
-        <Textarea
-          placeholder={
-            isPublic && !isPublicRegisteredUser
-              ? '以访客身份发表评论（无需注册）'
-              : '写下你的评论...'
-          }
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          disabled={creating}
-          className="min-h-[110px] border-border/70"
-        />
+        <div className="rounded-xl border border-input bg-background p-3">
+          <SlateEditor
+            value={publicDraft}
+            onChange={setPublicDraft}
+            showToolbar
+            toolbarVariant="compact"
+            placeholder={
+              isPublic && !isPublicRegisteredUser
+                ? '以访客身份发表评论（无需注册）'
+                : '写下你的评论...'
+            }
+            className="min-h-[140px] px-2 py-2 text-sm leading-7"
+          />
+        </div>
 
         {isPublic && !isPublicRegisteredUser ? (
           <div className="grid gap-2 md:grid-cols-2">
@@ -1124,7 +1143,7 @@ export function CommentSection(props: CommentSectionProps) {
           ) : (
             <div />
           )}
-          <Button type="button" onClick={createThread} disabled={creating || !draft.trim()}>
+          <Button type="button" onClick={createThread} disabled={creating || !publicDraftText}>
             发表评论
           </Button>
         </div>
@@ -1138,7 +1157,11 @@ export function CommentSection(props: CommentSectionProps) {
           const expanded = Boolean(expandedThreadIds[thread.id]);
           const replyCount = Math.max(thread.messageCount - 1, 0);
           const hasReplies = replyCount > 0;
+          const canToggleReplies = hasReplies || expanded;
           const messages = messagesByThread[thread.id] ?? [];
+          const publicReplyValue =
+            publicReplyDraft[thread.id] ?? parseContentToSlateValue('');
+          const publicReplyText = slateToPlainText(publicReplyValue);
           const rootPreview = item.rootMessage ?? item.latestMessage ?? null;
           const rootAuthor: CommentAuthorIdentity = rootPreview
             ? {
@@ -1192,14 +1215,15 @@ export function CommentSection(props: CommentSectionProps) {
                     onClick={() =>
                       void prepareReply({
                         threadId: thread.id,
-                        parentId: null,
-                        replyToMessageId: null,
+                        parentId: rootPreview?.id ?? null,
+                        replyToMessageId: rootPreview?.id ?? null,
+                        label: rootAuthorName,
                       })
                     }
                   >
                     <MessageCircle className="h-4 w-4" />
                   </InternalActionIconButton>
-                  {hasReplies ? (
+                  {canToggleReplies ? (
                     <>
                       <span className="pr-1 text-xs text-muted-foreground">
                         {replyCount}
@@ -1258,6 +1282,21 @@ export function CommentSection(props: CommentSectionProps) {
                               <span> · {formatCommentTime(message.createdAt)}</span>
                             </div>
                             <div className="whitespace-pre-wrap">{message.contentText}</div>
+                            <div className="flex items-center gap-1 pt-1">
+                              <InternalActionIconButton
+                                title={`回复 ${authorName}`}
+                                onClick={() =>
+                                  void prepareReply({
+                                    threadId: thread.id,
+                                    parentId: message.id,
+                                    replyToMessageId: message.id,
+                                    label: authorName,
+                                  })
+                                }
+                              >
+                                <Reply className="h-4 w-4" />
+                              </InternalActionIconButton>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1265,26 +1304,49 @@ export function CommentSection(props: CommentSectionProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Textarea
-                      placeholder={isPublic && !isPublicRegisteredUser ? '以访客身份回复...' : '回复此线程...'}
-                      value={replyDraft[thread.id] ?? ''}
-                      onChange={(event) =>
-                        setReplyDraft((prev) => ({
-                          ...prev,
-                          [thread.id]: event.target.value,
-                        }))
-                      }
-                      disabled={replyingThread === thread.id}
-                      className="border-border/70"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => void submitReply(thread.id)}
-                      disabled={replyingThread === thread.id || !(replyDraft[thread.id] ?? '').trim()}
-                    >
-                      回复
-                    </Button>
+                    {replyTargetByThread[thread.id]?.label ? (
+                      <div className="text-xs text-muted-foreground">
+                        回复 {replyTargetByThread[thread.id]?.label}
+                      </div>
+                    ) : null}
+                    <div className="rounded-xl border border-input bg-background p-3">
+                      <SlateEditor
+                        value={publicReplyValue}
+                        onChange={(value) =>
+                          setPublicReplyDraft((prev) => ({
+                            ...prev,
+                            [thread.id]: value,
+                          }))
+                        }
+                        showToolbar
+                        toolbarVariant="compact"
+                        placeholder={isPublic && !isPublicRegisteredUser ? '以访客身份回复...' : '回复此线程...'}
+                        className="min-h-[110px] px-2 py-2 text-sm leading-7"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => void submitReply(thread.id)}
+                        disabled={
+                          replyingThread === thread.id ||
+                          !publicReplyText
+                        }
+                      >
+                        回复
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setReplyTargetByThread((prev) => ({ ...prev, [thread.id]: {} }))
+                        }
+                      >
+                        取消
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : null}
