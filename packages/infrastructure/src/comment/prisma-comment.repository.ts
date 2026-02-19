@@ -155,6 +155,26 @@ function normalizeGuestEmail(value?: string | null): string | null {
   return text || null;
 }
 
+function getErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object') return null;
+  if (!('code' in error)) return null;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : null;
+}
+
+function isIgnorableGuestProfilePersistenceError(error: unknown): boolean {
+  const code = getErrorCode(error);
+  if (code === 'P2021' || code === 'P2022') {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : '';
+  return (
+    message.includes('comment_guest_profiles') ||
+    message.includes('commentGuestProfile')
+  );
+}
+
 async function upsertGuestProfile(params: {
   tx: Prisma.TransactionClient;
   tenantId: string;
@@ -169,31 +189,46 @@ async function upsertGuestProfile(params: {
   const nickname = normalizeGuestNickname(params.nickname, params.guestId);
   const email = normalizeGuestEmail(params.email);
 
-  await params.tx.commentGuestProfile.upsert({
-    where: {
-      tenantId_shareId_guestId: {
+  const delegate = (
+    params.tx as unknown as {
+      commentGuestProfile?: {
+        upsert?: (args: unknown) => Promise<unknown>;
+      };
+    }
+  ).commentGuestProfile;
+  if (!delegate?.upsert) return;
+
+  try {
+    await delegate.upsert({
+      where: {
+        tenantId_shareId_guestId: {
+          tenantId: params.tenantId,
+          shareId: params.shareId,
+          guestId: params.guestId,
+        },
+      },
+      create: {
         tenantId: params.tenantId,
         shareId: params.shareId,
         guestId: params.guestId,
+        nickname,
+        email,
+        lastSeenAt: new Date(),
+        createdBy: params.actorUserId,
+        updatedBy: params.actorUserId,
       },
-    },
-    create: {
-      tenantId: params.tenantId,
-      shareId: params.shareId,
-      guestId: params.guestId,
-      nickname,
-      email,
-      lastSeenAt: new Date(),
-      createdBy: params.actorUserId,
-      updatedBy: params.actorUserId,
-    },
-    update: {
-      nickname,
-      email: email ?? undefined,
-      lastSeenAt: new Date(),
-      updatedBy: params.actorUserId,
-    },
-  });
+      update: {
+        nickname,
+        email: email ?? undefined,
+        lastSeenAt: new Date(),
+        updatedBy: params.actorUserId,
+      },
+    });
+  } catch (error) {
+    // Keep comment creation available during rolling upgrade if guest profile table/column is not ready.
+    if (isIgnorableGuestProfilePersistenceError(error)) return;
+    throw error;
+  }
 }
 
 export class PrismaCommentRepository implements CommentRepository {
