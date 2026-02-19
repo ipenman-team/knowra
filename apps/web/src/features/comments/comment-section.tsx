@@ -1,6 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  MessageCircle,
+  Plus,
+  Reply,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -47,6 +55,30 @@ function formatDate(input?: string | null) {
   const d = new Date(input);
   if (!Number.isFinite(d.getTime())) return '-';
   return d.toLocaleString();
+}
+
+function formatCommentTime(input?: string | null) {
+  if (!input) return '-';
+  const d = new Date(input);
+  if (!Number.isFinite(d.getTime())) return '-';
+
+  const now = new Date();
+  const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((nowStart.getTime() - dStart.getTime()) / 86_400_000);
+
+  const hm = d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  if (diffDays === 0) return `今天 ${hm}`;
+  if (diffDays === 1) return `昨天 ${hm}`;
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+  }
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${hm}`;
 }
 
 function moderationToToast(status?: string) {
@@ -149,6 +181,29 @@ function fallbackByName(name: string): string {
   const text = name.trim();
   if (!text) return '评';
   return text[0];
+}
+
+function InternalActionIconButton(props: {
+  title: string;
+  onClick: () => void;
+  children: ReactNode;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={props.title}
+      aria-label={props.title}
+      onClick={props.onClick}
+      className={cn(
+        'inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-muted-foreground transition-colors',
+        'hover:border-border hover:bg-accent/60 hover:text-foreground',
+        props.active && 'text-foreground',
+      )}
+    >
+      {props.children}
+    </button>
+  );
 }
 
 export function CommentSection(props: CommentSectionProps) {
@@ -513,51 +568,77 @@ export function CommentSection(props: CommentSectionProps) {
   const renderInternalMessageNode = (
     node: CommentMessageNode,
     threadId: string,
+    authorNameByMessageId: Map<string, string>,
     depth = 0,
   ) => {
     const message = node.message;
-    const authorName = resolveAuthorName({
-      message,
-      currentUserId,
-      currentNickname,
-    });
+    const authorName =
+      authorNameByMessageId.get(message.id) ??
+      resolveAuthorName({
+        message,
+        currentUserId,
+        currentNickname,
+      });
+    const replyToName = message.replyToMessageId
+      ? authorNameByMessageId.get(message.replyToMessageId) ?? null
+      : null;
 
     return (
       <div
         key={message.id}
-        className={cn('space-y-2', depth > 0 && 'ml-10 border-l border-border/50 pl-5')}
+        className={cn('space-y-2', depth > 0 && 'ml-9 border-l border-border/50 pl-4')}
       >
         <div className="flex items-start gap-3">
-          <Avatar className="h-8 w-8 border">
+          <Avatar className="h-8 w-8 border border-border/70">
             <AvatarImage src={undefined} alt={authorName} />
             <AvatarFallback className="text-xs">{fallbackByName(authorName)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-1">
             <div className="flex items-center gap-2 text-sm">
               <span className="font-medium">{authorName}</span>
-              <span className="text-muted-foreground">{formatDate(message.createdAt)}</span>
+              {replyToName ? (
+                <>
+                  <span className="text-muted-foreground">›</span>
+                  <span className="text-muted-foreground">{replyToName}</span>
+                </>
+              ) : null}
+              <span className="text-muted-foreground">{formatCommentTime(message.createdAt)}</span>
             </div>
             <div className="whitespace-pre-wrap text-sm leading-7">{message.contentText}</div>
-            <button
-              type="button"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() =>
-                void prepareReply({
-                  threadId,
-                  parentId: message.id,
-                  replyToMessageId: message.id,
-                  label: authorName,
-                })
-              }
-            >
-              回复
-            </button>
+            <div className="flex items-center gap-1 pt-1">
+              <InternalActionIconButton
+                title={`回复 ${authorName}`}
+                onClick={() =>
+                  void prepareReply({
+                    threadId,
+                    parentId: message.id,
+                    replyToMessageId: message.id,
+                    label: authorName,
+                  })
+                }
+              >
+                <Reply className="h-4 w-4" />
+              </InternalActionIconButton>
+              <InternalActionIconButton
+                title="继续当前线程"
+                onClick={() =>
+                  void prepareReply({
+                    threadId,
+                    parentId: message.parentId ?? null,
+                    replyToMessageId: message.id,
+                    label: authorName,
+                  })
+                }
+              >
+                <Plus className="h-4 w-4" />
+              </InternalActionIconButton>
+            </div>
           </div>
         </div>
         {node.children.length > 0 ? (
           <div className="space-y-4">
             {node.children.map((child) =>
-              renderInternalMessageNode(child, threadId, depth + 1),
+              renderInternalMessageNode(child, threadId, authorNameByMessageId, depth + 1),
             )}
           </div>
         ) : null}
@@ -610,6 +691,16 @@ export function CommentSection(props: CommentSectionProps) {
             const messages = messagesByThread[thread.id] ?? [];
             const messageTree = buildMessageTree(messages);
             const messagesLoaded = thread.id in messagesByThread;
+            const authorNameByMessageId = new Map(
+              messages.map((message) => [
+                message.id,
+                resolveAuthorName({
+                  message,
+                  currentUserId,
+                  currentNickname,
+                }),
+              ]),
+            );
             const replyTarget = replyTargetByThread[thread.id];
             const replyValue =
               internalReplyDraft[thread.id] ?? parseContentToSlateValue('');
@@ -620,21 +711,26 @@ export function CommentSection(props: CommentSectionProps) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-1">
                     <div className="text-sm text-muted-foreground">
-                      最近活跃 {formatDate(thread.lastMessageAt)}
+                      最近活跃 {formatCommentTime(thread.lastMessageAt)}
                     </div>
                     <div className="text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <button
-                      type="button"
-                      className="transition-colors hover:text-foreground"
+                  <div className="flex items-center gap-2">
+                    <span className="pr-1 text-xs text-muted-foreground">
+                      {hasReplies ? thread.messageCount - 1 : 0}
+                    </span>
+                    <InternalActionIconButton
+                      title={expanded ? '收起回复' : '展开回复'}
                       onClick={() => void toggleThread(thread.id)}
                     >
-                      {expanded ? '收起' : hasReplies ? `查看回复 (${thread.messageCount - 1})` : '展开'}
-                    </button>
-                    <button
-                      type="button"
-                      className="transition-colors hover:text-foreground"
+                      {expanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </InternalActionIconButton>
+                    <InternalActionIconButton
+                      title="回复线程"
                       onClick={() =>
                         void prepareReply({
                           threadId: thread.id,
@@ -643,15 +739,15 @@ export function CommentSection(props: CommentSectionProps) {
                         })
                       }
                     >
-                      回复
-                    </button>
-                    <button
-                      type="button"
-                      className="transition-colors hover:text-foreground"
+                      <MessageCircle className="h-4 w-4" />
+                    </InternalActionIconButton>
+                    <InternalActionIconButton
+                      title={thread.status === 'RESOLVED' ? '重新打开' : '标记已解决'}
+                      active={thread.status === 'RESOLVED'}
                       onClick={() => void toggleResolved(thread.id, thread.status)}
                     >
-                      {thread.status === 'RESOLVED' ? '重新打开' : '标记已解决'}
-                    </button>
+                      <CheckCircle2 className="h-4 w-4" />
+                    </InternalActionIconButton>
                   </div>
                 </div>
 
@@ -661,7 +757,13 @@ export function CommentSection(props: CommentSectionProps) {
                       <div className="text-sm text-muted-foreground">加载中...</div>
                     ) : messageTree.length > 0 ? (
                       <div className="space-y-4">
-                        {messageTree.map((node) => renderInternalMessageNode(node, thread.id))}
+                        {messageTree.map((node) =>
+                          renderInternalMessageNode(
+                            node,
+                            thread.id,
+                            authorNameByMessageId,
+                          ),
+                        )}
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground">暂无回复</div>
