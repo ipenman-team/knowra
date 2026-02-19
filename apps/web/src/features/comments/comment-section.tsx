@@ -329,8 +329,11 @@ export function CommentSection(props: CommentSectionProps) {
     email: '',
   });
 
+  const mode = props.mode;
+  const pageId = props.pageId;
   const isPublic = props.mode === 'public';
   const publicId = props.mode === 'public' ? props.publicId : null;
+  const publicPassword = props.mode === 'public' ? props.password : undefined;
   const isPublicRegisteredUser = props.mode === 'public' ? props.canWrite : false;
   const commentCountForPublic = summary?.external ?? summary?.all ?? 0;
   const internalDraftText = useMemo(() => slateToPlainText(internalDraft), [internalDraft]);
@@ -430,9 +433,9 @@ export function CommentSection(props: CommentSectionProps) {
     async (cursor?: string | null) => {
       setLoading(true);
       try {
-        if (props.mode === 'internal') {
+        if (mode === 'internal') {
           const res = await commentsApi.listThreads({
-            pageId: props.pageId,
+            pageId,
             source: internalSourceFilter,
             status: 'ALL',
             cursor: cursor ?? undefined,
@@ -456,24 +459,24 @@ export function CommentSection(props: CommentSectionProps) {
           setHasMore(Boolean(res.hasMore));
           setNextCursor(res.nextCursor ?? null);
 
-          const s = await commentsApi.summary(props.pageId);
+          const s = await commentsApi.summary(pageId);
           setSummary(s);
         } else {
-          const res = await publicCommentsApi.listThreads(props.publicId, {
-            pageId: props.pageId,
+          const res = await publicCommentsApi.listThreads(publicId ?? '', {
+            pageId,
             status: 'ALL',
             cursor: cursor ?? undefined,
             limit: 20,
-            password: props.password,
+            password: publicPassword,
           });
 
           setThreads((prev) => (cursor ? [...prev, ...res.items] : res.items));
           setHasMore(Boolean(res.hasMore));
           setNextCursor(res.nextCursor ?? null);
 
-          const s = await publicCommentsApi.summary(props.publicId, {
-            pageId: props.pageId,
-            password: props.password,
+          const s = await publicCommentsApi.summary(publicId ?? '', {
+            pageId,
+            password: publicPassword,
           });
           setSummary(s);
         }
@@ -481,23 +484,23 @@ export function CommentSection(props: CommentSectionProps) {
         setLoading(false);
       }
     },
-    [internalSourceFilter, props],
+    [internalSourceFilter, mode, pageId, publicId, publicPassword],
   );
 
   const loadAgreement = useCallback(async () => {
-    if (props.mode !== 'public') return;
+    if (mode !== 'public' || !publicId) return;
     try {
-      const res = await publicCommentsApi.agreement(props.publicId, {
-        password: props.password,
+      const res = await publicCommentsApi.agreement(publicId, {
+        password: publicPassword,
       });
       setAgreement(res);
     } catch {
       setAgreement(null);
     }
-  }, [props]);
+  }, [mode, publicId, publicPassword]);
 
   useEffect(() => {
-    if (!props.pageId) return;
+    if (!pageId) return;
     setThreads([]);
     setNextCursor(null);
     setHasMore(false);
@@ -506,11 +509,21 @@ export function CommentSection(props: CommentSectionProps) {
     setReplyTargetByThread({});
     setReplyDraft({});
     setInternalReplyDraft({});
-    setInternalDraft(parseContentToSlateValue(''));
-    setDraft('');
+    if (mode === 'internal') {
+      setInternalDraft(parseContentToSlateValue(''));
+    } else {
+      setDraft('');
+    }
+  }, [mode, pageId, publicId]);
+
+  useEffect(() => {
+    if (!pageId) return;
     void loadThreads(null);
+  }, [pageId, loadThreads]);
+
+  useEffect(() => {
     void loadAgreement();
-  }, [props.pageId, loadThreads, loadAgreement]);
+  }, [loadAgreement]);
 
   const createThread = useCallback(async () => {
     const text = props.mode === 'internal' ? internalDraftText : draft.trim();
