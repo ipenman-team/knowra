@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { markdownToSlateValue } from '@contexta/slate-converters';
 import { toast } from 'sonner';
@@ -9,12 +9,17 @@ import { useI18n } from '@/lib/i18n/provider';
 import { usePagesStore } from '@/stores';
 
 const PAGE_TITLE_MAX_LENGTH = 30;
+type CreateDocumentInSpaceInput = {
+  spaceId: string;
+  title?: string;
+  publish?: boolean;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function isPlaceholderParagraphOnly(nodes: unknown[]): boolean {
+export function isPlaceholderParagraphOnly(nodes: unknown[]): boolean {
   if (nodes.length !== 1) return false;
   const first = nodes[0];
   if (!isRecord(first) || first.type !== 'paragraph') return false;
@@ -36,7 +41,7 @@ function stripMarkdownTitlePrefix(line: string): string {
     .trim();
 }
 
-function buildPageTitle(args: {
+export function buildPageTitle(args: {
   markdownContent: string;
   conversationTitle: string;
   fallbackTitle: string;
@@ -57,6 +62,15 @@ export function useInsertToPage(args: {
 }) {
   const { t } = useI18n();
   const [pending, setPending] = useState(false);
+  const suggestedTitle = useMemo(
+    () =>
+      buildPageTitle({
+        markdownContent: args.markdownContent,
+        conversationTitle: args.conversationTitle,
+        fallbackTitle: t('contextaAiInsert.untitled'),
+      }),
+    [args.conversationTitle, args.markdownContent, t],
+  );
 
   const insertToPage = useCallback(
     async (spaceId: string, pageId: string): Promise<boolean> => {
@@ -93,25 +107,44 @@ export function useInsertToPage(args: {
   );
 
   const createDocumentInSpace = useCallback(
-    async (spaceId: string): Promise<boolean> => {
+    async (input: CreateDocumentInSpaceInput): Promise<boolean> => {
       if (pending) return false;
 
       const markdownContent = args.markdownContent.trim();
       if (!markdownContent) return false;
 
+      const title = input.title?.trim() || suggestedTitle;
+      const publish = input.publish !== false;
+
       setPending(true);
       try {
-        const title = buildPageTitle({
-          markdownContent,
-          conversationTitle: args.conversationTitle,
-          fallbackTitle: t('contextaAiInsert.untitled'),
-        });
         const content = markdownToSlateValue(markdownContent) as unknown[];
-        const created = await pagesApi.create({ spaceId, title, content });
+        const created = await pagesApi.create({
+          spaceId: input.spaceId,
+          title,
+          content,
+        });
+        let nextPage = created;
+
+        if (publish) {
+          try {
+            const published = await pagesApi.publish(created.spaceId, created.id);
+            nextPage = {
+              ...created,
+              latestPublishedVersionId: published.versionId,
+            };
+          } catch {
+            const pagesStore = usePagesStore.getState();
+            pagesStore.upsertPage(created.spaceId, created);
+            pagesStore.upsertTreePage(created.spaceId, created);
+            toast.error(t('contextaAiInsert.createPublishFailed'));
+            return false;
+          }
+        }
 
         const pagesStore = usePagesStore.getState();
-        pagesStore.upsertPage(created.spaceId, created);
-        pagesStore.upsertTreePage(created.spaceId, created);
+        pagesStore.upsertPage(nextPage.spaceId, nextPage);
+        pagesStore.upsertTreePage(nextPage.spaceId, nextPage);
 
         toast.success(t('contextaAiInsert.createSuccess'));
         return true;
@@ -122,11 +155,12 @@ export function useInsertToPage(args: {
         setPending(false);
       }
     },
-    [args.conversationTitle, args.markdownContent, pending, t],
+    [args.markdownContent, pending, suggestedTitle, t],
   );
 
   return {
     pending,
+    suggestedTitle,
     insertToPage,
     createDocumentInSpace,
   };
