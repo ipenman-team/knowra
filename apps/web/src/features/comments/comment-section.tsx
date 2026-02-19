@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Segmented } from '@/components/ui/segmented';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -718,49 +719,6 @@ export function CommentSection(props: CommentSectionProps) {
       <div className="mx-auto mt-10 w-full max-w-5xl space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">评论</h3>
-          <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-full border border-border/70 bg-background p-1 text-xs">
-              <button
-                type="button"
-                className={cn(
-                  'rounded-full px-3 py-1 transition-colors',
-                  internalSourceFilter === 'ALL'
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-                onClick={() => setInternalSourceFilter('ALL')}
-              >
-                全部 {summary?.all ?? 0}
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'rounded-full px-3 py-1 transition-colors',
-                  internalSourceFilter === 'INTERNAL'
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-                onClick={() => setInternalSourceFilter('INTERNAL')}
-              >
-                内部 {summary?.internal ?? 0}
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'rounded-full px-3 py-1 transition-colors',
-                  internalSourceFilter === 'EXTERNAL'
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-                onClick={() => setInternalSourceFilter('EXTERNAL')}
-              >
-                外部 {summary?.external ?? 0}
-              </button>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              进行中 {summary?.open ?? 0} · 已解决 {summary?.resolved ?? 0}
-            </div>
-          </div>
         </div>
 
         <div className="flex items-start gap-4">
@@ -786,6 +744,21 @@ export function CommentSection(props: CommentSectionProps) {
                 发表评论
               </Button>
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <Segmented
+            value={internalSourceFilter}
+            onValueChange={setInternalSourceFilter}
+            options={[
+              { value: 'ALL', label: `全部 ${summary?.all ?? 0}` },
+              { value: 'INTERNAL', label: `内部 ${summary?.internal ?? 0}` },
+              { value: 'EXTERNAL', label: `外部 ${summary?.external ?? 0}` },
+            ]}
+          />
+          <div className="text-sm text-muted-foreground">
+            进行中 {summary?.open ?? 0} · 已解决 {summary?.resolved ?? 0}
           </div>
         </div>
 
