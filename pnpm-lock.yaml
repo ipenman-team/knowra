@@ -371,6 +371,9 @@ importers:
       '@contexta/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@contexta/slate-converters':
+        specifier: workspace:*
+        version: link:../../packages/slate-converters
       '@contexta/utils':
         specifier: workspace:*
         version: link:../../packages/utils

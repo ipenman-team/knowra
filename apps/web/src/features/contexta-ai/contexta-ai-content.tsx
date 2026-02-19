@@ -426,6 +426,8 @@ export function ContextaAiContent(props: {
         {inAnswerMode ? (
           <ContextaAiMessageList
             messages={props.messages}
+            spaces={spaces}
+            conversationTitle={props.title}
             loading={loading}
             error={error}
             showRegenerate={showRegenerate}

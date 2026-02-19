@@ -5,10 +5,13 @@ import { Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/provider';
 
 import type { ContextaAiMessage } from '@/features/contexta-ai/types';
+import { ContextaAiInsertToPageButton } from './contexta-ai-insert-to-page-button';
 import { ContextaAiMessageItem } from './contexta-ai-message-item';
 
 export function ContextaAiMessageList(props: {
   messages: ContextaAiMessage[];
+  spaces: Array<{ id: string; name: string }>;
+  conversationTitle: string;
   loading: boolean;
   error: string | null;
   showRegenerate: boolean;
@@ -26,6 +29,14 @@ export function ContextaAiMessageList(props: {
     [locale],
   );
   const todayLabel = dateFormatter.format(new Date());
+  const latestAssistantContent = useMemo(
+    () =>
+      [...props.messages]
+        .reverse()
+        .find((message) => message.role === 'assistant' && message.content.trim().length > 0)
+        ?.content ?? '',
+    [props.messages],
+  );
 
   return (
     <>
@@ -68,7 +79,14 @@ export function ContextaAiMessageList(props: {
       ) : null}
 
       {props.showRegenerate ? (
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-2">
+          {latestAssistantContent ? (
+            <ContextaAiInsertToPageButton
+              spaces={props.spaces}
+              markdownContent={latestAssistantContent}
+              conversationTitle={props.conversationTitle}
+            />
+          ) : null}
           <Button
             type="button"
             size="sm"
