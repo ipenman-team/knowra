@@ -286,6 +286,22 @@ function InternalActionIconButton(props: {
   );
 }
 
+function ReplyRelationArrow() {
+  return (
+    <span
+      aria-hidden
+      className="inline-block"
+      style={{
+        width: 0,
+        height: 0,
+        borderTop: '4px solid transparent',
+        borderBottom: '4px solid transparent',
+        borderLeft: '6px solid hsl(var(--muted-foreground) / 0.72)',
+      }}
+    />
+  );
+}
+
 export function CommentSection(props: CommentSectionProps) {
   const currentUserId = useMeStore((s) => s.user?.id ?? null);
   const currentNickname = useMeStore((s) => s.profile?.nickname ?? null);
@@ -789,7 +805,7 @@ export function CommentSection(props: CommentSectionProps) {
               <span className="font-medium">{authorName}</span>
               {replyToName ? (
                 <>
-                  <span className="text-muted-foreground">›</span>
+                  <ReplyRelationArrow />
                   <span className="text-muted-foreground">{replyToName}</span>
                 </>
               ) : null}
@@ -1275,7 +1291,9 @@ export function CommentSection(props: CommentSectionProps) {
                               {authorName}
                               {replyToName ? (
                                 <>
-                                  <span className="px-1">›</span>
+                                  <span className="px-1 align-middle">
+                                    <ReplyRelationArrow />
+                                  </span>
                                   {replyToName}
                                 </>
                               ) : null}
