@@ -180,6 +180,16 @@ function resolveExternalAuthor(
   authorGuestId?: string | null;
   actorUserId: string;
 } {
+  const guestId = normalizeGuestId(guestIdRaw);
+  if (guestId) {
+    return {
+      authorType: 'GUEST_EXTERNAL',
+      authorUserId: null,
+      authorGuestId: guestId,
+      actorUserId: `guest:${guestId}`,
+    };
+  }
+
   const normalizedUserId = normalizeOptionalText(userId);
   if (normalizedUserId) {
     return {
@@ -190,15 +200,7 @@ function resolveExternalAuthor(
     };
   }
 
-  const guestId = normalizeGuestId(guestIdRaw);
-  if (!guestId) throw new UnauthorizedException('guest identity required');
-
-  return {
-    authorType: 'GUEST_EXTERNAL',
-    authorUserId: null,
-    authorGuestId: guestId,
-    actorUserId: `guest:${guestId}`,
-  };
+  throw new UnauthorizedException('guest identity required');
 }
 
 function normalizeGuestNickname(raw: unknown, guestId: string): string {

@@ -171,7 +171,7 @@ function resolveAuthorName(params: {
 
   if (author.authorType === 'GUEST_EXTERNAL') {
     if (author.authorGuestNickname && author.authorGuestNickname.trim()) {
-      return `访客·${author.authorGuestNickname.trim()}`;
+      return author.authorGuestNickname.trim();
     }
     if (author.authorGuestId) {
       return `访客-${author.authorGuestId.slice(-4).toUpperCase()}`;
@@ -255,6 +255,7 @@ function resolveAuthorAvatarSrc(params: {
   }
 
   const seed =
+    (author.authorGuestNickname && `n:${author.authorGuestNickname.trim().toLowerCase()}`) ||
     (author.authorUserId && `u:${author.authorUserId}`) ||
     (author.authorGuestId && `g:${author.authorGuestId}`) ||
     (author.id && `m:${author.id}`) ||
