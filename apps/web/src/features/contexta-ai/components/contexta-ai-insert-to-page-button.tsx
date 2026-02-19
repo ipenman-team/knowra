@@ -73,13 +73,14 @@ export function ContextaAiInsertToPageButton(props: {
   }, []);
 
   const handleCreateDocumentConfirm = useCallback(
-    async (title: string) => {
+    async (input: { title: string; markdownContent: string }) => {
       const spaceId = documentSpaceId;
       if (!spaceId) return false;
 
       const ok = await createDocumentInSpace({
         spaceId,
-        title,
+        title: input.title,
+        markdownContent: input.markdownContent,
         publish: true,
       });
       if (!ok) return false;

@@ -21,13 +21,17 @@ export function ContextaAiCreateDocumentModal(props: {
   initialTitle: string;
   markdownContent: string;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (title: string) => Promise<boolean>;
+  onConfirm: (input: {
+    title: string;
+    markdownContent: string;
+  }) => Promise<boolean>;
 }) {
   const { t } = useI18n();
   const titleId = useId();
   const [title, setTitle] = useState(
     props.initialTitle.trim() || t('contextaAiInsert.untitled'),
   );
+  const [markdownContent, setMarkdownContent] = useState(props.markdownContent);
   const [mode, setMode] = useState<PreviewMode>('preview');
 
   const normalizedTitle = title.trim();
@@ -35,7 +39,10 @@ export function ContextaAiCreateDocumentModal(props: {
 
   const handleConfirm = () => {
     if (!canConfirm) return;
-    void props.onConfirm(normalizedTitle);
+    void props.onConfirm({
+      title: normalizedTitle,
+      markdownContent,
+    });
   };
 
   return (
@@ -87,12 +94,13 @@ export function ContextaAiCreateDocumentModal(props: {
 
             {mode === 'preview' ? (
               <div className="max-h-80 overflow-y-auto rounded-md border bg-background p-3">
-                <Markdown content={props.markdownContent} />
+                <Markdown content={markdownContent} />
               </div>
             ) : (
               <Textarea
-                readOnly
-                value={props.markdownContent}
+                value={markdownContent}
+                onChange={(event) => setMarkdownContent(event.target.value)}
+                disabled={props.pending}
                 className="max-h-80 min-h-56 font-mono text-xs leading-5"
               />
             )}

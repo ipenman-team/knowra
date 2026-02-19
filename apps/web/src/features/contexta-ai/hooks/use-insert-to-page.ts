@@ -12,6 +12,7 @@ const PAGE_TITLE_MAX_LENGTH = 30;
 type CreateDocumentInSpaceInput = {
   spaceId: string;
   title?: string;
+  markdownContent?: string;
   publish?: boolean;
 };
 
@@ -110,8 +111,10 @@ export function useInsertToPage(args: {
     async (input: CreateDocumentInSpaceInput): Promise<boolean> => {
       if (pending) return false;
 
-      const markdownContent = args.markdownContent.trim();
-      if (!markdownContent) return false;
+      const markdownContent =
+        input.markdownContent === undefined
+          ? args.markdownContent
+          : input.markdownContent;
 
       const title = input.title?.trim() || suggestedTitle;
       const publish = input.publish !== false;
