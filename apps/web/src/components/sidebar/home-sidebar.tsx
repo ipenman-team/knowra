@@ -39,6 +39,7 @@ import { WorkbenchIcon } from '../icon/workbench.icon';
 import { Empty } from '../empty';
 import { MarkIcon } from '../icon/mark';
 import { useI18n } from '@/lib/i18n/provider';
+import { NotificationBell } from '@/features/notifications';
 
 export const HomeSidebar = memo(function HomeSidebar() {
   const { t } = useI18n();
@@ -151,7 +152,8 @@ export const HomeSidebar = memo(function HomeSidebar() {
             className={`flex p-3 ${isCollapsed ? 'justify-center' : 'justify-between'}`}
           >
             {!isCollapsed && <div>{/* flex 占位 */}</div>}
-            <div>
+            <div className="flex items-center gap-1">
+              <NotificationBell />
               <AccountMenu />
             </div>
           </div>

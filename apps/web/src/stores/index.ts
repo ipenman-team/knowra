@@ -82,3 +82,6 @@ export { useSpaceStore, useSpaces, useSpacesLoaded, useSpacesLoading, useCurrent
 
 // Space Section Store (space sidebar -> main switch)
 export { useSpaceSectionStore, useSpaceSection, type SpaceSectionId } from './space-section-store';
+
+// Notification Store
+export { useNotificationStore, useNotificationUnreadCount } from './notification-store';
