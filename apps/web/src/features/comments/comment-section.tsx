@@ -1171,9 +1171,21 @@ export function CommentSection(props: CommentSectionProps) {
                     <div className="truncate text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => void toggleThread(thread.id)}>
-                  {expanded ? '收起' : `展开(${thread.messageCount})`}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <span className="pr-1 text-xs text-muted-foreground">
+                    {thread.messageCount}
+                  </span>
+                  <InternalActionIconButton
+                    title={expanded ? '收起回复' : '展开回复'}
+                    onClick={() => void toggleThread(thread.id)}
+                  >
+                    {expanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </InternalActionIconButton>
+                </div>
               </div>
 
               {expanded ? (
