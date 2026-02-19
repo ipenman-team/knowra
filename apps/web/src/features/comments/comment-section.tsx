@@ -10,8 +10,16 @@ import { Separator } from '@/components/ui/separator';
 import { commentsApi, publicCommentsApi } from '@/lib/api';
 import type { CommentMessageDto, CommentThreadSummaryDto } from '@/lib/api/comments';
 import type { PublicCommentAgreement } from '@/lib/api/public-comments';
-import { CommentAgreementLink } from './comment-agreement-link';
 import { CommentAgreementModal } from './comment-agreement-modal';
+
+const PUBLIC_COMMENT_GUEST_ID_STORAGE_KEY = 'contexta.public-comment.guest-id';
+
+function createGuestId(): string {
+  if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 type CommentSectionProps =
   | {
@@ -67,13 +75,54 @@ export function CommentSection(props: CommentSectionProps) {
 
   const [agreement, setAgreement] = useState<PublicCommentAgreement | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [guestId, setGuestId] = useState<string | null>(null);
 
-  const canWrite = props.mode === 'internal' ? true : props.canWrite;
+  const isPublic = props.mode === 'public';
+  const publicId = props.mode === 'public' ? props.publicId : null;
+  const isPublicRegisteredUser = props.mode === 'public' ? props.canWrite : false;
+  const commentCountForPublic = summary?.external ?? summary?.all ?? 0;
 
-  const loginHref = useMemo(() => {
-    if (typeof window === 'undefined') return '/login';
-    return `/login?next=${encodeURIComponent(window.location.href)}`;
+  const authHrefs = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return {
+        login: '/login',
+        register: '/login',
+      };
+    }
+
+    const next = encodeURIComponent(window.location.href);
+    return {
+      login: `/login?intent=comment-login&next=${next}`,
+      register: `/login?intent=comment-register&next=${next}`,
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isPublic) {
+      setGuestId(null);
+      return;
+    }
+
+    if (isPublicRegisteredUser) {
+      setGuestId(null);
+      return;
+    }
+
+    try {
+      const storageKey = `${PUBLIC_COMMENT_GUEST_ID_STORAGE_KEY}:${publicId ?? 'default'}`;
+      const existing = window.localStorage.getItem(storageKey);
+      if (existing) {
+        setGuestId(existing);
+        return;
+      }
+
+      const nextGuestId = createGuestId();
+      window.localStorage.setItem(storageKey, nextGuestId);
+      setGuestId(nextGuestId);
+    } catch {
+      setGuestId(createGuestId());
+    }
+  }, [isPublic, isPublicRegisteredUser, publicId]);
 
   const loadThreads = useCallback(
     async (cursor?: string | null) => {
@@ -145,6 +194,12 @@ export function CommentSection(props: CommentSectionProps) {
   const createThread = useCallback(async () => {
     const text = draft.trim();
     if (!text) return;
+
+    if (props.mode === 'public' && !isPublicRegisteredUser && !guestId) {
+      toast.error('访客身份初始化中，请稍后重试');
+      return;
+    }
+
     setCreating(true);
     try {
       if (props.mode === 'internal') {
@@ -159,6 +214,7 @@ export function CommentSection(props: CommentSectionProps) {
           pageId: props.pageId,
           content: { text },
           password: props.password,
+          guestId: isPublicRegisteredUser ? undefined : guestId ?? undefined,
         });
         moderationToToast(res.moderation?.status);
       }
@@ -166,16 +222,12 @@ export function CommentSection(props: CommentSectionProps) {
       setDraft('');
       await loadThreads(null);
     } catch (error) {
-      if (props.mode === 'public' && !canWrite) {
-        toast.error('登录后可发表评论');
-      } else {
-        const message = error instanceof Error ? error.message : '发表评论失败';
-        toast.error(message);
-      }
+      const message = error instanceof Error ? error.message : '发表评论失败';
+      toast.error(message);
     } finally {
       setCreating(false);
     }
-  }, [canWrite, draft, loadThreads, props]);
+  }, [draft, guestId, isPublicRegisteredUser, loadThreads, props]);
 
   const loadThreadMessages = useCallback(
     async (threadId: string) => {
@@ -213,6 +265,12 @@ export function CommentSection(props: CommentSectionProps) {
     async (threadId: string) => {
       const text = replyDraft[threadId]?.trim();
       if (!text) return;
+
+      if (props.mode === 'public' && !isPublicRegisteredUser && !guestId) {
+        toast.error('访客身份初始化中，请稍后重试');
+        return;
+      }
+
       setReplyingThread(threadId);
       try {
         if (props.mode === 'internal') {
@@ -224,6 +282,7 @@ export function CommentSection(props: CommentSectionProps) {
           const res = await publicCommentsApi.replyThread(props.publicId, threadId, {
             content: { text },
             password: props.password,
+            guestId: isPublicRegisteredUser ? undefined : guestId ?? undefined,
           });
           moderationToToast(res.moderation?.status);
         }
@@ -238,7 +297,7 @@ export function CommentSection(props: CommentSectionProps) {
         setReplyingThread(null);
       }
     },
-    [loadThreadMessages, loadThreads, props, replyDraft],
+    [guestId, isPublicRegisteredUser, loadThreadMessages, loadThreads, props, replyDraft],
   );
 
   const toggleResolved = useCallback(
@@ -257,38 +316,65 @@ export function CommentSection(props: CommentSectionProps) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>评论</span>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">全部 {summary?.all ?? 0}</Badge>
-              <Badge variant="outline">外部 {summary?.external ?? 0}</Badge>
-              <Badge variant="outline">内部 {summary?.internal ?? 0}</Badge>
-            </div>
+            {isPublic ? (
+              <span className="text-sm font-normal text-muted-foreground">
+                共 {commentCountForPublic} 条外部评论
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">全部 {summary?.all ?? 0}</Badge>
+                <Badge variant="outline">外部 {summary?.external ?? 0}</Badge>
+                <Badge variant="outline">内部 {summary?.internal ?? 0}</Badge>
+              </div>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {props.mode === 'public' ? (
+          {isPublic ? (
             <div className="text-sm text-muted-foreground">
-              <span>发表评论即视为你理解并遵守社区规范。</span>
-              <CommentAgreementLink className="px-1" onClick={() => setAgreementOpen(true)} />
+              发表评论即表示你已阅读并同意
+              <button
+                type="button"
+                className="px-1 text-primary underline underline-offset-4"
+                onClick={() => setAgreementOpen(true)}
+              >
+                《评论协议》
+              </button>
+              ，并承诺遵守社区规范。
             </div>
           ) : null}
 
           <div className="space-y-2">
             <Textarea
-              placeholder={canWrite ? '写下你的评论...' : '登录后可发表评论'}
+              placeholder={
+                isPublic && !isPublicRegisteredUser
+                  ? '以访客身份发表评论（无需注册）'
+                  : '写下你的评论...'
+              }
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              disabled={!canWrite || creating}
+              disabled={creating}
             />
             <div className="flex items-center justify-between">
-              {canWrite ? null : (
-                <a className="text-sm text-primary underline" href={loginHref}>
-                  去登录
-                </a>
+              {isPublic && !isPublicRegisteredUser ? (
+                <div className="text-sm text-muted-foreground">
+                  无需注册可直接评论，
+                  <a className="px-1 text-primary underline" href={authHrefs.login}>
+                    去登录
+                  </a>
+                  或
+                  <a className="px-1 text-primary underline" href={authHrefs.register}>
+                    去注册
+                  </a>
+                  可同步评论与后续回复。
+                </div>
+              ) : (
+                <div />
               )}
               <Button
                 type="button"
                 onClick={createThread}
-                disabled={!canWrite || creating || !draft.trim()}
+                disabled={creating || !draft.trim()}
               >
                 发表评论
               </Button>
@@ -308,7 +394,9 @@ export function CommentSection(props: CommentSectionProps) {
                     <div className="flex items-center justify-between gap-3">
                       <div className="space-y-1">
                         <div className="text-sm text-muted-foreground">
-                          {thread.source === 'EXTERNAL' ? '外部评论' : '内部评论'} · 最近活跃 {formatDate(thread.lastMessageAt)}
+                          {isPublic
+                            ? `最近活跃 ${formatDate(thread.lastMessageAt)}`
+                            : `${thread.source === 'EXTERNAL' ? '外部评论' : '内部评论'} · 最近活跃 ${formatDate(thread.lastMessageAt)}`}
                         </div>
                         <div className="text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
                       </div>
@@ -343,7 +431,7 @@ export function CommentSection(props: CommentSectionProps) {
                         </div>
                         <div className="space-y-2">
                           <Textarea
-                            placeholder={canWrite ? '回复此线程...' : '登录后可回复'}
+                            placeholder={isPublic && !isPublicRegisteredUser ? '以访客身份回复...' : '回复此线程...'}
                             value={replyDraft[thread.id] ?? ''}
                             onChange={(event) =>
                               setReplyDraft((prev) => ({
@@ -351,13 +439,13 @@ export function CommentSection(props: CommentSectionProps) {
                                 [thread.id]: event.target.value,
                               }))
                             }
-                            disabled={!canWrite || replyingThread === thread.id}
+                            disabled={replyingThread === thread.id}
                           />
                           <Button
                             type="button"
                             size="sm"
                             onClick={() => void submitReply(thread.id)}
-                            disabled={!canWrite || replyingThread === thread.id || !(replyDraft[thread.id] ?? '').trim()}
+                            disabled={replyingThread === thread.id || !(replyDraft[thread.id] ?? '').trim()}
                           >
                             回复
                           </Button>

@@ -6,4 +6,5 @@ export type CreateCommentThreadDto = {
   anchorType?: string | null;
   anchorPayload?: unknown | null;
   password?: string | null;
+  guestId?: string | null;
 };

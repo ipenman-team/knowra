@@ -161,6 +161,45 @@ function parseCommentAgreement(share: Share): {
   };
 }
 
+function normalizeGuestId(raw: unknown): string | null {
+  const guestId = normalizeOptionalText(raw);
+  if (!guestId) return null;
+  if (!/^[A-Za-z0-9_-]{8,128}$/.test(guestId)) {
+    throw new BadRequestException('guestId invalid');
+  }
+  return guestId;
+}
+
+function resolveExternalAuthor(
+  userId: string | undefined,
+  guestIdRaw: unknown,
+): {
+  authorType: 'REGISTERED_EXTERNAL' | 'GUEST_EXTERNAL';
+  authorUserId?: string | null;
+  authorGuestId?: string | null;
+  actorUserId: string;
+} {
+  const normalizedUserId = normalizeOptionalText(userId);
+  if (normalizedUserId) {
+    return {
+      authorType: 'REGISTERED_EXTERNAL',
+      authorUserId: normalizedUserId,
+      authorGuestId: null,
+      actorUserId: normalizedUserId,
+    };
+  }
+
+  const guestId = normalizeGuestId(guestIdRaw);
+  if (!guestId) throw new UnauthorizedException('guest identity required');
+
+  return {
+    authorType: 'GUEST_EXTERNAL',
+    authorUserId: null,
+    authorGuestId: guestId,
+    actorUserId: `guest:${guestId}`,
+  };
+}
+
 @Controller('comments')
 export class CommentController {
   constructor(
@@ -473,12 +512,12 @@ export class PublicCommentController {
     @UserId() userId: string | undefined,
     @Body() body: CreateCommentThreadDto,
   ) {
-    if (!userId) throw new UnauthorizedException('unauthorized');
     const share = await this.accessShare(publicId, body.password ?? undefined);
     const pageContext = await this.resolvePageContext({
       share,
       pageIdRaw: body.pageId,
     });
+    const author = resolveExternalAuthor(userId, body.guestId);
 
     const result = await this.createThreadUseCase.create({
       tenantId: share.tenantId,
@@ -490,9 +529,10 @@ export class PublicCommentController {
       quoteText: normalizeOptionalText(body.quoteText),
       anchorType: normalizeOptionalText(body.anchorType),
       anchorPayload: body.anchorPayload ?? null,
-      authorType: 'REGISTERED_EXTERNAL',
-      authorUserId: userId,
-      actorUserId: userId,
+      authorType: author.authorType,
+      authorUserId: author.authorUserId ?? null,
+      authorGuestId: author.authorGuestId ?? null,
+      actorUserId: author.actorUserId,
     });
 
     return handleModerationResult(result);
@@ -505,8 +545,8 @@ export class PublicCommentController {
     @UserId() userId: string | undefined,
     @Body() body: ReplyCommentDto,
   ) {
-    if (!userId) throw new UnauthorizedException('unauthorized');
     const share = await this.accessShare(publicId, body.password ?? undefined);
+    const author = resolveExternalAuthor(userId, body.guestId);
 
     const thread = await this.getThreadUseCase.get({
       tenantId: share.tenantId,
@@ -522,9 +562,10 @@ export class PublicCommentController {
       content: toCommentContentPayload(body.content),
       parentId: normalizeOptionalText(body.parentId),
       replyToMessageId: normalizeOptionalText(body.replyToMessageId),
-      authorType: 'REGISTERED_EXTERNAL',
-      authorUserId: userId,
-      actorUserId: userId,
+      authorType: author.authorType,
+      authorUserId: author.authorUserId ?? null,
+      authorGuestId: author.authorGuestId ?? null,
+      actorUserId: author.actorUserId,
     });
 
     return handleModerationResult(result);

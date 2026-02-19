@@ -40,29 +40,31 @@ export function PublicPageViewer({
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <SharePageHeader title={title} publishedAt={publishedAt} />
-      <div className="mx-auto w-full max-w-5xl flex-1 overflow-y-auto space-y-4 px-6 pb-20 pt-10">
-        <div className="space-y-2">
-          <EditorTitleDisplay title={title} />
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-6 pb-10 pt-10">
+          <div className="space-y-2">
+            <EditorTitleDisplay title={title} />
+          </div>
+          <div className="pt-2">
+            <SlateEditor
+              value={slateValue}
+              readOnly={true}
+              showToolbar={false}
+              onChange={() => {}}
+            />
+          </div>
+          <CommentSection
+            mode="public"
+            pageId={share.targetId}
+            publicId={publicId}
+            password={password}
+            canWrite={canWrite}
+          />
+          <div className="mt-auto border-t pt-10 text-center text-sm text-muted-foreground">
+            {ICP_FILING_NUMBER}
+          </div>
         </div>
-        <div className="pt-2">
-           <SlateEditor 
-             value={slateValue} 
-             readOnly={true} 
-             showToolbar={false}
-             onChange={() => {}} 
-           />
-        </div>
-        <div className="text-center text-sm text-muted-foreground pt-10 border-t mt-10">
-          {ICP_FILING_NUMBER}
-        </div>
-        <CommentSection
-          mode="public"
-          pageId={share.targetId}
-          publicId={publicId}
-          password={password}
-          canWrite={canWrite}
-        />
       </div>
     </div>
-  )
+  );
 }

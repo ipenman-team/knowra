@@ -202,17 +202,16 @@ export function PublicSpaceViewer({
         </aside>
 
         <main className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-5xl space-y-4 px-6 pb-20 pt-8">
-            <EditorTitleDisplay title={selectedPage?.title ?? '无标题文档'} />
-            <SlateEditor
-              key={editorKey}
-              value={slateValue}
-              readOnly
-              showToolbar={false}
-              onChange={() => {}}
-            />
-            <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-              {ICP_FILING_NUMBER}
+          <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-6 pb-10 pt-8">
+            <div className="space-y-4">
+              <EditorTitleDisplay title={selectedPage?.title ?? '无标题文档'} />
+              <SlateEditor
+                key={editorKey}
+                value={slateValue}
+                readOnly
+                showToolbar={false}
+                onChange={() => {}}
+              />
             </div>
             {selectedPage ? (
               <CommentSection
@@ -223,6 +222,9 @@ export function PublicSpaceViewer({
                 canWrite={canWrite}
               />
             ) : null}
+            <div className="mt-auto border-t pt-8 text-center text-sm text-muted-foreground">
+              {ICP_FILING_NUMBER}
+            </div>
           </div>
         </main>
       </div>
