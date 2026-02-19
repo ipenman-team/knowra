@@ -114,7 +114,7 @@ export const commentsApi = {
   createThread: async (payload: {
     pageId: string;
     spaceId: string;
-    content: { text: string };
+    content: { text: string; slate?: unknown };
     quoteText?: string;
     anchorType?: string;
     anchorPayload?: unknown;
@@ -126,7 +126,7 @@ export const commentsApi = {
   replyThread: async (
     threadId: string,
     payload: {
-      content: { text: string };
+      content: { text: string; slate?: unknown };
       parentId?: string;
       replyToMessageId?: string;
     },

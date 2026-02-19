@@ -2,15 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  SlateEditor,
+  parseContentToSlateValue,
+  type SlateValue,
+} from '@/components/shared/slate-editor';
 import { commentsApi, publicCommentsApi } from '@/lib/api';
 import type { CommentMessageDto, CommentThreadSummaryDto } from '@/lib/api/comments';
 import type { PublicCommentAgreement } from '@/lib/api/public-comments';
 import { CommentAgreementModal } from './comment-agreement-modal';
+import { cn } from '@/lib/utils';
+import { useMeStore } from '@/stores';
 
 const PUBLIC_COMMENT_GUEST_ID_STORAGE_KEY = 'contexta.public-comment.guest-id';
 
@@ -52,12 +59,111 @@ function moderationToToast(status?: string) {
   }
 }
 
+type CommentMessageNode = {
+  message: CommentMessageDto;
+  children: CommentMessageNode[];
+};
+
+type ReplyTarget = {
+  parentId?: string | null;
+  replyToMessageId?: string | null;
+  label?: string | null;
+};
+
+function visitSlateNode(node: unknown, out: string[]) {
+  if (!node || typeof node !== 'object') return;
+
+  const text = (node as { text?: unknown }).text;
+  if (typeof text === 'string') {
+    out.push(text);
+    return;
+  }
+
+  const children = (node as { children?: unknown }).children;
+  if (!Array.isArray(children)) return;
+
+  for (const child of children) {
+    visitSlateNode(child, out);
+  }
+  out.push('\n');
+}
+
+function slateToPlainText(value: SlateValue): string {
+  const out: string[] = [];
+  for (const node of value) {
+    visitSlateNode(node, out);
+  }
+  return out.join('').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function buildMessageTree(messages: CommentMessageDto[]): CommentMessageNode[] {
+  const nodeMap = new Map<string, CommentMessageNode>();
+
+  for (const message of messages) {
+    nodeMap.set(message.id, {
+      message,
+      children: [],
+    });
+  }
+
+  const roots: CommentMessageNode[] = [];
+  for (const message of messages) {
+    const node = nodeMap.get(message.id);
+    if (!node) continue;
+
+    const parentId = message.parentId;
+    const parentNode = parentId ? nodeMap.get(parentId) : undefined;
+    if (parentNode) {
+      parentNode.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  return roots;
+}
+
+function resolveAuthorName(params: {
+  message: CommentMessageDto;
+  currentUserId: string | null;
+  currentNickname: string | null;
+}): string {
+  const { message, currentUserId, currentNickname } = params;
+
+  if (message.authorUserId && message.authorUserId === currentUserId) {
+    return currentNickname ?? '我';
+  }
+
+  if (message.authorType === 'GUEST_EXTERNAL') return '访客';
+  if (message.authorType === 'REGISTERED_EXTERNAL') return '外部用户';
+  if (message.authorType === 'COLLABORATOR') return '协作者';
+
+  if (message.authorUserId) {
+    return `成员 ${message.authorUserId.slice(-4)}`;
+  }
+
+  return '成员';
+}
+
+function fallbackByName(name: string): string {
+  const text = name.trim();
+  if (!text) return '评';
+  return text[0];
+}
+
 export function CommentSection(props: CommentSectionProps) {
+  const currentUserId = useMeStore((s) => s.user?.id ?? null);
+  const currentNickname = useMeStore((s) => s.profile?.nickname ?? null);
+  const currentAvatarUrl = useMeStore((s) => s.profile?.avatarUrl ?? null);
+
   const [threads, setThreads] = useState<CommentThreadSummaryDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState('');
+  const [internalDraft, setInternalDraft] = useState<SlateValue>(() =>
+    parseContentToSlateValue(''),
+  );
   const [creating, setCreating] = useState(false);
 
   const [summary, setSummary] = useState<{
@@ -71,6 +177,10 @@ export function CommentSection(props: CommentSectionProps) {
   const [expandedThreadIds, setExpandedThreadIds] = useState<Record<string, boolean>>({});
   const [messagesByThread, setMessagesByThread] = useState<Record<string, CommentMessageDto[]>>({});
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
+  const [internalReplyDraft, setInternalReplyDraft] = useState<Record<string, SlateValue>>({});
+  const [replyTargetByThread, setReplyTargetByThread] = useState<Record<string, ReplyTarget>>(
+    {},
+  );
   const [replyingThread, setReplyingThread] = useState<string | null>(null);
 
   const [agreement, setAgreement] = useState<PublicCommentAgreement | null>(null);
@@ -81,6 +191,7 @@ export function CommentSection(props: CommentSectionProps) {
   const publicId = props.mode === 'public' ? props.publicId : null;
   const isPublicRegisteredUser = props.mode === 'public' ? props.canWrite : false;
   const commentCountForPublic = summary?.external ?? summary?.all ?? 0;
+  const internalDraftText = useMemo(() => slateToPlainText(internalDraft), [internalDraft]);
 
   const authHrefs = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -137,6 +248,19 @@ export function CommentSection(props: CommentSectionProps) {
           });
 
           setThreads((prev) => (cursor ? [...prev, ...res.items] : res.items));
+          setExpandedThreadIds((prev) => {
+            const next = cursor ? { ...prev } : {};
+            for (const item of res.items) {
+              if (cursor) {
+                if (!(item.thread.id in next)) {
+                  next[item.thread.id] = false;
+                }
+              } else {
+                next[item.thread.id] = true;
+              }
+            }
+            return next;
+          });
           setHasMore(Boolean(res.hasMore));
           setNextCursor(res.nextCursor ?? null);
 
@@ -187,12 +311,17 @@ export function CommentSection(props: CommentSectionProps) {
     setHasMore(false);
     setExpandedThreadIds({});
     setMessagesByThread({});
+    setReplyTargetByThread({});
+    setReplyDraft({});
+    setInternalReplyDraft({});
+    setInternalDraft(parseContentToSlateValue(''));
+    setDraft('');
     void loadThreads(null);
     void loadAgreement();
   }, [props.pageId, loadThreads, loadAgreement]);
 
   const createThread = useCallback(async () => {
-    const text = draft.trim();
+    const text = props.mode === 'internal' ? internalDraftText : draft.trim();
     if (!text) return;
 
     if (props.mode === 'public' && !isPublicRegisteredUser && !guestId) {
@@ -206,7 +335,10 @@ export function CommentSection(props: CommentSectionProps) {
         const res = await commentsApi.createThread({
           pageId: props.pageId,
           spaceId: props.spaceId,
-          content: { text },
+          content: {
+            text,
+            slate: internalDraft,
+          },
         });
         moderationToToast(res.moderation?.status);
       } else {
@@ -219,7 +351,11 @@ export function CommentSection(props: CommentSectionProps) {
         moderationToToast(res.moderation?.status);
       }
 
-      setDraft('');
+      if (props.mode === 'internal') {
+        setInternalDraft(parseContentToSlateValue(''));
+      } else {
+        setDraft('');
+      }
       await loadThreads(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : '发表评论失败';
@@ -227,11 +363,19 @@ export function CommentSection(props: CommentSectionProps) {
     } finally {
       setCreating(false);
     }
-  }, [draft, guestId, isPublicRegisteredUser, loadThreads, props]);
+  }, [
+    draft,
+    guestId,
+    internalDraft,
+    internalDraftText,
+    isPublicRegisteredUser,
+    loadThreads,
+    props,
+  ]);
 
   const loadThreadMessages = useCallback(
-    async (threadId: string) => {
-      if (messagesByThread[threadId]) return;
+    async (threadId: string, force = false) => {
+      if (!force && messagesByThread[threadId]) return;
 
       if (props.mode === 'internal') {
         const res = await commentsApi.listMessages(threadId, { limit: 50, order: 'asc' });
@@ -250,6 +394,18 @@ export function CommentSection(props: CommentSectionProps) {
     [messagesByThread, props],
   );
 
+  useEffect(() => {
+    const pendingThreadIds = threads
+      .map((item) => item.thread.id)
+      .filter((threadId) => expandedThreadIds[threadId] && !messagesByThread[threadId]);
+
+    if (pendingThreadIds.length === 0) return;
+
+    for (const threadId of pendingThreadIds) {
+      void loadThreadMessages(threadId);
+    }
+  }, [expandedThreadIds, loadThreadMessages, messagesByThread, threads]);
+
   const toggleThread = useCallback(
     async (threadId: string) => {
       const next = !expandedThreadIds[threadId];
@@ -261,9 +417,33 @@ export function CommentSection(props: CommentSectionProps) {
     [expandedThreadIds, loadThreadMessages],
   );
 
+  const prepareReply = useCallback(
+    async (params: {
+      threadId: string;
+      parentId?: string | null;
+      replyToMessageId?: string | null;
+      label?: string | null;
+    }) => {
+      setExpandedThreadIds((prev) => ({ ...prev, [params.threadId]: true }));
+      setReplyTargetByThread((prev) => ({
+        ...prev,
+        [params.threadId]: {
+          parentId: params.parentId ?? null,
+          replyToMessageId: params.replyToMessageId ?? null,
+          label: params.label ?? null,
+        },
+      }));
+      await loadThreadMessages(params.threadId);
+    },
+    [loadThreadMessages],
+  );
+
   const submitReply = useCallback(
     async (threadId: string) => {
-      const text = replyDraft[threadId]?.trim();
+      const text =
+        props.mode === 'internal'
+          ? slateToPlainText(internalReplyDraft[threadId] ?? parseContentToSlateValue(''))
+          : (replyDraft[threadId] ?? '').trim();
       if (!text) return;
 
       if (props.mode === 'public' && !isPublicRegisteredUser && !guestId) {
@@ -274,8 +454,14 @@ export function CommentSection(props: CommentSectionProps) {
       setReplyingThread(threadId);
       try {
         if (props.mode === 'internal') {
+          const target = replyTargetByThread[threadId];
           const res = await commentsApi.replyThread(threadId, {
-            content: { text },
+            content: {
+              text,
+              slate: internalReplyDraft[threadId] ?? parseContentToSlateValue(''),
+            },
+            parentId: target?.parentId ?? undefined,
+            replyToMessageId: target?.replyToMessageId ?? undefined,
           });
           moderationToToast(res.moderation?.status);
         } else {
@@ -288,7 +474,12 @@ export function CommentSection(props: CommentSectionProps) {
         }
 
         setReplyDraft((prev) => ({ ...prev, [threadId]: '' }));
-        await loadThreadMessages(threadId);
+        setInternalReplyDraft((prev) => ({
+          ...prev,
+          [threadId]: parseContentToSlateValue(''),
+        }));
+        setReplyTargetByThread((prev) => ({ ...prev, [threadId]: {} }));
+        await loadThreadMessages(threadId, true);
         await loadThreads(null);
       } catch (error) {
         const message = error instanceof Error ? error.message : '回复失败';
@@ -297,7 +488,16 @@ export function CommentSection(props: CommentSectionProps) {
         setReplyingThread(null);
       }
     },
-    [guestId, isPublicRegisteredUser, loadThreadMessages, loadThreads, props, replyDraft],
+    [
+      guestId,
+      internalReplyDraft,
+      isPublicRegisteredUser,
+      loadThreadMessages,
+      loadThreads,
+      props,
+      replyDraft,
+      replyTargetByThread,
+    ],
   );
 
   const toggleResolved = useCallback(
@@ -310,23 +510,237 @@ export function CommentSection(props: CommentSectionProps) {
     [loadThreads, props.mode],
   );
 
+  const renderInternalMessageNode = (
+    node: CommentMessageNode,
+    threadId: string,
+    depth = 0,
+  ) => {
+    const message = node.message;
+    const authorName = resolveAuthorName({
+      message,
+      currentUserId,
+      currentNickname,
+    });
+
+    return (
+      <div
+        key={message.id}
+        className={cn('space-y-2', depth > 0 && 'ml-10 border-l border-border/50 pl-5')}
+      >
+        <div className="flex items-start gap-3">
+          <Avatar className="h-8 w-8 border">
+            <AvatarImage src={undefined} alt={authorName} />
+            <AvatarFallback className="text-xs">{fallbackByName(authorName)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium">{authorName}</span>
+              <span className="text-muted-foreground">{formatDate(message.createdAt)}</span>
+            </div>
+            <div className="whitespace-pre-wrap text-sm leading-7">{message.contentText}</div>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() =>
+                void prepareReply({
+                  threadId,
+                  parentId: message.id,
+                  replyToMessageId: message.id,
+                  label: authorName,
+                })
+              }
+            >
+              回复
+            </button>
+          </div>
+        </div>
+        {node.children.length > 0 ? (
+          <div className="space-y-4">
+            {node.children.map((child) =>
+              renderInternalMessageNode(child, threadId, depth + 1),
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  if (props.mode === 'internal') {
+    return (
+      <div className="mx-auto mt-10 w-full max-w-5xl space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">评论</h3>
+          <div className="text-sm text-muted-foreground">
+            全部 {summary?.all ?? 0} · 进行中 {summary?.open ?? 0} · 已解决 {summary?.resolved ?? 0}
+          </div>
+        </div>
+
+        <div className="flex items-start gap-4">
+          <Avatar className="h-10 w-10 border">
+            <AvatarImage src={currentAvatarUrl ?? undefined} alt={currentNickname ?? '我'} />
+            <AvatarFallback>{fallbackByName(currentNickname ?? '我')}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 rounded-2xl border border-input bg-background p-3">
+            <SlateEditor
+              value={internalDraft}
+              onChange={setInternalDraft}
+              showToolbar
+              toolbarVariant="compact"
+              placeholder="写下你的评论..."
+              className="min-h-[180px] px-2 py-2 text-sm leading-7"
+            />
+            <div className="mt-3 flex justify-end">
+              <Button
+                type="button"
+                onClick={createThread}
+                disabled={creating || !internalDraftText}
+              >
+                发表评论
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-6">
+          {threads.map((item) => {
+            const thread = item.thread;
+            const expanded = Boolean(expandedThreadIds[thread.id]);
+            const messages = messagesByThread[thread.id] ?? [];
+            const messageTree = buildMessageTree(messages);
+            const messagesLoaded = thread.id in messagesByThread;
+            const replyTarget = replyTargetByThread[thread.id];
+            const replyValue =
+              internalReplyDraft[thread.id] ?? parseContentToSlateValue('');
+            const hasReplies = thread.messageCount > 1;
+
+            return (
+              <article key={thread.id} className="space-y-4 border-b pb-6 last:border-b-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="text-sm text-muted-foreground">
+                      最近活跃 {formatDate(thread.lastMessageAt)}
+                    </div>
+                    <div className="text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <button
+                      type="button"
+                      className="transition-colors hover:text-foreground"
+                      onClick={() => void toggleThread(thread.id)}
+                    >
+                      {expanded ? '收起' : hasReplies ? `查看回复 (${thread.messageCount - 1})` : '展开'}
+                    </button>
+                    <button
+                      type="button"
+                      className="transition-colors hover:text-foreground"
+                      onClick={() =>
+                        void prepareReply({
+                          threadId: thread.id,
+                          parentId: null,
+                          replyToMessageId: null,
+                        })
+                      }
+                    >
+                      回复
+                    </button>
+                    <button
+                      type="button"
+                      className="transition-colors hover:text-foreground"
+                      onClick={() => void toggleResolved(thread.id, thread.status)}
+                    >
+                      {thread.status === 'RESOLVED' ? '重新打开' : '标记已解决'}
+                    </button>
+                  </div>
+                </div>
+
+                {expanded ? (
+                  <div className="space-y-5">
+                    {!messagesLoaded ? (
+                      <div className="text-sm text-muted-foreground">加载中...</div>
+                    ) : messageTree.length > 0 ? (
+                      <div className="space-y-4">
+                        {messageTree.map((node) => renderInternalMessageNode(node, thread.id))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">暂无回复</div>
+                    )}
+
+                    <div className="ml-12 rounded-xl border border-input bg-background p-3">
+                      {replyTarget?.label ? (
+                        <div className="mb-2 text-xs text-muted-foreground">
+                          回复 {replyTarget.label}
+                        </div>
+                      ) : null}
+                      <SlateEditor
+                        value={replyValue}
+                        onChange={(value) =>
+                          setInternalReplyDraft((prev) => ({
+                            ...prev,
+                            [thread.id]: value,
+                          }))
+                        }
+                        showToolbar={false}
+                        placeholder="写下你的回复..."
+                        className="min-h-[120px] px-2 py-2 text-sm leading-7"
+                      />
+                      <div className="mt-3 flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() =>
+                            setReplyTargetByThread((prev) => ({ ...prev, [thread.id]: {} }))
+                          }
+                        >
+                          取消
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => void submitReply(thread.id)}
+                          disabled={
+                            replyingThread === thread.id || !slateToPlainText(replyValue)
+                          }
+                        >
+                          回复
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+
+          {threads.length === 0 && !loading ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">暂无评论</div>
+          ) : null}
+
+          {hasMore ? (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => void loadThreads(nextCursor)}
+                disabled={loading}
+              >
+                加载更多
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto mt-10 w-full max-w-5xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>评论</span>
-            {isPublic ? (
-              <span className="text-sm font-normal text-muted-foreground">
-                共 {commentCountForPublic} 条外部评论
-              </span>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">全部 {summary?.all ?? 0}</Badge>
-                <Badge variant="outline">外部 {summary?.external ?? 0}</Badge>
-                <Badge variant="outline">内部 {summary?.internal ?? 0}</Badge>
-              </div>
-            )}
+            <span className="text-sm font-normal text-muted-foreground">
+              共 {commentCountForPublic} 条外部评论
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -394,28 +808,14 @@ export function CommentSection(props: CommentSectionProps) {
                     <div className="flex items-center justify-between gap-3">
                       <div className="space-y-1">
                         <div className="text-sm text-muted-foreground">
-                          {isPublic
-                            ? `最近活跃 ${formatDate(thread.lastMessageAt)}`
-                            : `${thread.source === 'EXTERNAL' ? '外部评论' : '内部评论'} · 最近活跃 ${formatDate(thread.lastMessageAt)}`}
+                          最近活跃 {formatDate(thread.lastMessageAt)}
                         </div>
                         <div className="text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={thread.status === 'RESOLVED' ? 'secondary' : 'outline'}>
-                          {thread.status}
-                        </Badge>
                         <Button variant="outline" size="sm" onClick={() => void toggleThread(thread.id)}>
                           {expanded ? '收起' : `展开(${thread.messageCount})`}
                         </Button>
-                        {props.mode === 'internal' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => void toggleResolved(thread.id, thread.status)}
-                          >
-                            {thread.status === 'RESOLVED' ? '重新打开' : '标记已解决'}
-                          </Button>
-                        ) : null}
                       </div>
                     </div>
 

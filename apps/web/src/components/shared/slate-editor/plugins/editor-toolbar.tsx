@@ -23,7 +23,32 @@ import { TableBlockPluginView } from './table-block/view';
 import { UnderlinePluginView } from './underline/view';
 import { UndoPluginView } from './undo/view';
 
-export function EditorToolbar(props: { disabled?: boolean }) {
+type EditorToolbarVariant = 'full' | 'compact';
+
+export function EditorToolbar(props: { disabled?: boolean; variant?: EditorToolbarVariant }) {
+  const variant = props.variant ?? 'full';
+
+  if (variant === 'compact') {
+    return (
+      <div
+        className={cn(
+          'z-10 flex items-center gap-1 border-t border-input/70 bg-background px-2 pt-2 text-muted-foreground',
+        )}
+      >
+        <HeadingPluginView disabled={props.disabled} />
+        <BoldPluginView disabled={props.disabled} />
+        <ItalicPluginView disabled={props.disabled} />
+        <UnderlinePluginView disabled={props.disabled} />
+        <Separator orientation="vertical" className="mx-1 h-5" />
+        <BulletedListPluginView disabled={props.disabled} />
+        <NumberedListPluginView disabled={props.disabled} />
+        <BlockQuotePluginView disabled={props.disabled} />
+        <LinkPluginView disabled={props.disabled} />
+        <EmojiPluginView disabled={props.disabled} />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(

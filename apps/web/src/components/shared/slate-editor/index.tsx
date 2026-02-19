@@ -455,6 +455,7 @@ export function SlateEditor(props: {
   disabled?: boolean;
   readOnly?: boolean;
   showToolbar?: boolean;
+  toolbarVariant?: "full" | "compact";
   topContent?: ReactNode;
   topContentClassName?: string;
 }) {
@@ -906,7 +907,12 @@ export function SlateEditor(props: {
         syncInlineToolbarState();
       }}
     >
-      {showToolbar ? <EditorToolbar disabled={props.disabled || readOnly} /> : null}
+      {showToolbar ? (
+        <EditorToolbar
+          disabled={props.disabled || readOnly}
+          variant={props.toolbarVariant ?? "full"}
+        />
+      ) : null}
       {props.topContent ? (
         <div className={cn("pb-2", props.topContentClassName)}>
           {props.topContent}
