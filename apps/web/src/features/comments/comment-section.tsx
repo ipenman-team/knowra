@@ -1135,6 +1135,8 @@ export function CommentSection(props: CommentSectionProps) {
         {threads.map((item) => {
           const thread = item.thread;
           const expanded = Boolean(expandedThreadIds[thread.id]);
+          const replyCount = Math.max(thread.messageCount - 1, 0);
+          const hasReplies = replyCount > 0;
           const messages = messagesByThread[thread.id] ?? [];
           const latestAuthor: CommentAuthorIdentity = item.latestMessage
             ? {
@@ -1173,19 +1175,35 @@ export function CommentSection(props: CommentSectionProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="pr-1 text-xs text-muted-foreground">
-                    {thread.messageCount}
-                  </span>
                   <InternalActionIconButton
-                    title={expanded ? '收起回复' : '展开回复'}
-                    onClick={() => void toggleThread(thread.id)}
+                    title="回复线程"
+                    onClick={() =>
+                      void prepareReply({
+                        threadId: thread.id,
+                        parentId: null,
+                        replyToMessageId: null,
+                      })
+                    }
                   >
-                    {expanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
+                    <MessageCircle className="h-4 w-4" />
                   </InternalActionIconButton>
+                  {hasReplies ? (
+                    <>
+                      <span className="pr-1 text-xs text-muted-foreground">
+                        {replyCount}
+                      </span>
+                      <InternalActionIconButton
+                        title={expanded ? '收起回复' : '展开回复'}
+                        onClick={() => void toggleThread(thread.id)}
+                      >
+                        {expanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </InternalActionIconButton>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
