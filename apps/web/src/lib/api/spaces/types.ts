@@ -14,3 +14,47 @@ export type SpaceDto = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type SpaceMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+
+export type SpaceInvitationStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'EXPIRED'
+  | 'REVOKED';
+
+export type SpaceInvitationChannel = 'EMAIL' | 'LINK';
+
+export type SpaceMemberDto = {
+  id: string;
+  spaceId: string;
+  userId: string;
+  role: SpaceMemberRole;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SpaceInvitationDto = {
+  id: string;
+  tenantId: string;
+  spaceId: string;
+  inviterUserId: string;
+  inviteeEmail: string | null;
+  inviteeUserId: string | null;
+  role: SpaceMemberRole;
+  channel: SpaceInvitationChannel;
+  status: SpaceInvitationStatus;
+  expiresAt: string;
+  acceptedAt: string | null;
+  acceptedBy: string | null;
+  sentAt: string | null;
+  resendCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SpaceInvitationWithTokenDto = {
+  invitation: SpaceInvitationDto;
+  inviteToken: string;
+  inviteUrl: string;
+};

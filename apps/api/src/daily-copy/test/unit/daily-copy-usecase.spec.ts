@@ -24,6 +24,24 @@ function makeRepo(overrides?: Partial<DailyCopyRepository>): DailyCopyRepository
         updatedAt: now,
       } satisfies DailyCopy;
     },
+    async updateMetadata(params) {
+      const now = new Date();
+      return {
+        id: 'id',
+        tenantId: params.tenantId,
+        userId: params.userId,
+        day: params.day,
+        category: 'WARM',
+        content: '测试文案',
+        metadata: params.metadata,
+        expiresAt: new Date(now.getTime() + 60_000),
+        createdBy: params.userId,
+        updatedBy: params.userId,
+        isDeleted: false,
+        createdAt: now,
+        updatedAt: now,
+      } satisfies DailyCopy;
+    },
   };
 
   return { ...base, ...(overrides ?? {}) };

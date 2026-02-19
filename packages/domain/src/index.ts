@@ -6,6 +6,9 @@ export * from './page';
 export * from './share';
 export * from './comment';
 export * from './notification';
+export * from './space-invitation';
+export * from './space-role';
+export * from './space-member';
 export type {
   Share,
   ShareType,
@@ -28,6 +31,28 @@ export type {
   ShareSnapshotRepository,
   ShareAccessLogRepository,
 } from './share';
+export type {
+  SpaceInvitationRepository,
+  SpaceInvitation,
+  SpaceMember,
+  SpaceInvitationStatusValue,
+  SpaceInvitationChannelValue,
+  SpaceMemberRoleValue,
+  TenantRoleValue,
+  SpaceInvitationWithToken,
+  AcceptSpaceInvitationResult,
+} from './space-invitation';
+export type {
+  SpaceRoleRepository,
+  SpaceRole,
+  SpaceRoleBuiltInTypeValue,
+  PermissionKey,
+} from './space-role';
+export type {
+  SpaceMemberRepository,
+  SpaceMemberSummary,
+  SpaceMemberRecord,
+} from './space-member';
 export type { PageExportRepository, ExportPageData, GetPageForExportParams } from './page';
 export type {
   CommentRepository,

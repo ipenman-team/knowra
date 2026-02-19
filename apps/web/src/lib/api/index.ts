@@ -15,6 +15,7 @@ export { publicCommentsApi } from './public-comments';
 export { siteBuilderApi } from './site-builder';
 export { filesApi } from './files';
 export { notificationsApi } from './notifications';
+export { authApi } from './auth';
 export type { CreatePageInput, PageDto, SavePageInput } from './pages';
 export type { TaskDto as ApiTaskDto } from './tasks';
 export type { SpaceDto } from './spaces/types';

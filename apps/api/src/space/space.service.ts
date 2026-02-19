@@ -35,7 +35,8 @@ export class SpaceService {
     if (!tenantId) throw new BadRequestException('tenantId is required');
     if (!input?.name) throw new BadRequestException('name is required');
 
-    const actor = userId?.trim() || 'system';
+    const ownerUserId = userId?.trim() || null;
+    const actor = ownerUserId || 'system';
 
     const created = await this.prisma.space.create({
       data: {
@@ -51,6 +52,29 @@ export class SpaceService {
         updatedBy: actor,
       },
     });
+
+    if (ownerUserId) {
+      await this.prisma.spaceMember.upsert({
+        where: {
+          spaceId_userId: {
+            spaceId: created.id,
+            userId: ownerUserId,
+          },
+        },
+        create: {
+          spaceId: created.id,
+          userId: ownerUserId,
+          role: 'OWNER',
+          createdBy: actor,
+          updatedBy: actor,
+        },
+        update: {
+          role: 'OWNER',
+          isDeleted: false,
+          updatedBy: actor,
+        },
+      });
+    }
 
     await this.pageService
       .initializePage(tenantId, {

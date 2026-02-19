@@ -20,6 +20,7 @@ import { SiteBuilderModule } from './site-builder/site-builder.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { CommentModule } from './comment/comment.module';
 import { NotificationModule } from './notification/notification.module';
+import { SpaceInvitationModule } from './space-invitation/space-invitation.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { NotificationModule } from './notification/notification.module';
     SiteBuilderModule,
     FavoriteModule,
     NotificationModule,
+    SpaceInvitationModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware, LocaleMiddleware],

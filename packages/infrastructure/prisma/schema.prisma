@@ -49,6 +49,24 @@ enum SpaceMemberRole {
   MEMBER
 }
 
+enum SpaceRoleBuiltInType {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum SpaceInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum SpaceInvitationChannel {
+  EMAIL
+  LINK
+}
+
 enum AiMessageRole {
   SYSTEM
   USER
@@ -667,6 +685,8 @@ model Space {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   members SpaceMember[]
+  invitations SpaceInvitation[]
+  roles SpaceRole[]
 
   @@index([tenantId])
   @@index([tenantId, identifier])
@@ -680,6 +700,7 @@ model SpaceMember {
   userId   String @map("user_id")
 
   role     SpaceMemberRole @default(MEMBER)
+  spaceRoleId String? @map("space_role_id")
 
   // optional per-member permissions
   permissions Json? @db.JsonB
@@ -693,11 +714,78 @@ model SpaceMember {
 
   space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spaceRole SpaceRole? @relation(fields: [spaceRoleId], references: [id], onDelete: SetNull)
 
   @@unique([spaceId, userId])
   @@index([userId])
   @@index([spaceId])
+  @@index([spaceRoleId])
   @@map("space_members")
+}
+
+model SpaceInvitation {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  spaceId  String @map("space_id")
+
+  inviterUserId String @map("inviter_user_id")
+  inviteeEmail  String? @map("invitee_email")
+  inviteeUserId String? @map("invitee_user_id")
+
+  role    SpaceMemberRole       @default(MEMBER)
+  spaceRoleId String? @map("space_role_id")
+  channel SpaceInvitationChannel @default(EMAIL)
+  status  SpaceInvitationStatus  @default(PENDING)
+
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  acceptedBy  String?   @map("accepted_by")
+  sentAt      DateTime? @map("sent_at")
+  resendCount Int       @default(0) @map("resend_count")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceRole SpaceRole? @relation(fields: [spaceRoleId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, spaceId, status, expiresAt], map: "space_invite_tenant_space_status_exp_idx")
+  @@index([tenantId, inviteeEmail, status], map: "space_invite_tenant_email_status_idx")
+  @@index([spaceRoleId], map: "space_invitations_space_role_id_idx")
+  @@map("space_invitations")
+}
+
+model SpaceRole {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  spaceId  String @map("space_id")
+
+  name        String
+  description String? @db.Text
+  isBuiltIn   Boolean @default(false) @map("is_built_in")
+  builtInType SpaceRoleBuiltInType? @map("built_in_type")
+  permissions Json @default("[]") @db.JsonB
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  members SpaceMember[]
+  invitations SpaceInvitation[]
+
+  @@index([tenantId], map: "space_roles_tenant_id_idx")
+  @@index([spaceId], map: "space_roles_space_id_idx")
+  @@index([spaceId, isBuiltIn, builtInType], map: "space_roles_space_builtin_type_idx")
+  @@map("space_roles")
 }
 
 model Favorite {

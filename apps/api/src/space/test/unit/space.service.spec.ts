@@ -1,6 +1,5 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Prisma } from '@prisma/client';
 import { ActivityRecorderUseCase } from '@contexta/application';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PageService } from '../../../page/page.service';
@@ -14,10 +13,13 @@ describe('SpaceService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    spaceMember: {
+      upsert: jest.fn(),
+    },
   };
 
   const pageService = {
-    create: jest.fn(),
+    initializePage: jest.fn(),
   };
 
   const activityRecorder = {
@@ -62,7 +64,8 @@ describe('SpaceService', () => {
       updatedAt: now,
     });
 
-    pageService.create.mockResolvedValue({ id: 'p1' });
+    prisma.spaceMember.upsert.mockResolvedValue({ id: 'sm1' });
+    pageService.initializePage.mockResolvedValue({ id: 'p1' });
 
     await expect(service.create('t1', { name: 'Demo' } as any, 'u1')).resolves.toMatchObject({
       id: 's1',
@@ -70,19 +73,28 @@ describe('SpaceService', () => {
       name: 'Demo',
     });
 
-    expect(pageService.create).toHaveBeenCalledTimes(1);
-    expect(pageService.create).toHaveBeenCalledWith(
+    expect(pageService.initializePage).toHaveBeenCalledTimes(1);
+    expect(pageService.initializePage).toHaveBeenCalledWith(
       't1',
       expect.objectContaining({
         spaceId: 's1',
-        title: '使用指南',
-        content: expect.anything() as Prisma.InputJsonValue,
+        userId: 'u1',
       }),
-      'u1',
+    );
+
+    expect(prisma.spaceMember.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          spaceId_userId: {
+            spaceId: 's1',
+            userId: 'u1',
+          },
+        },
+      }),
     );
   });
 
-  it('rolls back space (soft delete) if guide page creation fails', async () => {
+  it('throws when guide page creation fails', async () => {
     const now = new Date('2026-02-06T00:00:00.000Z');
 
     prisma.space.create.mockResolvedValue({
@@ -103,16 +115,12 @@ describe('SpaceService', () => {
       updatedAt: now,
     });
 
-    pageService.create.mockRejectedValue(new Error('boom'));
-    prisma.space.update.mockResolvedValue({ id: 's1' });
-
+    prisma.spaceMember.upsert.mockResolvedValue({ id: 'sm1' });
+    pageService.initializePage.mockRejectedValue(new Error('boom'));
     await expect(service.create('t1', { name: 'Demo' } as any, 'u1')).rejects.toBeInstanceOf(
       InternalServerErrorException,
     );
 
-    expect(prisma.space.update).toHaveBeenCalledWith({
-      where: { id: 's1' },
-      data: { isDeleted: true, updatedBy: 'u1' },
-    });
+    expect(prisma.space.update).not.toHaveBeenCalled();
   });
 });

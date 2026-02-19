@@ -48,6 +48,16 @@ function makeRepo(seed?: Share[]): ShareRepository {
         ) ?? null
       );
     },
+    async getByTargetId(params: { tenantId: string; targetId: string }): Promise<Share | null> {
+      return (
+        items.find(
+          (x) =>
+            x.tenantId === params.tenantId &&
+            x.targetId === params.targetId &&
+            !x.isDeleted,
+        ) ?? null
+      );
+    },
     async getByPublicId(params: { publicId: string }): Promise<Share | null> {
       return items.find((x) => x.publicId === params.publicId && !x.isDeleted) ?? null;
     },

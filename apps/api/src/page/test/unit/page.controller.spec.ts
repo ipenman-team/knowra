@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PageController } from '../../page.controller';
 import { PageService } from '../../page.service';
+import { PageLikeService } from '../../page-like.service';
 import { RagIndexService } from '../../../rag/rag.index.service';
+import { ExportPageUseCase } from '@contexta/application';
 
 describe('PageController', () => {
   let controller: PageController;
@@ -23,6 +25,15 @@ describe('PageController', () => {
     startIndexPublished: jest.fn(),
   };
 
+  const pageLikeService = {
+    getSummary: jest.fn(),
+    setLike: jest.fn(),
+  };
+
+  const exportPageUseCase = {
+    export: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.resetAllMocks();
 
@@ -30,7 +41,9 @@ describe('PageController', () => {
       controllers: [PageController],
       providers: [
         { provide: PageService, useValue: pageService },
+        { provide: PageLikeService, useValue: pageLikeService },
         { provide: RagIndexService, useValue: ragIndexService },
+        { provide: ExportPageUseCase, useValue: exportPageUseCase },
       ],
     }).compile();
 
@@ -42,8 +55,8 @@ describe('PageController', () => {
 
     await expect(
       controller.create('t1', 's1', undefined, { title: 'Hello', spaceId: 'x' }),
-    ).resolves.toEqual({
-      id: 'p1',
+    ).resolves.toMatchObject({
+      data: { id: 'p1' },
     });
 
     expect(pageService.create).toHaveBeenCalledWith(
@@ -57,17 +70,15 @@ describe('PageController', () => {
     pageService.save.mockResolvedValue({ id: 'p1', title: 'X' });
 
     await expect(
-      controller.save('t1', undefined, 'p1', { title: 'X' }),
-    ).resolves.toEqual({
-      id: 'p1',
-      title: 'X',
+      controller.save('t1', 'p1', { title: 'X' }),
+    ).resolves.toMatchObject({
+      data: { id: 'p1', title: 'X' },
     });
 
     expect(pageService.save).toHaveBeenCalledWith(
       't1',
       'p1',
       { title: 'X' },
-      undefined,
     );
   });
 
@@ -75,25 +86,23 @@ describe('PageController', () => {
     pageService.rename.mockResolvedValue({ id: 'p1', title: 'Y' });
 
     await expect(
-      controller.rename('t1', undefined, 'p1', { title: 'Y' }),
-    ).resolves.toEqual({
-      id: 'p1',
-      title: 'Y',
+      controller.rename('t1', 'p1', { title: 'Y' }),
+    ).resolves.toMatchObject({
+      data: { id: 'p1', title: 'Y' },
     });
 
     expect(pageService.rename).toHaveBeenCalledWith(
       't1',
       'p1',
       { title: 'Y' },
-      undefined,
     );
   });
 
   it('remove forwards id + tenantId', async () => {
     pageService.remove.mockResolvedValue({ ok: true });
 
-    await expect(controller.remove('p1', 't1', undefined)).resolves.toEqual({
-      ok: true,
+    await expect(controller.remove('p1', 't1', undefined)).resolves.toMatchObject({
+      data: { ok: true },
     });
     expect(pageService.remove).toHaveBeenCalledWith('p1', 't1', undefined);
   });
@@ -101,16 +110,18 @@ describe('PageController', () => {
   it('get forwards id + tenantId', async () => {
     pageService.get.mockResolvedValue({ id: 'p1' });
 
-    await expect(controller.get('p1', 't1')).resolves.toEqual({ id: 'p1' });
+    await expect(controller.get('p1', 't1')).resolves.toMatchObject({
+      data: { id: 'p1' },
+    });
     expect(pageService.get).toHaveBeenCalledWith('p1', 't1');
   });
 
   it('list forwards tenantId', async () => {
     pageService.list.mockResolvedValue([{ id: 'p1' }]);
 
-    await expect(controller.list('t1', 's1', { q: 'hi' })).resolves.toEqual([
-      { id: 'p1' },
-    ]);
+    await expect(controller.list('t1', 's1', { q: 'hi' })).resolves.toMatchObject({
+      data: [{ id: 'p1' }],
+    });
     expect(pageService.list).toHaveBeenCalledWith('t1', 's1', { q: 'hi' });
   });
 
@@ -123,10 +134,9 @@ describe('PageController', () => {
 
     await expect(
       controller.listTree('t1', 's1', { take: 50 }),
-    ).resolves.toEqual({
-      items: [{ id: 'p1' }],
-      nextCursor: null,
-      hasMore: false,
+    ).resolves.toMatchObject({
+      data: [{ id: 'p1' }],
+      meta: { nextCursor: null, hasMore: false },
     });
 
     expect(pageService.listTree).toHaveBeenCalledWith('t1', 's1', { take: 50 });

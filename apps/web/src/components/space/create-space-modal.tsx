@@ -1,73 +1,30 @@
 'use client';
 
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Modal } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@/components/ui/input-group';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { spacesApi } from '@/lib/api';
-import { useMeStore } from '@/stores';
-import type { SpaceDto } from '@/lib/api/spaces/types';
 import { toast } from 'sonner';
-import { Textarea } from '../ui/textarea';
-import { SpaceIcon } from '../icon/space.icon';
 
-const IDENTIFIER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const IDENTIFIER_LENGTH = 8;
-const SPACE_COLORS = [
-  { label: 'lime', value: '#a3e635' },
-  { label: 'green', value: '#4ade80' },
-  { label: 'yellow', value: '#eab308' },
-  { label: 'amber', value: '#f59e0b' },
-  { label: 'orange', value: '#f97316' },
-  { label: 'red', value: '#ef4444' },
-  { label: 'sky', value: '#0ea5e9' },
-  { label: 'blue', value: '#60a5fa' },
-  { label: 'indigo', value: '#6366f1' },
-  { label: 'violet', value: '#8b5cf6' },
-  { label: 'purple', value: '#a855f7' },
-  { label: 'pink', value: '#ec4899' },
-  { label: 'rose', value: '#f43f5e' },
-  { label: 'gray', value: '#6b7280' },
-  { label: 'neutral', value: '#000000' },
-];
+import { Modal } from '@/components/ui/dialog';
+import { spacesApi } from '@/lib/api';
+import type { SpaceDto } from '@/lib/api/spaces/types';
 
-const DEFAULT_COLOR = SPACE_COLORS.find((x) => x.label === 'blue')?.value;
+import { DEFAULT_COLOR } from './create-space-modal/constants';
+import { FooterActions } from './create-space-modal/footer-actions';
+import { generateIdentifier, parseEmails } from './create-space-modal/helpers';
+import { StepBasicForm } from './create-space-modal/step-basic-form';
+import { StepInviteForm } from './create-space-modal/step-invite-form';
+import type { EmailInviteDraft, FormValues, InviteRole, Step } from './create-space-modal/types';
 
-const generateIdentifier = (length = IDENTIFIER_LENGTH) => {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const values = new Uint32Array(length);
-    crypto.getRandomValues(values);
-    return Array.from(
-      values,
-      (value) => IDENTIFIER_CHARS[value % IDENTIFIER_CHARS.length],
-    ).join('');
-  }
-
-  let result = '';
-  for (let i = 0; i < length; i += 1) {
-    result +=
-      IDENTIFIER_CHARS[Math.floor(Math.random() * IDENTIFIER_CHARS.length)];
-  }
-  return result;
-};
+function getEmptyFormValues(): FormValues {
+  return {
+    name: '',
+    identifier: '',
+    type: 'PERSONAL',
+    category: '',
+    description: '',
+    color: DEFAULT_COLOR,
+  };
+}
 
 export function CreateSpaceModal(props: {
   open: boolean;
@@ -75,13 +32,17 @@ export function CreateSpaceModal(props: {
   onCreated?: (space: SpaceDto) => void;
 }) {
   const { open, onOpenChange, onCreated } = props;
-  const tenant = useMeStore((s) => s.tenant);
-  const isPersonalTenant = tenant?.type === 'PERSONAL';
-  const nameId = useId();
-  const identifierId = useId();
-  const typeId = useId();
-  const descriptionId = useId();
+
   const wasOpenRef = useRef(false);
+
+  const [step, setStep] = useState<Step>(1);
+  const [creating, setCreating] = useState(false);
+
+  const [inviteInput, setInviteInput] = useState('');
+  const [inviteRole, setInviteRole] = useState<InviteRole>('MEMBER');
+  const [emailInvites, setEmailInvites] = useState<EmailInviteDraft[]>([]);
+  const [createLinkInvite, setCreateLinkInvite] = useState(false);
+  const [linkInviteRole, setLinkInviteRole] = useState<InviteRole>('MEMBER');
 
   const {
     register,
@@ -90,32 +51,45 @@ export function CreateSpaceModal(props: {
     reset,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
-  } = useForm<{
-    name: string;
-    identifier: string;
-    type: 'PERSONAL' | 'ORG';
-    description: string;
-    color: string;
-  }>({
-    defaultValues: {
-      name: '',
-      identifier: '',
-      type: 'ORG',
-      description: '',
-      color: DEFAULT_COLOR,
-    },
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: getEmptyFormValues(),
   });
-
-  useEffect(() => {
-    if (isPersonalTenant) {
-      setValue('type', 'PERSONAL', { shouldValidate: true });
-    }
-  }, [isPersonalTenant, setValue]);
 
   const nameValue = watch('name');
   const identifierValue = watch('identifier');
+  const typeValue = watch('type');
   const colorValue = watch('color');
+
+  const hasPendingInvites = emailInvites.length > 0 || createLinkInvite;
+  const isCollaborativeSpace = typeValue === 'ORG';
+
+  const inviteGroups = useMemo(
+    () =>
+      emailInvites.reduce(
+        (acc, item) => {
+          acc[item.role].push(item.email);
+          return acc;
+        },
+        { MEMBER: [] as string[], ADMIN: [] as string[] },
+      ),
+    [emailInvites],
+  );
+
+  const resetInviteState = () => {
+    setInviteInput('');
+    setInviteRole('MEMBER');
+    setEmailInvites([]);
+    setCreateLinkInvite(false);
+    setLinkInviteRole('MEMBER');
+  };
+
+  const resetAll = () => {
+    reset(getEmptyFormValues());
+    setStep(1);
+    setCreating(false);
+    resetInviteState();
+  };
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -124,187 +98,185 @@ export function CreateSpaceModal(props: {
         setValue('identifier', generateIdentifier(), { shouldValidate: true });
       }
     }
-    wasOpenRef.current = open;
-  }, [getValues, open, setValue]);
 
-  const handleCreate = async (values: {
-    name: string;
-    identifier: string;
-    type: 'PERSONAL' | 'ORG';
-    description: string;
-    color: string;
-  }) => {
+    if (!open && wasOpenRef.current) {
+      resetAll();
+    }
+
+    wasOpenRef.current = open;
+  }, [getValues, open, reset, setValue]);
+
+  const addEmails = () => {
+    const { valid, invalid } = parseEmails(inviteInput);
+    if (invalid.length > 0) {
+      toast.error(`邮箱格式不正确: ${invalid.join(', ')}`);
+    }
+    if (valid.length === 0) return;
+
+    setEmailInvites((prev) => {
+      const exists = new Set(prev.map((item) => item.email));
+      const next = [...prev];
+      for (const email of valid) {
+        if (exists.has(email)) continue;
+        next.push({ email, role: inviteRole });
+      }
+      return next;
+    });
+
+    setInviteInput('');
+  };
+
+  const createSpace = async (values: FormValues, skipInvites: boolean) => {
     const trimmedName = values.name?.trim();
     const trimmedIdentifier = values.identifier?.trim();
     const trimmedColor = values.color?.trim();
     if (!trimmedName || !trimmedIdentifier) return;
+
+    setCreating(true);
     try {
+      const category = values.category?.trim();
+
       const created = await spacesApi.create({
         name: trimmedName,
         identifier: trimmedIdentifier,
-        type: isPersonalTenant ? 'PERSONAL' : values.type,
+        type: values.type,
         description: values.description?.trim() || undefined,
         color: trimmedColor || undefined,
+        metadata: category ? { category } : {},
       });
-      toast.success('创建成功');
+
+      let inviteFailures = 0;
+      let inviteCreated = 0;
+      let linkUrl: string | null = null;
+
+      if (!skipInvites && values.type === 'ORG') {
+        const createByRole = async (role: InviteRole, emails: string[]) => {
+          if (emails.length === 0) return;
+          try {
+            const rows = await spacesApi.createEmailInvitations(created.id, {
+              role,
+              emails,
+            });
+            inviteCreated += rows.length;
+          } catch {
+            inviteFailures += emails.length;
+          }
+        };
+
+        await createByRole('MEMBER', inviteGroups.MEMBER);
+        await createByRole('ADMIN', inviteGroups.ADMIN);
+
+        if (createLinkInvite) {
+          try {
+            const linkInvite = await spacesApi.createLinkInvitation(created.id, {
+              role: linkInviteRole,
+            });
+            linkUrl = linkInvite.inviteUrl;
+          } catch {
+            inviteFailures += 1;
+          }
+        }
+      }
+
+      if (linkUrl) {
+        await navigator?.clipboard?.writeText(linkUrl).catch(() => null);
+      }
+
+      if (inviteFailures > 0) {
+        toast.warning('空间已创建，部分邀请发送失败');
+      } else if (inviteCreated > 0 || linkUrl) {
+        const text = linkUrl
+          ? '创建成功，邀请已发送（链接已复制）'
+          : '创建成功，邀请已发送';
+        toast.success(text);
+      } else {
+        toast.success('创建成功');
+      }
+
       onCreated?.(created as SpaceDto);
       onOpenChange(false);
-      reset({
-        name: '',
-        identifier: '',
-        type: isPersonalTenant ? 'PERSONAL' : 'ORG',
-        description: '',
-        color: DEFAULT_COLOR,
-      });
+      resetAll();
     } catch {
-      // ignore for now
+      // apiClient interceptor will show toast
+    } finally {
+      setCreating(false);
     }
   };
+
+  const goToStep2 = handleSubmit(() => setStep(2));
+
+  const handleCreateOnly = handleSubmit(async (values) => {
+    await createSpace(values, true);
+  });
+
+  const handleCreateWithInvites = handleSubmit(async (values) => {
+    await createSpace(values, false);
+  });
+
+  const canGoNext =
+    !creating &&
+    Boolean(nameValue?.trim()) &&
+    Boolean(identifierValue?.trim()) &&
+    Boolean(colorValue?.trim());
 
   return (
     <Modal
       open={open}
       className="max-w-lg"
-      title="创建空间"
-      onOpenChange={onOpenChange}
-      onConfirm={handleSubmit(handleCreate)}
-      confirmDisabled={
-        isSubmitting ||
-        !nameValue?.trim() ||
-        !identifierValue?.trim() ||
-        !colorValue?.trim()
+      title={step === 1 ? '创建空间' : '邀请成员'}
+      footer={
+        <FooterActions
+          step={step}
+          creating={creating}
+          canGoNext={canGoNext}
+          isCollaborativeSpace={isCollaborativeSpace}
+          hasPendingInvites={hasPendingInvites}
+          onCancel={() => onOpenChange(false)}
+          onNext={() => void goToStep2()}
+          onBack={() => setStep(1)}
+          onCreateOnly={() => void handleCreateOnly()}
+          onCreateWithInvites={() => void handleCreateWithInvites()}
+        />
       }
+      onOpenChange={onOpenChange}
     >
-      <FieldGroup className="gap-4">
-        <Field data-invalid={!!errors.name}>
-          <FieldLabel htmlFor={nameId}>
-            空间名称 <span className="text-destructive">*</span>
-          </FieldLabel>
-          <FieldContent>
-            <InputGroup>
-              <InputGroupAddon>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <InputGroupButton aria-label="选择颜色" size="icon-sm">
-                      <SpaceIcon color={colorValue || DEFAULT_COLOR} />
-                    </InputGroupButton>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="bottom"
-                    align="start"
-                    className="w-auto p-2"
-                    sideOffset={6}
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      {SPACE_COLORS.map((color) => {
-                        const isSelected = colorValue === color.value;
-                        return (
-                          <button
-                            key={color.label}
-                            type="button"
-                            aria-pressed={isSelected}
-                            aria-label={`颜色 ${color.label}`}
-                            onClick={() =>
-                              setValue('color', color.value, {
-                                shouldValidate: true,
-                              })
-                            }
-                            className={[
-                              'h-6 w-6 rounded-none border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                              isSelected
-                                ? 'border-transparent ring-2 ring-ring ring-offset-2 ring-offset-background'
-                                : 'border-input',
-                            ].join(' ')}
-                            style={{ backgroundColor: color.value }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </InputGroupAddon>
-              <InputGroupInput
-                id={nameId}
-                placeholder="输入空间名称"
-                required
-                aria-invalid={!!errors.name}
-                {...register('name', {
-                  required: '请输入空间名称',
-                  validate: (value) =>
-                    value?.trim() ? true : '请输入空间名称',
-                })}
-              />
-            </InputGroup>
-            <input type="hidden" {...register('color')} />
-            <FieldError errors={[errors.name]} />
-          </FieldContent>
-        </Field>
-
-        <Field data-invalid={!!errors.identifier}>
-          <FieldLabel htmlFor={identifierId}>
-            空间标识 <span className="text-destructive">*</span>
-          </FieldLabel>
-          <FieldContent>
-            <Input
-              id={identifierId}
-              placeholder="大写字母或数字，最长15"
-              required
-              aria-invalid={!!errors.identifier}
-              {...register('identifier', {
-                required: '请输入空间标识',
-                maxLength: { value: 15, message: '空间标识最多15个字符' },
-                pattern: {
-                  value: /^[A-Z0-9]+$/,
-                  message: '空间标识仅支持大写字母或数字',
-                },
-                validate: (value) => (value?.trim() ? true : '请输入空间标识'),
-              })}
-            />
-            <FieldError errors={[errors.identifier]} />
-          </FieldContent>
-        </Field>
-
-        <Field data-invalid={!!errors.type}>
-          <FieldLabel htmlFor={typeId}>可见范围</FieldLabel>
-          <FieldContent>
-            {isPersonalTenant ? (
-              <select
-                id={typeId}
-                className="block w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                disabled
-                {...register('type')}
-              >
-                <option value="PERSONAL">个人</option>
-              </select>
-            ) : (
-              <select
-                id={typeId}
-                className="block w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                {...register('type')}
-              >
-                <option value="PERSONAL">个人</option>
-                <option value="ORG">组织</option>
-              </select>
-            )}
-            <FieldError errors={[errors.type]} />
-          </FieldContent>
-        </Field>
-
-        <Field data-invalid={!!errors.description}>
-          <FieldLabel htmlFor={descriptionId}>描述</FieldLabel>
-          <FieldContent>
-            <Textarea
-              id={descriptionId}
-              placeholder="输入空间描述"
-              className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-              rows={4}
-              aria-invalid={!!errors.description}
-              {...register('description')}
-            />
-            <FieldError errors={[errors.description]} />
-          </FieldContent>
-        </Field>
-      </FieldGroup>
+      {step === 1 ? (
+        <StepBasicForm
+          ids={{
+            nameId: 'create-space-name',
+            identifierId: 'create-space-identifier',
+            typeId: 'create-space-type',
+            categoryId: 'create-space-category',
+            descriptionId: 'create-space-description',
+          }}
+          typeValue={typeValue}
+          colorValue={colorValue}
+          errors={errors}
+          register={register}
+          setValue={setValue}
+        />
+      ) : isCollaborativeSpace ? (
+        <StepInviteForm
+          inviteInputId="create-space-invite-input"
+          inviteInput={inviteInput}
+          inviteRole={inviteRole}
+          emailInvites={emailInvites}
+          createLinkInvite={createLinkInvite}
+          linkInviteRole={linkInviteRole}
+          onInviteInputChange={setInviteInput}
+          onInviteRoleChange={setInviteRole}
+          onAddEmails={addEmails}
+          onRemoveInvite={(email) =>
+            setEmailInvites((prev) => prev.filter((item) => item.email !== email))
+          }
+          onCreateLinkInviteChange={setCreateLinkInvite}
+          onLinkInviteRoleChange={setLinkInviteRole}
+        />
+      ) : (
+        <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+          当前为单人空间，无需邀请成员。你可以直接创建空间，后续也可在成员管理中邀请。
+        </div>
+      )}
     </Modal>
   );
 }
