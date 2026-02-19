@@ -463,7 +463,7 @@ export class PrismaCommentRepository implements CommentRepository {
       include: {
         messages: {
           where: { isDeleted: false, isVisible: true },
-          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           take: 1,
         },
       },
@@ -472,11 +472,36 @@ export class PrismaCommentRepository implements CommentRepository {
 
     const hasMore = rows.length > limit;
     const sliced = hasMore ? rows.slice(0, limit) : rows;
+    const latestMessageIds = [
+      ...new Set(
+        sliced
+          .map((row) => row.lastMessageId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    ];
+    const latestMessageMap = new Map<string, CommentMessage>();
+
+    if (latestMessageIds.length > 0) {
+      const latestRows = await this.prisma.commentMessage.findMany({
+        where: {
+          tenantId: params.tenantId,
+          id: { in: latestMessageIds },
+          isDeleted: false,
+          isVisible: true,
+        },
+      });
+
+      for (const row of latestRows) {
+        latestMessageMap.set(row.id, toMessage(row));
+      }
+    }
 
     const items = sliced.map((row) => {
-      const latest = row.messages[0] ? toMessage(row.messages[0]) : null;
+      const root = row.messages[0] ? toMessage(row.messages[0]) : null;
+      const latest = row.lastMessageId ? latestMessageMap.get(row.lastMessageId) ?? null : null;
       return {
         thread: toThread(row),
+        rootMessage: toPreview(root),
         latestMessage: toPreview(latest),
       };
     });

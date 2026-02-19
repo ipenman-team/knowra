@@ -878,23 +878,24 @@ export function CommentSection(props: CommentSectionProps) {
             const messages = messagesByThread[thread.id] ?? [];
             const messageTree = buildMessageTree(messages);
             const messagesLoaded = thread.id in messagesByThread;
-            const latestAuthor: CommentAuthorIdentity = item.latestMessage
+            const rootPreview = item.rootMessage ?? item.latestMessage ?? null;
+            const rootAuthor: CommentAuthorIdentity = rootPreview
               ? {
-                  id: item.latestMessage.id,
-                  authorType: item.latestMessage.authorType,
-                  authorUserId: item.latestMessage.authorUserId ?? null,
-                  authorGuestId: item.latestMessage.authorGuestId ?? null,
-                  authorGuestNickname: item.latestMessage.authorGuestNickname ?? null,
+                  id: rootPreview.id,
+                  authorType: rootPreview.authorType,
+                  authorUserId: rootPreview.authorUserId ?? null,
+                  authorGuestId: rootPreview.authorGuestId ?? null,
+                  authorGuestNickname: rootPreview.authorGuestNickname ?? null,
                 }
               : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
-            const latestAuthorName = resolveAuthorName({
-              author: latestAuthor,
+            const rootAuthorName = resolveAuthorName({
+              author: rootAuthor,
               currentUserId,
               currentNickname,
             });
-            const latestAvatarSrc = resolveAuthorAvatarSrc({
-              author: latestAuthor,
-              authorName: latestAuthorName,
+            const rootAvatarSrc = resolveAuthorAvatarSrc({
+              author: rootAuthor,
+              authorName: rootAuthorName,
               currentUserId,
               currentAvatarUrl,
             });
@@ -918,17 +919,17 @@ export function CommentSection(props: CommentSectionProps) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
                     <Avatar className="mt-0.5 h-8 w-8 border border-border/70">
-                      <AvatarImage src={latestAvatarSrc} alt={latestAuthorName} />
+                      <AvatarImage src={rootAvatarSrc} alt={rootAuthorName} />
                       <AvatarFallback className="text-xs">
-                        {fallbackByName(latestAuthorName)}
+                        {fallbackByName(rootAuthorName)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 space-y-1">
                       <div className="text-sm text-muted-foreground">
-                        {latestAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
+                        {rootAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
                       </div>
                       <div className="truncate text-sm">
-                        {item.latestMessage?.contentText ?? '暂无内容'}
+                        {rootPreview?.contentText ?? '暂无内容'}
                       </div>
                     </div>
                   </div>
@@ -1138,40 +1139,51 @@ export function CommentSection(props: CommentSectionProps) {
           const replyCount = Math.max(thread.messageCount - 1, 0);
           const hasReplies = replyCount > 0;
           const messages = messagesByThread[thread.id] ?? [];
-          const latestAuthor: CommentAuthorIdentity = item.latestMessage
+          const rootPreview = item.rootMessage ?? item.latestMessage ?? null;
+          const rootAuthor: CommentAuthorIdentity = rootPreview
             ? {
-                id: item.latestMessage.id,
-                authorType: item.latestMessage.authorType,
-                authorUserId: item.latestMessage.authorUserId ?? null,
-                authorGuestId: item.latestMessage.authorGuestId ?? null,
-                authorGuestNickname: item.latestMessage.authorGuestNickname ?? null,
+                id: rootPreview.id,
+                authorType: rootPreview.authorType,
+                authorUserId: rootPreview.authorUserId ?? null,
+                authorGuestId: rootPreview.authorGuestId ?? null,
+                authorGuestNickname: rootPreview.authorGuestNickname ?? null,
               }
             : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
-          const latestAuthorName = resolveAuthorName({
-            author: latestAuthor,
+          const rootAuthorName = resolveAuthorName({
+            author: rootAuthor,
             currentUserId,
             currentNickname,
           });
-          const latestAvatarSrc = resolveAuthorAvatarSrc({
-            author: latestAuthor,
-            authorName: latestAuthorName,
+          const rootAvatarSrc = resolveAuthorAvatarSrc({
+            author: rootAuthor,
+            authorName: rootAuthorName,
             currentUserId,
             currentAvatarUrl,
           });
+          const authorNameByMessageId = new Map(
+            messages.map((message) => [
+              message.id,
+              resolveAuthorName({
+                author: message,
+                currentUserId,
+                currentNickname,
+              }),
+            ]),
+          );
 
           return (
             <article key={thread.id} className="rounded-xl bg-muted/25 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                   <Avatar className="mt-0.5 h-8 w-8 border border-border/70">
-                    <AvatarImage src={latestAvatarSrc} alt={latestAuthorName} />
-                    <AvatarFallback className="text-xs">{fallbackByName(latestAuthorName)}</AvatarFallback>
+                    <AvatarImage src={rootAvatarSrc} alt={rootAuthorName} />
+                    <AvatarFallback className="text-xs">{fallbackByName(rootAuthorName)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 space-y-1">
                     <div className="text-sm text-muted-foreground">
-                      {latestAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
+                      {rootAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
                     </div>
-                    <div className="truncate text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
+                    <div className="truncate text-sm">{rootPreview?.contentText ?? '暂无内容'}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -1211,11 +1223,16 @@ export function CommentSection(props: CommentSectionProps) {
                 <div className="space-y-3 border-t border-border/60 pt-3">
                   <div className="space-y-2">
                     {messages.map((message) => {
-                      const authorName = resolveAuthorName({
-                        author: message,
-                        currentUserId,
-                        currentNickname,
-                      });
+                      const authorName =
+                        authorNameByMessageId.get(message.id) ??
+                        resolveAuthorName({
+                          author: message,
+                          currentUserId,
+                          currentNickname,
+                        });
+                      const replyToName = message.replyToMessageId
+                        ? authorNameByMessageId.get(message.replyToMessageId) ?? null
+                        : null;
                       const avatarSrc = resolveAuthorAvatarSrc({
                         author: message,
                         authorName,
@@ -1231,7 +1248,14 @@ export function CommentSection(props: CommentSectionProps) {
                           </Avatar>
                           <div className="min-w-0 space-y-1">
                             <div className="text-xs text-muted-foreground">
-                              {authorName} · {formatCommentTime(message.createdAt)}
+                              {authorName}
+                              {replyToName ? (
+                                <>
+                                  <span className="px-1">›</span>
+                                  {replyToName}
+                                </>
+                              ) : null}
+                              <span> · {formatCommentTime(message.createdAt)}</span>
                             </div>
                             <div className="whitespace-pre-wrap">{message.contentText}</div>
                           </div>

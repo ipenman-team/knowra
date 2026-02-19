@@ -80,6 +80,7 @@ export type CommentMessagePreview = {
 
 export type CommentThreadSummary = {
   thread: CommentThread;
+  rootMessage?: CommentMessagePreview | null;
   latestMessage?: CommentMessagePreview | null;
 };
 

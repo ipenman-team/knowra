@@ -43,6 +43,15 @@ export type CommentMessageDto = {
 
 export type CommentThreadSummaryDto = {
   thread: CommentThreadDto;
+  rootMessage?: {
+    id: string;
+    contentText: string;
+    createdAt: string;
+    authorType: string;
+    authorUserId?: string | null;
+    authorGuestId?: string | null;
+    authorGuestNickname?: string | null;
+  } | null;
   latestMessage?: {
     id: string;
     contentText: string;
