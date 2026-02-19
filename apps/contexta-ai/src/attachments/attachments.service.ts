@@ -11,6 +11,7 @@ import {
 import { pdfPagesToMarkdown } from '@contexta/slate-converters';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaPgVectorAttachmentStore } from './attachment-vector-store';
+import { InternalNotificationClient } from './internal-notification.client';
 
 type UploadedFile = {
   buffer?: Buffer;
@@ -43,7 +44,10 @@ export class AttachmentsService {
   private readonly topK: number;
   private readonly similarityThreshold: number;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationClient: InternalNotificationClient,
+  ) {
     const apiKey = process.env.VOLCENGINE_API_KEY || '';
     const baseUrl = process.env.VOLC_BASE_URL || '';
     const embedModel = process.env.VOLC_EMBED_MODEL || '';
@@ -172,6 +176,20 @@ export class AttachmentsService {
         chunkCount: indexed.chunkCount,
       });
     }
+
+    void this.notificationClient.send({
+      tenantId: params.tenantId,
+      receiverIds: [params.actorUserId],
+      type: 'AI_DONE',
+      title: '知识库索引已完成',
+      body: `已完成 ${results.length} 个附件索引，可开始问答`,
+      link: '/contexta-ai',
+      metadata: {
+        conversationId: params.conversationId,
+        attachmentCount: results.length,
+        source: 'contexta-ai.attachments',
+      },
+    });
 
     return results;
   }
