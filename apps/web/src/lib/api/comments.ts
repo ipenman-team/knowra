@@ -30,6 +30,7 @@ export type CommentMessageDto = {
   authorType: string;
   authorUserId?: string | null;
   authorGuestId?: string | null;
+  authorGuestNickname?: string | null;
   content: unknown;
   contentText: string;
   moderationStatus: CommentModerationStatus;
@@ -49,6 +50,7 @@ export type CommentThreadSummaryDto = {
     authorType: string;
     authorUserId?: string | null;
     authorGuestId?: string | null;
+    authorGuestNickname?: string | null;
   } | null;
 };
 

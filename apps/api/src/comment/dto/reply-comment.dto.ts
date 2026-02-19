@@ -4,4 +4,8 @@ export type ReplyCommentDto = {
   replyToMessageId?: string | null;
   password?: string | null;
   guestId?: string | null;
+  guestProfile?: {
+    nickname?: string | null;
+    email?: string | null;
+  } | null;
 };

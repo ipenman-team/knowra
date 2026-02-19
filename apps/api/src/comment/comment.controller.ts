@@ -34,6 +34,7 @@ import type { ListCommentMessagesQuery } from './dto/list-comment-messages.query
 import type { ResolveCommentThreadDto } from './dto/resolve-comment-thread.dto';
 
 const DEFAULT_COMMENT_AGREEMENT_MARKDOWN = `# 评论协议\n\n欢迎参与评论互动。\n\n- 请保持友善与尊重，避免人身攻击。\n- 请勿发布违法违规、色情、赌博、毒品、政治煽动等内容。\n- 系统会对评论内容进行安全检测，违规内容可能被拦截。`;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeOptionalText(input: unknown): string | null {
   if (typeof input !== 'string') return null;
@@ -197,6 +198,48 @@ function resolveExternalAuthor(
     authorUserId: null,
     authorGuestId: guestId,
     actorUserId: `guest:${guestId}`,
+  };
+}
+
+function normalizeGuestNickname(raw: unknown, guestId: string): string {
+  const nickname = normalizeOptionalText(raw);
+  if (nickname) return nickname.slice(0, 30);
+  const suffix = guestId.slice(-4).toUpperCase() || 'GUEST';
+  return `访客-${suffix}`;
+}
+
+function normalizeGuestEmail(raw: unknown): string | null {
+  const email = normalizeOptionalText(raw);
+  if (!email) return null;
+  const normalizedEmail = email.toLowerCase();
+  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    throw new BadRequestException('guest email invalid');
+  }
+  return normalizedEmail;
+}
+
+function resolveExternalGuestProfile(
+  author: ReturnType<typeof resolveExternalAuthor>,
+  raw: unknown,
+): {
+  authorGuestNickname?: string | null;
+  authorGuestEmail?: string | null;
+} {
+  if (author.authorType !== 'GUEST_EXTERNAL') {
+    return {
+      authorGuestNickname: null,
+      authorGuestEmail: null,
+    };
+  }
+
+  const profile =
+    raw && typeof raw === 'object'
+      ? (raw as { nickname?: unknown; email?: unknown })
+      : {};
+
+  return {
+    authorGuestNickname: normalizeGuestNickname(profile.nickname, author.authorGuestId ?? ''),
+    authorGuestEmail: normalizeGuestEmail(profile.email),
   };
 }
 
@@ -518,6 +561,7 @@ export class PublicCommentController {
       pageIdRaw: body.pageId,
     });
     const author = resolveExternalAuthor(userId, body.guestId);
+    const guestProfile = resolveExternalGuestProfile(author, body.guestProfile);
 
     const result = await this.createThreadUseCase.create({
       tenantId: share.tenantId,
@@ -532,6 +576,8 @@ export class PublicCommentController {
       authorType: author.authorType,
       authorUserId: author.authorUserId ?? null,
       authorGuestId: author.authorGuestId ?? null,
+      authorGuestNickname: guestProfile.authorGuestNickname ?? null,
+      authorGuestEmail: guestProfile.authorGuestEmail ?? null,
       actorUserId: author.actorUserId,
     });
 
@@ -547,6 +593,7 @@ export class PublicCommentController {
   ) {
     const share = await this.accessShare(publicId, body.password ?? undefined);
     const author = resolveExternalAuthor(userId, body.guestId);
+    const guestProfile = resolveExternalGuestProfile(author, body.guestProfile);
 
     const thread = await this.getThreadUseCase.get({
       tenantId: share.tenantId,
@@ -565,6 +612,8 @@ export class PublicCommentController {
       authorType: author.authorType,
       authorUserId: author.authorUserId ?? null,
       authorGuestId: author.authorGuestId ?? null,
+      authorGuestNickname: guestProfile.authorGuestNickname ?? null,
+      authorGuestEmail: guestProfile.authorGuestEmail ?? null,
       actorUserId: author.actorUserId,
     });
 

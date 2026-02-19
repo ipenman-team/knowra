@@ -54,6 +54,7 @@ export type CommentMessage = {
   authorType: CommentAuthorType;
   authorUserId?: string | null;
   authorGuestId?: string | null;
+  authorGuestNickname?: string | null;
   content: unknown;
   contentText: string;
   moderationStatus: CommentModerationStatus;
@@ -74,6 +75,7 @@ export type CommentMessagePreview = {
   authorType: CommentAuthorType;
   authorUserId?: string | null;
   authorGuestId?: string | null;
+  authorGuestNickname?: string | null;
 };
 
 export type CommentThreadSummary = {
@@ -131,6 +133,8 @@ export type CreateCommentThreadWithMessageParams = {
   authorType: CommentAuthorType;
   authorUserId?: string | null;
   authorGuestId?: string | null;
+  authorGuestNickname?: string | null;
+  authorGuestEmail?: string | null;
   content: unknown;
   contentText: string;
   moderationStatus?: CommentModerationStatus | null;
@@ -147,6 +151,8 @@ export type ReplyCommentThreadWithMessageParams = {
   authorType: CommentAuthorType;
   authorUserId?: string | null;
   authorGuestId?: string | null;
+  authorGuestNickname?: string | null;
+  authorGuestEmail?: string | null;
   content: unknown;
   contentText: string;
   moderationStatus?: CommentModerationStatus | null;

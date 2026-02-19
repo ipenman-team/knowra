@@ -96,6 +96,10 @@ export const publicCommentsApi = {
       anchorPayload?: unknown;
       password?: string;
       guestId?: string;
+      guestProfile?: {
+        nickname?: string;
+        email?: string;
+      };
     },
   ): Promise<CommentModerationResponse> => {
     const res = await publicApiClient.post<CommentModerationResponse>(
@@ -114,6 +118,10 @@ export const publicCommentsApi = {
       replyToMessageId?: string;
       password?: string;
       guestId?: string;
+      guestProfile?: {
+        nickname?: string;
+        email?: string;
+      };
     },
   ): Promise<CommentModerationResponse> => {
     const res = await publicApiClient.post<CommentModerationResponse>(

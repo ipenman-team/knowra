@@ -41,6 +41,8 @@ export class CreateCommentThreadUseCase {
     authorType: CommentAuthorType;
     authorUserId?: string | null;
     authorGuestId?: string | null;
+    authorGuestNickname?: string | null;
+    authorGuestEmail?: string | null;
     actorUserId: string;
   }): Promise<CreateCommentThreadResult> {
     const tenantId = normalizeRequiredText('tenantId', params.tenantId);
@@ -84,6 +86,8 @@ export class CreateCommentThreadUseCase {
       authorType: params.authorType,
       authorUserId: params.authorUserId ?? null,
       authorGuestId: params.authorGuestId ?? null,
+      authorGuestNickname: params.authorGuestNickname ?? null,
+      authorGuestEmail: params.authorGuestEmail ?? null,
       content: params.content,
       contentText,
       moderationStatus: moderation.status,

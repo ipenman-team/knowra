@@ -91,6 +91,7 @@ function toMessage(row: {
   authorType: string;
   authorUserId: string | null;
   authorGuestId: string | null;
+  authorGuestNickname: string | null;
   content: Prisma.JsonValue;
   contentText: string;
   moderationStatus: string;
@@ -112,6 +113,7 @@ function toMessage(row: {
     authorType: row.authorType as CommentMessage['authorType'],
     authorUserId: row.authorUserId,
     authorGuestId: row.authorGuestId,
+    authorGuestNickname: row.authorGuestNickname,
     content: row.content,
     contentText: row.contentText,
     moderationStatus: row.moderationStatus as CommentMessage['moderationStatus'],
@@ -135,7 +137,63 @@ function toPreview(message: CommentMessage | null): CommentMessagePreview | null
     authorType: message.authorType,
     authorUserId: message.authorUserId,
     authorGuestId: message.authorGuestId,
+    authorGuestNickname: message.authorGuestNickname,
   };
+}
+
+function normalizeGuestNickname(value?: string | null, fallbackGuestId?: string | null): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (text) {
+    return text.length > 30 ? text.slice(0, 30) : text;
+  }
+  const suffix = (fallbackGuestId ?? '').slice(-4).toUpperCase() || 'GUEST';
+  return `访客-${suffix}`;
+}
+
+function normalizeGuestEmail(value?: string | null): string | null {
+  const text = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return text || null;
+}
+
+async function upsertGuestProfile(params: {
+  tx: Prisma.TransactionClient;
+  tenantId: string;
+  shareId?: string | null;
+  guestId?: string | null;
+  nickname?: string | null;
+  email?: string | null;
+  actorUserId: string;
+}) {
+  if (!params.shareId || !params.guestId) return;
+
+  const nickname = normalizeGuestNickname(params.nickname, params.guestId);
+  const email = normalizeGuestEmail(params.email);
+
+  await params.tx.commentGuestProfile.upsert({
+    where: {
+      tenantId_shareId_guestId: {
+        tenantId: params.tenantId,
+        shareId: params.shareId,
+        guestId: params.guestId,
+      },
+    },
+    create: {
+      tenantId: params.tenantId,
+      shareId: params.shareId,
+      guestId: params.guestId,
+      nickname,
+      email,
+      lastSeenAt: new Date(),
+      createdBy: params.actorUserId,
+      updatedBy: params.actorUserId,
+    },
+    update: {
+      nickname,
+      email: email ?? undefined,
+      lastSeenAt: new Date(),
+      updatedBy: params.actorUserId,
+    },
+  });
 }
 
 export class PrismaCommentRepository implements CommentRepository {
@@ -179,6 +237,10 @@ export class PrismaCommentRepository implements CommentRepository {
           authorType: params.authorType,
           authorUserId: params.authorUserId ?? null,
           authorGuestId: params.authorGuestId ?? null,
+          authorGuestNickname:
+            params.authorGuestId == null
+              ? null
+              : normalizeGuestNickname(params.authorGuestNickname, params.authorGuestId),
           content: params.content as Prisma.InputJsonValue,
           contentText: params.contentText,
           moderationStatus: params.moderationStatus ?? 'PASS',
@@ -191,6 +253,16 @@ export class PrismaCommentRepository implements CommentRepository {
           createdBy: params.actorUserId,
           updatedBy: params.actorUserId,
         },
+      });
+
+      await upsertGuestProfile({
+        tx,
+        tenantId: params.tenantId,
+        shareId: params.shareId ?? null,
+        guestId: params.authorGuestId ?? null,
+        nickname: params.authorGuestNickname ?? null,
+        email: params.authorGuestEmail ?? null,
+        actorUserId: params.actorUserId,
       });
 
       const updatedThread = await tx.commentThread.update({
@@ -262,6 +334,10 @@ export class PrismaCommentRepository implements CommentRepository {
           authorType: params.authorType,
           authorUserId: params.authorUserId ?? null,
           authorGuestId: params.authorGuestId ?? null,
+          authorGuestNickname:
+            params.authorGuestId == null
+              ? null
+              : normalizeGuestNickname(params.authorGuestNickname, params.authorGuestId),
           content: params.content as Prisma.InputJsonValue,
           contentText: params.contentText,
           moderationStatus: params.moderationStatus ?? 'PASS',
@@ -274,6 +350,16 @@ export class PrismaCommentRepository implements CommentRepository {
           createdBy: params.actorUserId,
           updatedBy: params.actorUserId,
         },
+      });
+
+      await upsertGuestProfile({
+        tx,
+        tenantId: params.tenantId,
+        shareId: thread.shareId,
+        guestId: params.authorGuestId ?? null,
+        nickname: params.authorGuestNickname ?? null,
+        email: params.authorGuestEmail ?? null,
+        actorUserId: params.actorUserId,
       });
 
       const updatedThread = await tx.commentThread.update({

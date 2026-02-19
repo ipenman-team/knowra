@@ -16,7 +16,17 @@ export const DEFAULT_MODERATION_KEYWORD_GROUPS: ModerationKeywordGroup[] = [
   {
     category: 'PROFANITY',
     severity: 'REJECT',
-    terms: ['傻逼', '傻x', '垃圾', '去死', 'fuck', 'shit', 'bitch', 'asshole'],
+    terms: [
+      '傻逼',
+      '傻x',
+      '垃圾人',
+      '垃圾货色',
+      '去死',
+      'fuck',
+      'shit',
+      'bitch',
+      'asshole',
+    ],
   },
   {
     category: 'PORN',

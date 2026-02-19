@@ -12,8 +12,8 @@ import {
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/segmented';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useMeStore } from '@/stores';
 
 const PUBLIC_COMMENT_GUEST_ID_STORAGE_KEY = 'contexta.public-comment.guest-id';
+const PUBLIC_COMMENT_GUEST_PROFILE_STORAGE_KEY = 'contexta.public-comment.guest-profile';
 
 function createGuestId(): string {
   if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
@@ -94,6 +95,7 @@ type CommentAuthorIdentity = {
   authorType?: string | null;
   authorUserId?: string | null;
   authorGuestId?: string | null;
+  authorGuestNickname?: string | null;
   id?: string | null;
 };
 
@@ -167,8 +169,19 @@ function resolveAuthorName(params: {
     return currentNickname ?? '我';
   }
 
-  if (author.authorType === 'GUEST_EXTERNAL') return '访客';
-  if (author.authorType === 'REGISTERED_EXTERNAL') return '外部用户';
+  if (author.authorType === 'GUEST_EXTERNAL') {
+    if (author.authorGuestNickname && author.authorGuestNickname.trim()) {
+      return `访客·${author.authorGuestNickname.trim()}`;
+    }
+    if (author.authorGuestId) {
+      return `访客-${author.authorGuestId.slice(-4).toUpperCase()}`;
+    }
+    return '访客';
+  }
+  if (author.authorType === 'REGISTERED_EXTERNAL') {
+    if (author.authorUserId) return `外部用户-${author.authorUserId.slice(-4)}`;
+    return '外部用户';
+  }
   if (author.authorType === 'COLLABORATOR') return '协作者';
 
   if (author.authorUserId) {
@@ -176,6 +189,24 @@ function resolveAuthorName(params: {
   }
 
   return '成员';
+}
+
+function toUserFacingErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    if (error.message.includes('comment content blocked')) {
+      return '评论包含敏感信息，请调整后重试';
+    }
+    if (error.message.includes('guest email invalid')) {
+      return '访客邮箱格式不正确';
+    }
+    return error.message;
+  }
+  return fallback;
+}
+
+function buildGuestNicknameFromId(guestId: string): string {
+  const suffix = guestId.slice(-4).toUpperCase() || 'GUEST';
+  return `访客-${suffix}`;
 }
 
 function fallbackByName(name: string): string {
@@ -293,6 +324,10 @@ export function CommentSection(props: CommentSectionProps) {
   const [agreement, setAgreement] = useState<PublicCommentAgreement | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
+  const [guestProfile, setGuestProfile] = useState<{ nickname: string; email: string }>({
+    nickname: '',
+    email: '',
+  });
 
   const isPublic = props.mode === 'public';
   const publicId = props.mode === 'public' ? props.publicId : null;
@@ -327,11 +362,13 @@ export function CommentSection(props: CommentSectionProps) {
   useEffect(() => {
     if (!isPublic) {
       setGuestId(null);
+      setGuestProfile({ nickname: '', email: '' });
       return;
     }
 
     if (isPublicRegisteredUser) {
       setGuestId(null);
+      setGuestProfile({ nickname: '', email: '' });
       return;
     }
 
@@ -350,6 +387,44 @@ export function CommentSection(props: CommentSectionProps) {
       setGuestId(createGuestId());
     }
   }, [isPublic, isPublicRegisteredUser, publicId]);
+
+  useEffect(() => {
+    if (!isPublic || isPublicRegisteredUser || !guestId) return;
+
+    const profileStorageKey = `${PUBLIC_COMMENT_GUEST_PROFILE_STORAGE_KEY}:${publicId ?? 'default'}`;
+    let storedNickname = '';
+    let storedEmail = '';
+
+    try {
+      const raw = window.localStorage.getItem(profileStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { nickname?: unknown; email?: unknown };
+        if (typeof parsed.nickname === 'string') {
+          storedNickname = parsed.nickname;
+        }
+        if (typeof parsed.email === 'string') {
+          storedEmail = parsed.email;
+        }
+      }
+    } catch {
+      // Ignore local storage parse failures.
+    }
+
+    setGuestProfile({
+      nickname: storedNickname.trim() || buildGuestNicknameFromId(guestId),
+      email: storedEmail.trim(),
+    });
+  }, [guestId, isPublic, isPublicRegisteredUser, publicId]);
+
+  useEffect(() => {
+    if (!isPublic || isPublicRegisteredUser || !publicId) return;
+    const profileStorageKey = `${PUBLIC_COMMENT_GUEST_PROFILE_STORAGE_KEY}:${publicId}`;
+    try {
+      window.localStorage.setItem(profileStorageKey, JSON.stringify(guestProfile));
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [guestProfile, isPublic, isPublicRegisteredUser, publicId]);
 
   const loadThreads = useCallback(
     async (cursor?: string | null) => {
@@ -464,6 +539,13 @@ export function CommentSection(props: CommentSectionProps) {
           content: { text },
           password: props.password,
           guestId: isPublicRegisteredUser ? undefined : guestId ?? undefined,
+          guestProfile:
+            isPublicRegisteredUser
+              ? undefined
+              : {
+                  nickname: guestProfile.nickname.trim() || undefined,
+                  email: guestProfile.email.trim() || undefined,
+                },
         });
         moderationToToast(res.moderation?.status);
       }
@@ -475,7 +557,7 @@ export function CommentSection(props: CommentSectionProps) {
       }
       await loadThreads(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '发表评论失败';
+      const message = toUserFacingErrorMessage(error, '发表评论失败');
       toast.error(message);
     } finally {
       setCreating(false);
@@ -483,6 +565,8 @@ export function CommentSection(props: CommentSectionProps) {
   }, [
     draft,
     guestId,
+    guestProfile.email,
+    guestProfile.nickname,
     internalDraft,
     internalDraftText,
     isPublicRegisteredUser,
@@ -586,6 +670,13 @@ export function CommentSection(props: CommentSectionProps) {
             content: { text },
             password: props.password,
             guestId: isPublicRegisteredUser ? undefined : guestId ?? undefined,
+            guestProfile:
+              isPublicRegisteredUser
+                ? undefined
+                : {
+                    nickname: guestProfile.nickname.trim() || undefined,
+                    email: guestProfile.email.trim() || undefined,
+                  },
           });
           moderationToToast(res.moderation?.status);
         }
@@ -599,7 +690,7 @@ export function CommentSection(props: CommentSectionProps) {
         await loadThreadMessages(threadId, true);
         await loadThreads(null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : '回复失败';
+        const message = toUserFacingErrorMessage(error, '回复失败');
         toast.error(message);
       } finally {
         setReplyingThread(null);
@@ -607,6 +698,8 @@ export function CommentSection(props: CommentSectionProps) {
     },
     [
       guestId,
+      guestProfile.email,
+      guestProfile.nickname,
       internalReplyDraft,
       isPublicRegisteredUser,
       loadThreadMessages,
@@ -777,6 +870,7 @@ export function CommentSection(props: CommentSectionProps) {
                   authorType: item.latestMessage.authorType,
                   authorUserId: item.latestMessage.authorUserId ?? null,
                   authorGuestId: item.latestMessage.authorGuestId ?? null,
+                  authorGuestNickname: item.latestMessage.authorGuestNickname ?? null,
                 }
               : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
             const latestAuthorName = resolveAuthorName({
@@ -944,201 +1038,204 @@ export function CommentSection(props: CommentSectionProps) {
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-5xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>评论</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              共 {commentCountForPublic} 条外部评论
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isPublic ? (
-            <div className="text-sm text-muted-foreground">
-              发表评论即表示你已阅读并同意
-              <button
-                type="button"
-                className="px-1 text-primary underline underline-offset-4"
-                onClick={() => setAgreementOpen(true)}
-              >
-                《评论协议》
-              </button>
-              ，并承诺遵守社区规范。
-            </div>
-          ) : null}
+    <div className="mx-auto mt-10 w-full max-w-5xl rounded-2xl border border-border/70 bg-background p-5 md:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold">评论</h3>
+        <span className="text-sm text-muted-foreground">共 {commentCountForPublic} 条外部评论</span>
+      </div>
 
-          <div className="space-y-2">
-            <Textarea
-              placeholder={
-                isPublic && !isPublicRegisteredUser
-                  ? '以访客身份发表评论（无需注册）'
-                  : '写下你的评论...'
+      {isPublic ? (
+        <div className="mt-3 text-sm text-muted-foreground">
+          发表评论即表示你已阅读并同意
+          <button
+            type="button"
+            className="ml-1 font-medium text-primary transition-colors hover:text-primary/80"
+            onClick={() => setAgreementOpen(true)}
+          >
+            《评论协议》
+          </button>
+          ，并承诺遵守社区规范。
+        </div>
+      ) : null}
+
+      <div className="mt-4 space-y-3">
+        <Textarea
+          placeholder={
+            isPublic && !isPublicRegisteredUser
+              ? '以访客身份发表评论（无需注册）'
+              : '写下你的评论...'
+          }
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          disabled={creating}
+          className="min-h-[110px] border-border/70"
+        />
+
+        {isPublic && !isPublicRegisteredUser ? (
+          <div className="grid gap-2 md:grid-cols-2">
+            <Input
+              value={guestProfile.nickname}
+              onChange={(event) =>
+                setGuestProfile((prev) => ({ ...prev, nickname: event.target.value }))
               }
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              disabled={creating}
+              placeholder="访客昵称（用于区分用户）"
+              maxLength={30}
             />
-            <div className="flex items-center justify-between">
-              {isPublic && !isPublicRegisteredUser ? (
-                <div className="text-sm text-muted-foreground">
-                  无需注册可直接评论，
-                  <a className="px-1 text-primary underline" href={authHrefs.login}>
-                    去登录
-                  </a>
-                  或
-                  <a className="px-1 text-primary underline" href={authHrefs.register}>
-                    去注册
-                  </a>
-                  可同步评论与后续回复。
-                </div>
-              ) : (
-                <div />
-              )}
-              <Button
-                type="button"
-                onClick={createThread}
-                disabled={creating || !draft.trim()}
-              >
-                发表评论
-              </Button>
-            </div>
+            <Input
+              type="email"
+              value={guestProfile.email}
+              onChange={(event) =>
+                setGuestProfile((prev) => ({ ...prev, email: event.target.value }))
+              }
+              placeholder="邮箱（选填，用于接收回复通知）"
+              maxLength={320}
+            />
           </div>
+        ) : null}
 
-          <Separator />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {isPublic && !isPublicRegisteredUser ? (
+            <div className="text-sm text-muted-foreground">
+              无需注册可直接评论，
+              <a className="px-1 font-medium text-primary hover:text-primary/80" href={authHrefs.login}>
+                去登录
+              </a>
+              或
+              <a className="px-1 font-medium text-primary hover:text-primary/80" href={authHrefs.register}>
+                去注册
+              </a>
+              可同步评论与后续回复。
+            </div>
+          ) : (
+            <div />
+          )}
+          <Button type="button" onClick={createThread} disabled={creating || !draft.trim()}>
+            发表评论
+          </Button>
+        </div>
+      </div>
 
-          <div className="space-y-4">
-            {threads.map((item) => {
-              const thread = item.thread;
-              const expanded = Boolean(expandedThreadIds[thread.id]);
-              const messages = messagesByThread[thread.id] ?? [];
-              const latestAuthor: CommentAuthorIdentity = item.latestMessage
-                ? {
-                    id: item.latestMessage.id,
-                    authorType: item.latestMessage.authorType,
-                    authorUserId: item.latestMessage.authorUserId ?? null,
-                    authorGuestId: item.latestMessage.authorGuestId ?? null,
-                  }
-                : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
-              const latestAuthorName = resolveAuthorName({
-                author: latestAuthor,
-                currentUserId,
-                currentNickname,
-              });
-              const latestAvatarSrc = resolveAuthorAvatarSrc({
-                author: latestAuthor,
-                authorName: latestAuthorName,
-                currentUserId,
-                currentAvatarUrl,
-              });
-              return (
-                <Card key={thread.id} className="border-dashed">
-                  <CardContent className="space-y-3 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 flex-1 items-start gap-3">
-                        <Avatar className="mt-0.5 h-8 w-8 border border-border/70">
-                          <AvatarImage src={latestAvatarSrc} alt={latestAuthorName} />
-                          <AvatarFallback className="text-xs">
-                            {fallbackByName(latestAuthorName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 space-y-1">
-                          <div className="text-sm text-muted-foreground">
-                            {latestAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
-                          </div>
-                          <div className="truncate text-sm">
-                            {item.latestMessage?.contentText ?? '暂无内容'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => void toggleThread(thread.id)}>
-                          {expanded ? '收起' : `展开(${thread.messageCount})`}
-                        </Button>
-                      </div>
+      <Separator className="my-5" />
+
+      <div className="space-y-3">
+        {threads.map((item) => {
+          const thread = item.thread;
+          const expanded = Boolean(expandedThreadIds[thread.id]);
+          const messages = messagesByThread[thread.id] ?? [];
+          const latestAuthor: CommentAuthorIdentity = item.latestMessage
+            ? {
+                id: item.latestMessage.id,
+                authorType: item.latestMessage.authorType,
+                authorUserId: item.latestMessage.authorUserId ?? null,
+                authorGuestId: item.latestMessage.authorGuestId ?? null,
+                authorGuestNickname: item.latestMessage.authorGuestNickname ?? null,
+              }
+            : { id: thread.id, authorType: thread.source === 'EXTERNAL' ? 'GUEST_EXTERNAL' : 'MEMBER' };
+          const latestAuthorName = resolveAuthorName({
+            author: latestAuthor,
+            currentUserId,
+            currentNickname,
+          });
+          const latestAvatarSrc = resolveAuthorAvatarSrc({
+            author: latestAuthor,
+            authorName: latestAuthorName,
+            currentUserId,
+            currentAvatarUrl,
+          });
+
+          return (
+            <article key={thread.id} className="rounded-xl bg-muted/25 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <Avatar className="mt-0.5 h-8 w-8 border border-border/70">
+                    <AvatarImage src={latestAvatarSrc} alt={latestAuthorName} />
+                    <AvatarFallback className="text-xs">{fallbackByName(latestAuthorName)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 space-y-1">
+                    <div className="text-sm text-muted-foreground">
+                      {latestAuthorName} · 最近活跃 {formatCommentTime(thread.lastMessageAt)}
                     </div>
-
-                    {expanded ? (
-                      <div className="space-y-3 border-t pt-3">
-                        <div className="space-y-2">
-                          {messages.map((message) => {
-                            const authorName = resolveAuthorName({
-                              author: message,
-                              currentUserId,
-                              currentNickname,
-                            });
-                            const avatarSrc = resolveAuthorAvatarSrc({
-                              author: message,
-                              authorName,
-                              currentUserId,
-                              currentAvatarUrl,
-                            });
-
-                            return (
-                              <div key={message.id} className="flex items-start gap-3 rounded-md bg-muted/30 p-3 text-sm">
-                                <Avatar className="mt-0.5 h-7 w-7 border border-border/70">
-                                  <AvatarImage src={avatarSrc} alt={authorName} />
-                                  <AvatarFallback className="text-[11px]">
-                                    {fallbackByName(authorName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0 space-y-1">
-                                  <div className="text-xs text-muted-foreground">
-                                    {authorName} · {formatCommentTime(message.createdAt)}
-                                  </div>
-                                  <div className="whitespace-pre-wrap">{message.contentText}</div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="space-y-2">
-                          <Textarea
-                            placeholder={isPublic && !isPublicRegisteredUser ? '以访客身份回复...' : '回复此线程...'}
-                            value={replyDraft[thread.id] ?? ''}
-                            onChange={(event) =>
-                              setReplyDraft((prev) => ({
-                                ...prev,
-                                [thread.id]: event.target.value,
-                              }))
-                            }
-                            disabled={replyingThread === thread.id}
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => void submitReply(thread.id)}
-                            disabled={replyingThread === thread.id || !(replyDraft[thread.id] ?? '').trim()}
-                          >
-                            回复
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-            {threads.length === 0 && !loading ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">暂无评论</div>
-            ) : null}
-
-            {hasMore ? (
-              <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => void loadThreads(nextCursor)}
-                  disabled={loading}
-                >
-                  加载更多
+                    <div className="truncate text-sm">{item.latestMessage?.contentText ?? '暂无内容'}</div>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => void toggleThread(thread.id)}>
+                  {expanded ? '收起' : `展开(${thread.messageCount})`}
                 </Button>
               </div>
-            ) : null}
+
+              {expanded ? (
+                <div className="space-y-3 border-t border-border/60 pt-3">
+                  <div className="space-y-2">
+                    {messages.map((message) => {
+                      const authorName = resolveAuthorName({
+                        author: message,
+                        currentUserId,
+                        currentNickname,
+                      });
+                      const avatarSrc = resolveAuthorAvatarSrc({
+                        author: message,
+                        authorName,
+                        currentUserId,
+                        currentAvatarUrl,
+                      });
+
+                      return (
+                        <div key={message.id} className="flex items-start gap-3 py-2 text-sm">
+                          <Avatar className="mt-0.5 h-7 w-7 border border-border/70">
+                            <AvatarImage src={avatarSrc} alt={authorName} />
+                            <AvatarFallback className="text-[11px]">{fallbackByName(authorName)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 space-y-1">
+                            <div className="text-xs text-muted-foreground">
+                              {authorName} · {formatCommentTime(message.createdAt)}
+                            </div>
+                            <div className="whitespace-pre-wrap">{message.contentText}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder={isPublic && !isPublicRegisteredUser ? '以访客身份回复...' : '回复此线程...'}
+                      value={replyDraft[thread.id] ?? ''}
+                      onChange={(event) =>
+                        setReplyDraft((prev) => ({
+                          ...prev,
+                          [thread.id]: event.target.value,
+                        }))
+                      }
+                      disabled={replyingThread === thread.id}
+                      className="border-border/70"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void submitReply(thread.id)}
+                      disabled={replyingThread === thread.id || !(replyDraft[thread.id] ?? '').trim()}
+                    >
+                      回复
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+
+        {threads.length === 0 && !loading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">暂无评论</div>
+        ) : null}
+
+        {hasMore ? (
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={() => void loadThreads(nextCursor)} disabled={loading}>
+              加载更多
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        ) : null}
+      </div>
 
       <CommentAgreementModal
         open={agreementOpen}

@@ -313,6 +313,7 @@ model ExternalShare {
 
   snapshots ShareSnapshot[]
   accessLogs ShareAccessLog[]
+  commentGuestProfiles CommentGuestProfile[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -412,6 +413,7 @@ model CommentMessage {
   authorType    CommentAuthorType @map("author_type")
   authorUserId  String? @map("author_user_id")
   authorGuestId String? @map("author_guest_id")
+  authorGuestNickname String? @map("author_guest_nickname")
 
   content     Json   @db.JsonB
   contentText String @map("content_text") @db.Text
@@ -436,6 +438,31 @@ model CommentMessage {
   @@index([tenantId, authorUserId, createdAt], map: "comment_messages_tenant_author_user_created_idx")
   @@index([tenantId, authorGuestId, createdAt], map: "comment_messages_tenant_author_guest_created_idx")
   @@map("comment_messages")
+}
+
+model CommentGuestProfile {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  shareId  String @map("share_id")
+  guestId  String @map("guest_id")
+
+  nickname String @db.VarChar(80)
+  email    String? @db.VarChar(320)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  share ExternalShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, shareId, guestId], map: "comment_guest_profiles_tenant_share_guest_key")
+  @@index([tenantId, shareId, lastSeenAt], map: "comment_guest_profiles_tenant_share_last_seen_idx")
+  @@index([tenantId, shareId, email], map: "comment_guest_profiles_tenant_share_email_idx")
+  @@map("comment_guest_profiles")
 }
 
 model CommentModerationLog {

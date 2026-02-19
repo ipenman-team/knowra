@@ -36,6 +36,8 @@ export class ReplyCommentThreadUseCase {
     authorType: CommentAuthorType;
     authorUserId?: string | null;
     authorGuestId?: string | null;
+    authorGuestNickname?: string | null;
+    authorGuestEmail?: string | null;
     actorUserId: string;
   }): Promise<ReplyCommentThreadResult> {
     const tenantId = normalizeRequiredText('tenantId', params.tenantId);
@@ -78,6 +80,8 @@ export class ReplyCommentThreadUseCase {
       authorType: params.authorType,
       authorUserId: params.authorUserId ?? null,
       authorGuestId: params.authorGuestId ?? null,
+      authorGuestNickname: params.authorGuestNickname ?? null,
+      authorGuestEmail: params.authorGuestEmail ?? null,
       content: params.content,
       contentText,
       moderationStatus: moderation.status,
