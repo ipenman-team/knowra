@@ -19,6 +19,7 @@ import { ShareModule } from './share/share.module';
 import { SiteBuilderModule } from './site-builder/site-builder.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { CommentModule } from './comment/comment.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { CommentModule } from './comment/comment.module';
     CommentModule,
     SiteBuilderModule,
     FavoriteModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, TenantMiddleware, LocaleMiddleware],
