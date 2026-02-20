@@ -26,6 +26,15 @@ import { ListResponse, Response } from '@knowra/shared';
 import { ExportPageUseCase } from '@knowra/application';
 import { ExportPageQuery } from './dto/export-page.query';
 
+type GetPageQuery = {
+  trackView?: string;
+};
+
+function parseBooleanQuery(raw: unknown): boolean {
+  if (typeof raw !== 'string') return false;
+  return raw.trim().toLowerCase() === 'true';
+}
+
 @Controller('spaces/:spaceId/pages')
 export class PageController {
   constructor(
@@ -244,9 +253,17 @@ export class PageController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string, @TenantId() tenantId: string) {
+  async get(
+    @Param('id') id: string,
+    @TenantId() tenantId: string,
+    @UserId() userId: string | undefined,
+    @Query() query: GetPageQuery,
+  ) {
     return new Response(
-      await this.pageService.get(id, tenantId),
+      await this.pageService.get(id, tenantId, {
+        recordView: parseBooleanQuery(query?.trackView),
+        actorUserId: userId,
+      }),
     );
   }
 

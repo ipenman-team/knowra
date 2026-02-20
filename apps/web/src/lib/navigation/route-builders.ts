@@ -9,7 +9,7 @@
  * NOTE: 所有动态参数（spaceId, pageId）自动使用 encodeURIComponent 编码
  */
 
-import type { NavigationView } from './types';
+import type { NavigationView, PageMode } from './types';
 
 /**
  * 构建空间主页 URL
@@ -36,8 +36,18 @@ export function buildSpaceUrl(spaceId: string): string {
  * buildPageUrl('space-1', 'page-123')
  *   → '/spaces/space-1/pages/page-123'
  */
-export function buildPageUrl(spaceId: string, pageId: string): string {
-  return `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}`;
+export function buildPageUrl(
+  spaceId: string,
+  pageId: string,
+  options?: { mode?: PageMode },
+): string {
+  const baseUrl = `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(pageId)}`;
+  if (!options?.mode) return baseUrl;
+
+  const search = new URLSearchParams({
+    mode: options.mode,
+  });
+  return `${baseUrl}?${search.toString()}`;
 }
 
 /**

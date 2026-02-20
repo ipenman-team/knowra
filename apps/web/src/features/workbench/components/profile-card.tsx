@@ -109,7 +109,7 @@ export function ProfileCard({
           <HoverCard>
             <HoverCardTrigger asChild>
               <div className="flex flex-col items-center gap-3">
-                <Avatar className="h-24 w-24 border shadow-sm transition-transform duration-300 hover:scale-[1.02]">
+                <Avatar className="h-24 w-24 transition-transform duration-300 hover:scale-[1.02]">
                   <AvatarImage src={avatarUrl ?? ''} alt={name} />
                   <AvatarFallback className="text-xl">
                     {fallback}
@@ -141,7 +141,7 @@ export function ProfileCard({
 
         <Separator className="bg-border/70" />
 
-        <div className="rounded-2xl border bg-muted/30 p-5 text-center shadow-sm">
+        <div className="rounded-2xl bg-muted/30 p-5 text-center">
           <div className="text-xs font-medium tracking-[0.25em] text-muted-foreground">
             {t('workbench.todayActivity')}
           </div>

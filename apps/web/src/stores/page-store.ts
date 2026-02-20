@@ -81,11 +81,10 @@ export const usePageStore = create<PageStoreState>((set, get) => ({
     const req =
       !force && existing
         ? existing
-        : pagesApi
-            .get(
-              ...(spaceId ? ([spaceId, pageId] as const) : ([pageId] as const)),
-            )
-            .finally(() => {
+        : (spaceId
+            ? pagesApi.get(spaceId, pageId, { trackView: true })
+            : pagesApi.get(pageId, { trackView: true })
+          ).finally(() => {
               inflight.delete(inflightKey);
             });
 
