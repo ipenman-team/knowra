@@ -22,6 +22,34 @@ export interface SpaceInvitationRepository {
     records: CreateSpaceInvitationRecordInput[];
   }): Promise<SpaceInvitation[]>;
 
+  ensureBuiltInRoles(params: {
+    tenantId: string;
+    spaceId: string;
+    actorId: string;
+  }): Promise<{
+    ownerRoleId: string;
+    adminRoleId: string;
+    memberRoleId: string;
+  }>;
+
+  getRoleById(params: {
+    tenantId: string;
+    spaceId: string;
+    roleId: string;
+  }): Promise<{
+    id: string;
+    builtInType: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
+  } | null>;
+
+  getBuiltInRole(params: {
+    tenantId: string;
+    spaceId: string;
+    builtInType: 'OWNER' | 'ADMIN' | 'MEMBER';
+  }): Promise<{
+    id: string;
+    builtInType: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
+  } | null>;
+
   listInvitations(params: {
     tenantId: string;
     spaceId: string;

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import {
   SpaceInvitationStatus,
+  type SpaceInvitationRepository,
   type SpaceInvitationStatusValue,
   type SpaceMemberRoleValue,
 } from '@contexta/domain';
@@ -44,6 +45,62 @@ export function normalizeInvitationRole(raw: unknown): SpaceMemberRoleValue {
   if (value === 'ADMIN') return 'ADMIN';
   if (value === 'MEMBER') return 'MEMBER';
   throw new Error('role must be ADMIN or MEMBER');
+}
+
+export async function resolveInvitationRoleTarget(
+  repo: Pick<
+    SpaceInvitationRepository,
+    'ensureBuiltInRoles' | 'getRoleById' | 'getBuiltInRole'
+  >,
+  params: {
+    tenantId: string;
+    spaceId: string;
+    actorUserId: string;
+    roleId?: string;
+    role?: string;
+  },
+): Promise<{
+  role: SpaceMemberRoleValue;
+  spaceRoleId: string;
+}> {
+  await repo.ensureBuiltInRoles({
+    tenantId: params.tenantId,
+    spaceId: params.spaceId,
+    actorId: params.actorUserId,
+  });
+
+  const roleId = params.roleId?.trim();
+  if (roleId) {
+    const role = await repo.getRoleById({
+      tenantId: params.tenantId,
+      spaceId: params.spaceId,
+      roleId,
+    });
+
+    if (!role) throw new Error('role not found');
+    if (role.builtInType === 'OWNER') {
+      throw new Error('role must be ADMIN or MEMBER');
+    }
+    if (role.builtInType === 'ADMIN') {
+      return { role: 'ADMIN', spaceRoleId: role.id };
+    }
+    return { role: 'MEMBER', spaceRoleId: role.id };
+  }
+
+  const role = normalizeInvitationRole(params.role ?? 'MEMBER');
+  const builtInType = role === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+  const builtInRole = await repo.getBuiltInRole({
+    tenantId: params.tenantId,
+    spaceId: params.spaceId,
+    builtInType,
+  });
+
+  if (!builtInRole) throw new Error('role not found');
+
+  return {
+    role,
+    spaceRoleId: builtInRole.id,
+  };
 }
 
 export function normalizeInvitationStatuses(

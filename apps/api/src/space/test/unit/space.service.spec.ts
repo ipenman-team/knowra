@@ -11,7 +11,11 @@ describe('SpaceService', () => {
   const prisma = {
     space: {
       create: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
+    },
+    spaceRole: {
+      upsert: jest.fn(),
     },
     spaceMember: {
       upsert: jest.fn(),
@@ -63,8 +67,10 @@ describe('SpaceService', () => {
       createdAt: now,
       updatedAt: now,
     });
+    prisma.space.findFirst.mockResolvedValue({ id: 's1' });
 
     prisma.spaceMember.upsert.mockResolvedValue({ id: 'sm1' });
+    prisma.spaceRole.upsert.mockResolvedValue({ id: 'sr1' });
     pageService.initializePage.mockResolvedValue({ id: 'p1' });
 
     await expect(service.create('t1', { name: 'Demo' } as any, 'u1')).resolves.toMatchObject({
@@ -114,8 +120,10 @@ describe('SpaceService', () => {
       createdAt: now,
       updatedAt: now,
     });
+    prisma.space.findFirst.mockResolvedValue({ id: 's1' });
 
     prisma.spaceMember.upsert.mockResolvedValue({ id: 'sm1' });
+    prisma.spaceRole.upsert.mockResolvedValue({ id: 'sr1' });
     pageService.initializePage.mockRejectedValue(new Error('boom'));
     await expect(service.create('t1', { name: 'Demo' } as any, 'u1')).rejects.toBeInstanceOf(
       InternalServerErrorException,

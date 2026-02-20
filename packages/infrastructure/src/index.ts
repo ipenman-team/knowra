@@ -8,3 +8,5 @@ export * from './share';
 export * from './comment';
 export * from './notification';
 export * from './space-invitation';
+export * from './space-role';
+export * from './space-member';

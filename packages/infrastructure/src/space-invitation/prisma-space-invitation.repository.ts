@@ -9,6 +9,7 @@ import type {
 } from '@contexta/domain';
 import { acceptSpaceInvitationByTokenHash } from './accept-space-invitation';
 import { expireInvitations, mapInvitation, mapMember } from './repository-utils';
+import { ensureBuiltInRoles, hasSpacePermission } from '../space-role/repository-utils';
 
 export class PrismaSpaceInvitationRepository implements SpaceInvitationRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -18,38 +19,12 @@ export class PrismaSpaceInvitationRepository implements SpaceInvitationRepositor
     spaceId: string;
     userId: string;
   }): Promise<boolean> {
-    const space = await this.prisma.space.findFirst({
-      where: {
-        id: params.spaceId,
-        tenantId: params.tenantId,
-        isDeleted: false,
-      },
-      select: { id: true },
+    return await hasSpacePermission(this.prisma, {
+      tenantId: params.tenantId,
+      spaceId: params.spaceId,
+      userId: params.userId,
+      permission: 'space.member.invite',
     });
-    if (!space) return false;
-
-    const tenantMembership = await this.prisma.tenantMembership.findFirst({
-      where: {
-        tenantId: params.tenantId,
-        userId: params.userId,
-        isDeleted: false,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-      select: { id: true },
-    });
-    if (tenantMembership) return true;
-
-    const spaceMembership = await this.prisma.spaceMember.findFirst({
-      where: {
-        spaceId: params.spaceId,
-        userId: params.userId,
-        isDeleted: false,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-      select: { id: true },
-    });
-
-    return Boolean(spaceMembership);
   }
 
   async createInvitations(params: {
@@ -61,6 +36,7 @@ export class PrismaSpaceInvitationRepository implements SpaceInvitationRepositor
     records: {
       inviteeEmail: string | null;
       role: SpaceMemberRoleValue;
+      spaceRoleId?: string | null;
       channel: 'EMAIL' | 'LINK';
       tokenHash: string;
     }[];
@@ -89,6 +65,7 @@ export class PrismaSpaceInvitationRepository implements SpaceInvitationRepositor
             inviteeEmail: record.inviteeEmail,
             inviteeUserId: null,
             role: record.role,
+            spaceRoleId: record.spaceRoleId ?? null,
             channel: record.channel,
             status: 'PENDING',
             tokenHash: record.tokenHash,
@@ -215,6 +192,75 @@ export class PrismaSpaceInvitationRepository implements SpaceInvitationRepositor
     now: Date;
   }): Promise<AcceptSpaceInvitationResult> {
     return await acceptSpaceInvitationByTokenHash(this.prisma, params);
+  }
+
+  async ensureBuiltInRoles(params: {
+    tenantId: string;
+    spaceId: string;
+    actorId: string;
+  }): Promise<{
+    ownerRoleId: string;
+    adminRoleId: string;
+    memberRoleId: string;
+  }> {
+    return await ensureBuiltInRoles(this.prisma, params);
+  }
+
+  async getRoleById(params: {
+    tenantId: string;
+    spaceId: string;
+    roleId: string;
+  }): Promise<{
+    id: string;
+    builtInType: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
+  } | null> {
+    const row = await this.prisma.spaceRole.findFirst({
+      where: {
+        id: params.roleId,
+        tenantId: params.tenantId,
+        spaceId: params.spaceId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        builtInType: true,
+      },
+    });
+
+    if (!row) return null;
+    return {
+      id: row.id,
+      builtInType: row.builtInType,
+    };
+  }
+
+  async getBuiltInRole(params: {
+    tenantId: string;
+    spaceId: string;
+    builtInType: 'OWNER' | 'ADMIN' | 'MEMBER';
+  }): Promise<{
+    id: string;
+    builtInType: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
+  } | null> {
+    const row = await this.prisma.spaceRole.findFirst({
+      where: {
+        tenantId: params.tenantId,
+        spaceId: params.spaceId,
+        isDeleted: false,
+        isBuiltIn: true,
+        builtInType: params.builtInType,
+      },
+      select: {
+        id: true,
+        builtInType: true,
+      },
+    });
+
+    if (!row) return null;
+    return {
+      id: row.id,
+      builtInType: row.builtInType,
+    };
   }
 
   async listMembers(params: {

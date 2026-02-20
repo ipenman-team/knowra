@@ -21,6 +21,9 @@ import { FavoriteModule } from './favorite/favorite.module';
 import { CommentModule } from './comment/comment.module';
 import { NotificationModule } from './notification/notification.module';
 import { SpaceInvitationModule } from './space-invitation/space-invitation.module';
+import { SpaceRoleModule } from './space-role/space-role.module';
+import { SpaceMemberModule } from './space-member/space-member.module';
+import { SpacePermissionMiddleware } from './common/auth/space-permission.middleware';
 
 @Module({
   imports: [
@@ -51,12 +54,21 @@ import { SpaceInvitationModule } from './space-invitation/space-invitation.modul
     FavoriteModule,
     NotificationModule,
     SpaceInvitationModule,
+    SpaceRoleModule,
+    SpaceMemberModule,
   ],
   controllers: [AppController],
-  providers: [AppService, TenantMiddleware, LocaleMiddleware],
+  providers: [
+    AppService,
+    TenantMiddleware,
+    LocaleMiddleware,
+    SpacePermissionMiddleware,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LocaleMiddleware, TenantMiddleware).forRoutes('*');
+    consumer
+      .apply(LocaleMiddleware, TenantMiddleware, SpacePermissionMiddleware)
+      .forRoutes('*');
   }
 }

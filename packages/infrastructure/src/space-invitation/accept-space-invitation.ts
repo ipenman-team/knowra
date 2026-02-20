@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { AcceptSpaceInvitationResult } from '@contexta/domain';
 import { mapInvitation, resolveHigherRole } from './repository-utils';
+import { ensureBuiltInRoles } from '../space-role/repository-utils';
 
 export async function acceptSpaceInvitationByTokenHash(
   prisma: PrismaClient,
@@ -78,6 +79,20 @@ export async function acceptSpaceInvitationByTokenHash(
       });
     }
 
+    const builtInRoleIds = await ensureBuiltInRoles(tx, {
+      tenantId: row.tenantId,
+      spaceId: row.spaceId,
+      actorId: params.actorId,
+    });
+
+    const fallbackRoleId =
+      row.role === 'OWNER'
+        ? builtInRoleIds.ownerRoleId
+        : row.role === 'ADMIN'
+          ? builtInRoleIds.adminRoleId
+          : builtInRoleIds.memberRoleId;
+    const targetSpaceRoleId = row.spaceRoleId ?? fallbackRoleId;
+
     const spaceMember = await tx.spaceMember.findUnique({
       where: {
         spaceId_userId: {
@@ -93,15 +108,27 @@ export async function acceptSpaceInvitationByTokenHash(
           spaceId: row.spaceId,
           userId: params.userId,
           role: row.role,
+          spaceRoleId: targetSpaceRoleId,
           createdBy: params.actorId,
           updatedBy: params.actorId,
         },
       });
     } else {
+      const nextRole = resolveHigherRole(spaceMember.role, row.role);
+      const rank: Record<'OWNER' | 'ADMIN' | 'MEMBER', number> = {
+        OWNER: 3,
+        ADMIN: 2,
+        MEMBER: 1,
+      };
+      const keepCurrentRole = rank[spaceMember.role] > rank[row.role];
+
       await tx.spaceMember.update({
         where: { id: spaceMember.id },
         data: {
-          role: resolveHigherRole(spaceMember.role, row.role),
+          role: nextRole,
+          spaceRoleId: keepCurrentRole
+            ? spaceMember.spaceRoleId
+            : targetSpaceRoleId,
           isDeleted: false,
           updatedBy: params.actorId,
         },

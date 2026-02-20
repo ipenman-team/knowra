@@ -4,7 +4,6 @@ import {
   CreateSpaceEmailInvitationsUseCase,
   CreateSpaceLinkInvitationUseCase,
   ListSpaceInvitationsUseCase,
-  ListSpaceMembersUseCase,
   ResendSpaceInvitationUseCase,
 } from '@contexta/application';
 import { PrismaSpaceInvitationRepository } from '@contexta/infrastructure';
@@ -52,12 +51,6 @@ import { SPACE_INVITATION_REPOSITORY } from './space-invitation.tokens';
       provide: AcceptSpaceInvitationUseCase,
       useFactory: (repo: PrismaSpaceInvitationRepository) =>
         new AcceptSpaceInvitationUseCase(repo),
-      inject: [SPACE_INVITATION_REPOSITORY],
-    },
-    {
-      provide: ListSpaceMembersUseCase,
-      useFactory: (repo: PrismaSpaceInvitationRepository) =>
-        new ListSpaceMembersUseCase(repo),
       inject: [SPACE_INVITATION_REPOSITORY],
     },
   ],

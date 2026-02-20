@@ -1,0 +1,1 @@
+export const SPACE_ROLE_REPOSITORY = Symbol('SPACE_ROLE_REPOSITORY');

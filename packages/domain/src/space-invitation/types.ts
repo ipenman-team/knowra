@@ -43,6 +43,7 @@ export type SpaceInvitation = {
   inviteeUserId: string | null;
 
   role: SpaceMemberRoleValue;
+  spaceRoleId: string | null;
   channel: SpaceInvitationChannelValue;
   status: SpaceInvitationStatusValue;
 
@@ -65,6 +66,7 @@ export type SpaceMember = {
   spaceId: string;
   userId: string;
   role: SpaceMemberRoleValue;
+  spaceRoleId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -78,6 +80,7 @@ export type SpaceInvitationWithToken = {
 export type CreateSpaceInvitationRecordInput = {
   inviteeEmail: string | null;
   role: SpaceMemberRoleValue;
+  spaceRoleId?: string | null;
   channel: SpaceInvitationChannelValue;
   tokenHash: string;
 };

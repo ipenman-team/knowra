@@ -7,8 +7,8 @@ import {
   createInvitationToken,
   getInvitationExpiresAt,
   hashInvitationToken,
-  normalizeInvitationRole,
   normalizeRequiredText,
+  resolveInvitationRoleTarget,
 } from './utils';
 
 export class CreateSpaceLinkInvitationUseCase {
@@ -18,12 +18,12 @@ export class CreateSpaceLinkInvitationUseCase {
     tenantId: string;
     spaceId: string;
     actorUserId: string;
+    roleId?: string;
     role?: string;
   }): Promise<SpaceInvitationWithToken> {
     const tenantId = normalizeRequiredText('tenantId', params.tenantId);
     const spaceId = normalizeRequiredText('spaceId', params.spaceId);
     const actorUserId = normalizeRequiredText('actorUserId', params.actorUserId);
-    const role = normalizeInvitationRole(params.role ?? 'MEMBER');
 
     const canManage = await this.repo.canManageSpaceInvitations({
       tenantId,
@@ -31,6 +31,14 @@ export class CreateSpaceLinkInvitationUseCase {
       userId: actorUserId,
     });
     if (!canManage) throw new Error('permission denied');
+
+    const roleTarget = await resolveInvitationRoleTarget(this.repo, {
+      tenantId,
+      spaceId,
+      actorUserId,
+      roleId: params.roleId,
+      role: params.role,
+    });
 
     const inviteToken = createInvitationToken();
     const tokenHash = hashInvitationToken(inviteToken);
@@ -45,7 +53,8 @@ export class CreateSpaceLinkInvitationUseCase {
       records: [
         {
           inviteeEmail: null,
-          role,
+          role: roleTarget.role,
+          spaceRoleId: roleTarget.spaceRoleId,
           channel: 'LINK',
           tokenHash,
         },

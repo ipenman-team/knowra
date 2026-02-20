@@ -21,6 +21,7 @@ export function mapInvitation(row: PrismaSpaceInvitation): SpaceInvitation {
     inviteeEmail: row.inviteeEmail,
     inviteeUserId: row.inviteeUserId,
     role: row.role,
+    spaceRoleId: row.spaceRoleId,
     channel: row.channel,
     status: row.status,
     tokenHash: row.tokenHash,
@@ -43,6 +44,7 @@ export function mapMember(row: PrismaSpaceMember): SpaceMember {
     spaceId: row.spaceId,
     userId: row.userId,
     role: row.role,
+    spaceRoleId: row.spaceRoleId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

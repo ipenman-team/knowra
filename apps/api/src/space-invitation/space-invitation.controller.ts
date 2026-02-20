@@ -15,7 +15,6 @@ import {
   CreateSpaceEmailInvitationsUseCase,
   CreateSpaceLinkInvitationUseCase,
   ListSpaceInvitationsUseCase,
-  ListSpaceMembersUseCase,
   ResendSpaceInvitationUseCase,
 } from '@contexta/application';
 import type { SpaceInvitationStatusValue } from '@contexta/domain';
@@ -51,11 +50,18 @@ function throwUseCaseError(error: unknown): never {
   if (message === 'invitation not found') {
     throw new NotFoundException(message);
   }
+  if (message === 'role not found') {
+    throw new NotFoundException(message);
+  }
+  if (message === 'space not found') {
+    throw new NotFoundException(message);
+  }
   if (
     message === 'invitation expired' ||
     message === 'invitation revoked' ||
     message === 'invitation already accepted' ||
-    message === 'invitation email mismatch'
+    message === 'invitation email mismatch' ||
+    message === 'role must be ADMIN or MEMBER'
   ) {
     throw new BadRequestException(message);
   }
@@ -70,28 +76,7 @@ export class SpaceInvitationController {
     private readonly createLinkInvitationUseCase: CreateSpaceLinkInvitationUseCase,
     private readonly listSpaceInvitationsUseCase: ListSpaceInvitationsUseCase,
     private readonly resendSpaceInvitationUseCase: ResendSpaceInvitationUseCase,
-    private readonly listSpaceMembersUseCase: ListSpaceMembersUseCase,
   ) {}
-
-  @Get('members')
-  async listMembers(
-    @TenantId() tenantId: string,
-    @UserId() userId: string | undefined,
-    @Param('spaceId') spaceId: string,
-  ) {
-    if (!userId) throw new UnauthorizedException('unauthorized');
-
-    try {
-      const items = await this.listSpaceMembersUseCase.list({
-        tenantId,
-        spaceId,
-        actorUserId: userId,
-      });
-      return new ListResponse(items);
-    } catch (error) {
-      throwUseCaseError(error);
-    }
-  }
 
   @Get('invitations')
   async listInvitations(
@@ -130,6 +115,7 @@ export class SpaceInvitationController {
         spaceId,
         actorUserId: userId,
         emails: body.emails ?? [],
+        roleId: body.roleId,
         role: body.role,
       });
       return new ListResponse(items);
@@ -152,6 +138,7 @@ export class SpaceInvitationController {
         tenantId,
         spaceId,
         actorUserId: userId,
+        roleId: body.roleId,
         role: body.role,
       });
       return new Response(data);

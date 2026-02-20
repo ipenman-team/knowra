@@ -10,7 +10,6 @@ import {
   CreateSpaceEmailInvitationsUseCase,
   CreateSpaceLinkInvitationUseCase,
   ListSpaceInvitationsUseCase,
-  ListSpaceMembersUseCase,
   ResendSpaceInvitationUseCase,
 } from '@contexta/application';
 import {
@@ -25,7 +24,6 @@ describe('SpaceInvitationController', () => {
   const createLinkInvitationUseCase = { create: jest.fn() };
   const listSpaceInvitationsUseCase = { list: jest.fn() };
   const resendSpaceInvitationUseCase = { resend: jest.fn() };
-  const listSpaceMembersUseCase = { list: jest.fn() };
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -49,35 +47,10 @@ describe('SpaceInvitationController', () => {
           provide: ResendSpaceInvitationUseCase,
           useValue: resendSpaceInvitationUseCase,
         },
-        {
-          provide: ListSpaceMembersUseCase,
-          useValue: listSpaceMembersUseCase,
-        },
       ],
     }).compile();
 
     controller = module.get(SpaceInvitationController);
-  });
-
-  test('listMembers requires authenticated user', async () => {
-    await expect(controller.listMembers('t1', undefined, 's1')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
-  });
-
-  test('listMembers forwards tenant/space/actor to usecase', async () => {
-    listSpaceMembersUseCase.list.mockResolvedValue([{ id: 'm1' }]);
-
-    const result = await controller.listMembers('t1', 'u1', 's1');
-
-    expect(listSpaceMembersUseCase.list).toHaveBeenCalledWith({
-      tenantId: 't1',
-      spaceId: 's1',
-      actorUserId: 'u1',
-    });
-    expect(result).toMatchObject({
-      data: [{ id: 'm1' }],
-    });
   });
 
   test('listInvitations parses comma separated statuses', async () => {
@@ -118,6 +91,7 @@ describe('SpaceInvitationController', () => {
       spaceId: 's1',
       actorUserId: 'u1',
       emails: ['a@example.com', 'b@example.com'],
+      roleId: undefined,
       role: 'ADMIN',
     });
     expect(result).toMatchObject({

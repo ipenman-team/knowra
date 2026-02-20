@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma, SpaceType } from '@prisma/client';
 import { ActivityRecorderUseCase } from '@contexta/application';
+import { ensureBuiltInRoles } from '@contexta/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { PageService } from '../page/page.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
@@ -53,6 +54,12 @@ export class SpaceService {
       },
     });
 
+    const builtInRoles = await ensureBuiltInRoles(this.prisma, {
+      tenantId,
+      spaceId: created.id,
+      actorId: actor,
+    });
+
     if (ownerUserId) {
       await this.prisma.spaceMember.upsert({
         where: {
@@ -65,11 +72,13 @@ export class SpaceService {
           spaceId: created.id,
           userId: ownerUserId,
           role: 'OWNER',
+          spaceRoleId: builtInRoles.ownerRoleId,
           createdBy: actor,
           updatedBy: actor,
         },
         update: {
           role: 'OWNER',
+          spaceRoleId: builtInRoles.ownerRoleId,
           isDeleted: false,
           updatedBy: actor,
         },

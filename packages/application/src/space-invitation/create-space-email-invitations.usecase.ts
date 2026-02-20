@@ -8,8 +8,8 @@ import {
   getInvitationExpiresAt,
   hashInvitationToken,
   normalizeEmails,
-  normalizeInvitationRole,
   normalizeRequiredText,
+  resolveInvitationRoleTarget,
 } from './utils';
 
 export class CreateSpaceEmailInvitationsUseCase {
@@ -20,13 +20,13 @@ export class CreateSpaceEmailInvitationsUseCase {
     spaceId: string;
     actorUserId: string;
     emails: string[];
+    roleId?: string;
     role?: string;
   }): Promise<SpaceInvitationWithToken[]> {
     const tenantId = normalizeRequiredText('tenantId', params.tenantId);
     const spaceId = normalizeRequiredText('spaceId', params.spaceId);
     const actorUserId = normalizeRequiredText('actorUserId', params.actorUserId);
     const emails = normalizeEmails(params.emails);
-    const role = normalizeInvitationRole(params.role ?? 'MEMBER');
 
     const canManage = await this.repo.canManageSpaceInvitations({
       tenantId,
@@ -34,6 +34,14 @@ export class CreateSpaceEmailInvitationsUseCase {
       userId: actorUserId,
     });
     if (!canManage) throw new Error('permission denied');
+
+    const roleTarget = await resolveInvitationRoleTarget(this.repo, {
+      tenantId,
+      spaceId,
+      actorUserId,
+      roleId: params.roleId,
+      role: params.role,
+    });
 
     const now = new Date();
     const expiresAt = getInvitationExpiresAt(now);
@@ -57,7 +65,8 @@ export class CreateSpaceEmailInvitationsUseCase {
       expiresAt,
       records: drafts.map((item) => ({
         inviteeEmail: item.email,
-        role,
+        role: roleTarget.role,
+        spaceRoleId: roleTarget.spaceRoleId,
         channel: 'EMAIL',
         tokenHash: item.tokenHash,
       })),
