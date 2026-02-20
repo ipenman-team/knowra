@@ -11,6 +11,7 @@ if command -v git &> /dev/null && [ -d ".git" ]; then
   REMOTE_SHA=$(git rev-parse origin/main 2>/dev/null || echo "")
 
   if [ -n "$REMOTE_SHA" ] && [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+    git reset --hard HEAD
     if git merge-base --is-ancestor "$LOCAL_SHA" "$REMOTE_SHA"; then
       git merge --ff-only "$REMOTE_SHA"
     else
