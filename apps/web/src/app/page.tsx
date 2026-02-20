@@ -1,15 +1,22 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+
+import { resolveLandingLocale } from '@/features/landing/locale';
 
 import { LandingHome } from './landing-home';
 
-const ACCESS_TOKEN_COOKIE = 'ctxa_access_token';
+export const metadata: Metadata = {
+  title: 'Contexta - 智能化知识库',
+  description:
+    '面向用户场景的智能化知识库：语义化问答、知识协作闭环、可追溯版本治理。',
+};
 
-export default async function Page() {
-  const cookieStore = await cookies();
-  const isLoggedIn = Boolean(cookieStore.get(ACCESS_TOKEN_COOKIE)?.value);
-  if (isLoggedIn) {
-    redirect('/workbench');
-  }
-  return <LandingHome />;
+interface PageProps {
+  searchParams: Promise<{ lang?: string | string[] }>;
+}
+
+export default async function Page({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const locale = resolveLandingLocale(params.lang);
+
+  return <LandingHome locale={locale} />;
 }
