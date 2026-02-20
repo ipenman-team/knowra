@@ -75,7 +75,7 @@ jobs:
           echo "Target: ${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}"
 
           ssh -p "${SSH_PORT}" -o BatchMode=yes "${SSH_USER}@${SSH_HOST}" \
-            "cd '${DEPLOY_PATH}' && chmod +x ./deploy.sh && ./deploy.sh"
+            "cd '${DEPLOY_PATH}' && git fetch origin main --prune && git reset --hard origin/main && bash ./deploy.sh"
         env:
           REASON: ${{ github.event.inputs.reason || 'push' }}
           SSH_HOST: ${{ secrets.SSH_HOST }}

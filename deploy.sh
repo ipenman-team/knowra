@@ -3,6 +3,10 @@ set -e
 
 if command -v git &> /dev/null && [ -d ".git" ]; then
   echo "🔄 同步代码..."
+
+  # 保证工作区干净，避免本地改动（例如 chmod 引起的文件模式变化）阻塞更新
+  git reset --hard HEAD
+
   if ! git fetch origin main --prune; then
     echo "⚠️  Git fetch 失败，继续使用本地代码"
   fi
@@ -11,12 +15,7 @@ if command -v git &> /dev/null && [ -d ".git" ]; then
   REMOTE_SHA=$(git rev-parse origin/main 2>/dev/null || echo "")
 
   if [ -n "$REMOTE_SHA" ] && [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
-    git reset --hard HEAD
-    if git merge-base --is-ancestor "$LOCAL_SHA" "$REMOTE_SHA"; then
-      git merge --ff-only "$REMOTE_SHA"
-    else
-      git reset --hard "$REMOTE_SHA"
-    fi
+    git reset --hard "$REMOTE_SHA"
   fi
 
   export GIT_COMMIT
