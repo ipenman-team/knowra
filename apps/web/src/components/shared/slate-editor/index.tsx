@@ -10,8 +10,10 @@ import {
   List,
   ListOrdered,
   Quote,
+  Sparkles,
   Table2,
   Underline,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -100,12 +102,24 @@ import {
   TableRowElementView,
 } from "./plugins/table-block/element";
 import { PLUGIN_SCOPE_INLINE } from "./plugins/types";
+import {
+  resolveInlineAiMode,
+  truncateInlineAiSelectedText,
+  type InlineAiMode,
+  type SlateEditorInlineAiConfig,
+} from "./plugins/knowra-ai/logic";
 
 export type SlateValue = Descendant[];
 
 const SLASH_MENU_WIDTH = 320;
-const INLINE_TOOLBAR_WIDTH = 260;
+const INLINE_TOOLBAR_BASE_WIDTH = 260;
+const INLINE_TOOLBAR_WITH_AI_WIDTH = 304;
 const INLINE_LINK_DIALOG_WIDTH = 420;
+const READONLY_INLINE_TOOLBAR_WIDTH = 44;
+const INLINE_AI_PANEL_MAX_WIDTH = 520;
+const INLINE_AI_PANEL_MIN_WIDTH = 240;
+const INLINE_AI_PANEL_ESTIMATED_HEIGHT = 360;
+const INLINE_AI_PREVIEW_TEXT_LIMIT = 200;
 
 type SlashMenuItem = {
   id: string;
@@ -134,6 +148,28 @@ type InlineLinkDialogState = {
   top: number;
   left: number;
   placeAbove: boolean;
+};
+
+type ReadOnlyInlineAiToolbarState = {
+  top: number;
+  left: number;
+  placeBelow: boolean;
+  selectedText: string;
+};
+
+type InlineAiPanelState = {
+  mode: Exclude<InlineAiMode, "off">;
+  selectedText: string;
+  top: number;
+  left: number;
+  width: number;
+  placeAbove: boolean;
+  range: SlateRange | null;
+};
+
+type DomSelectionInfo = {
+  rect: DOMRect;
+  selectedText: string;
 };
 
 export function parseContentToSlateValue(content: unknown): SlateValue {
@@ -447,6 +483,55 @@ function getRangeViewportRect(editor: Editor, range: SlateRange) {
   }
 }
 
+function getSelectionViewportRect(range: Range) {
+  const firstRect = range.getClientRects()[0];
+  return firstRect ?? range.getBoundingClientRect();
+}
+
+function getDomSelectionInfo(container: HTMLElement | null): DomSelectionInfo | null {
+  if (typeof window === "undefined" || !container) return null;
+
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+
+  const range = selection.getRangeAt(0);
+  const commonAncestorNode = range.commonAncestorContainer;
+  const commonAncestorElement =
+    commonAncestorNode.nodeType === Node.ELEMENT_NODE
+      ? (commonAncestorNode as Element)
+      : commonAncestorNode.parentElement;
+  if (!commonAncestorElement) return null;
+  if (!container.contains(commonAncestorElement)) return null;
+  if (commonAncestorElement.closest(".cm-editor")) return null;
+
+  const selectedText = selection.toString().trim();
+  if (!selectedText) return null;
+
+  const rect = getSelectionViewportRect(range);
+  if (!rect) return null;
+
+  return { rect, selectedText };
+}
+
+function getInlineAiPanelPosition(rect: DOMRect) {
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+  const width = Math.min(
+    INLINE_AI_PANEL_MAX_WIDTH,
+    Math.max(INLINE_AI_PANEL_MIN_WIDTH, viewportWidth - 24),
+  );
+  const halfWidth = width / 2;
+  const left = Math.min(
+    Math.max(12 + halfWidth, rect.left + rect.width / 2),
+    Math.max(12 + halfWidth, viewportWidth - halfWidth - 12),
+  );
+
+  const placeAbove = rect.bottom + INLINE_AI_PANEL_ESTIMATED_HEIGHT > viewportHeight - 16;
+  const top = placeAbove ? rect.top - 10 : rect.bottom + 12;
+
+  return { top, left, placeAbove, width };
+}
+
 export function SlateEditor(props: {
   value: SlateValue;
   onChange: (value: SlateValue) => void;
@@ -458,6 +543,7 @@ export function SlateEditor(props: {
   toolbarVariant?: "full" | "compact";
   topContent?: ReactNode;
   topContentClassName?: string;
+  inlineAi?: SlateEditorInlineAiConfig;
 }) {
   const editor = useMemo(
     () =>
@@ -471,9 +557,17 @@ export function SlateEditor(props: {
   const showToolbar = props.showToolbar ?? true;
   const readOnly = Boolean(props.readOnly ?? false);
   const editorReadOnly = Boolean(props.disabled || readOnly);
+  const inlineAiMode = resolveInlineAiMode({
+    config: props.inlineAi,
+    editorReadOnly,
+  });
+  const inlineToolbarWidth =
+    inlineAiMode === "edit" ? INLINE_TOOLBAR_WITH_AI_WIDTH : INLINE_TOOLBAR_BASE_WIDTH;
   const editableRef = useRef<HTMLDivElement | null>(null);
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
   const inlineToolbarRef = useRef<HTMLDivElement | null>(null);
+  const readOnlyInlineToolbarRef = useRef<HTMLDivElement | null>(null);
+  const inlineAiPanelRef = useRef<HTMLDivElement | null>(null);
   const inlineLinkDialogRef = useRef<HTMLDivElement | null>(null);
   const [slashMenuState, setSlashMenuState] = useState<SlashMenuState | null>(null);
   const [slashActiveIndex, setSlashActiveIndex] = useState(0);
@@ -481,6 +575,10 @@ export function SlateEditor(props: {
   const [inlineLinkDialogState, setInlineLinkDialogState] = useState<InlineLinkDialogState | null>(
     null,
   );
+  const [readOnlyInlineAiToolbarState, setReadOnlyInlineAiToolbarState] =
+    useState<ReadOnlyInlineAiToolbarState | null>(null);
+  const [inlineAiPanelState, setInlineAiPanelState] = useState<InlineAiPanelState | null>(null);
+  const [inlineAiQuestion, setInlineAiQuestion] = useState("");
   const [inlineLinkText, setInlineLinkText] = useState(DEFAULT_LINK_PLACEHOLDER_TEXT);
   const [inlineLinkUrl, setInlineLinkUrl] = useState(DEFAULT_LINK_PLACEHOLDER_URL);
 
@@ -594,7 +692,7 @@ export function SlateEditor(props: {
   const canApplyInlineLink = Boolean(normalizedInlineLinkUrl && inlineLinkText.trim().length > 0);
 
   const syncInlineToolbarState = useCallback(() => {
-    if (editorReadOnly || inlineLinkDialogState || slashMenuState) {
+    if (editorReadOnly || inlineLinkDialogState || slashMenuState || inlineAiPanelState) {
       setInlineToolbarState(null);
       return;
     }
@@ -611,7 +709,7 @@ export function SlateEditor(props: {
     }
 
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-    const halfWidth = INLINE_TOOLBAR_WIDTH / 2;
+    const halfWidth = inlineToolbarWidth / 2;
     const left = Math.min(
       Math.max(12 + halfWidth, rect.left + rect.width / 2),
       Math.max(12 + halfWidth, viewportWidth - halfWidth - 12),
@@ -631,7 +729,14 @@ export function SlateEditor(props: {
       }
       return { range, top, left, placeBelow };
     });
-  }, [editor, editorReadOnly, inlineLinkDialogState, slashMenuState]);
+  }, [
+    editor,
+    editorReadOnly,
+    inlineAiPanelState,
+    inlineLinkDialogState,
+    inlineToolbarWidth,
+    slashMenuState,
+  ]);
 
   const updateInlineLinkDialogPosition = useCallback(() => {
     if (!inlineLinkDialogState) return;
@@ -727,6 +832,174 @@ export function SlateEditor(props: {
     if (!inserted) return;
     setInlineLinkDialogState(null);
   }, [canApplyInlineLink, editor, inlineLinkDialogState, inlineLinkText, inlineLinkUrl]);
+
+  const openInlineAiPanel = useCallback(
+    (params: {
+      mode: Exclude<InlineAiMode, "off">;
+      selectedText: string;
+      rect: DOMRect;
+      range: SlateRange | null;
+    }) => {
+      const normalizedText = params.selectedText.trim();
+      if (!normalizedText) return;
+
+      const position = getInlineAiPanelPosition(params.rect);
+
+      setInlineAiQuestion("");
+      setInlineAiPanelState({
+        mode: params.mode,
+        selectedText: normalizedText,
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        placeAbove: position.placeAbove,
+        range: params.range ? cloneSlateRange(params.range) : null,
+      });
+      setInlineToolbarState(null);
+      setReadOnlyInlineAiToolbarState(null);
+    },
+    [],
+  );
+
+  const openInlineAiPanelFromEditorSelection = useCallback(() => {
+    if (inlineAiMode !== "edit") return;
+    if (!inlineToolbarState) return;
+
+    const rect = getRangeViewportRect(editor, inlineToolbarState.range);
+    if (!rect) return;
+
+    const selectedText = getSelectionText(editor, inlineToolbarState.range);
+    openInlineAiPanel({
+      mode: "edit",
+      selectedText,
+      rect,
+      range: inlineToolbarState.range,
+    });
+  }, [editor, inlineAiMode, inlineToolbarState, openInlineAiPanel]);
+
+  const openInlineAiPanelFromReadOnlySelection = useCallback(() => {
+    if (inlineAiMode !== "readonly") return;
+
+    const selectionInfo = getDomSelectionInfo(editableRef.current);
+    if (!selectionInfo) return;
+
+    openInlineAiPanel({
+      mode: "readonly",
+      selectedText: selectionInfo.selectedText,
+      rect: selectionInfo.rect,
+      range: null,
+    });
+  }, [inlineAiMode, openInlineAiPanel]);
+
+  const syncReadOnlyInlineAiToolbarState = useCallback(() => {
+    if (inlineAiMode !== "readonly" || inlineAiPanelState) {
+      setReadOnlyInlineAiToolbarState(null);
+      return;
+    }
+    if (inlineLinkDialogState || slashMenuState) {
+      setReadOnlyInlineAiToolbarState(null);
+      return;
+    }
+
+    const selectionInfo = getDomSelectionInfo(editableRef.current);
+    if (!selectionInfo) {
+      setReadOnlyInlineAiToolbarState(null);
+      return;
+    }
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const halfWidth = READONLY_INLINE_TOOLBAR_WIDTH / 2;
+    const left = Math.min(
+      Math.max(12 + halfWidth, selectionInfo.rect.left + selectionInfo.rect.width / 2),
+      Math.max(12 + halfWidth, viewportWidth - halfWidth - 12),
+    );
+    const placeBelow = selectionInfo.rect.top < 96;
+    const top = placeBelow ? selectionInfo.rect.bottom + 8 : selectionInfo.rect.top - 8;
+
+    setReadOnlyInlineAiToolbarState((prev) => {
+      if (
+        prev &&
+        prev.top === top &&
+        prev.left === left &&
+        prev.placeBelow === placeBelow &&
+        prev.selectedText === selectionInfo.selectedText
+      ) {
+        return prev;
+      }
+
+      return {
+        top,
+        left,
+        placeBelow,
+        selectedText: selectionInfo.selectedText,
+      };
+    });
+  }, [inlineAiMode, inlineAiPanelState, inlineLinkDialogState, slashMenuState]);
+
+  const updateInlineAiPanelPosition = useCallback(() => {
+    if (!inlineAiPanelState) return;
+
+    if (inlineAiPanelState.mode === "edit") {
+      if (!inlineAiPanelState.range) return;
+      const rect = getRangeViewportRect(editor, inlineAiPanelState.range);
+      if (!rect) return;
+      const position = getInlineAiPanelPosition(rect);
+      setInlineAiPanelState((prev) => {
+        if (!prev) return prev;
+        if (
+          prev.top === position.top &&
+          prev.left === position.left &&
+          prev.width === position.width &&
+          prev.placeAbove === position.placeAbove
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          top: position.top,
+          left: position.left,
+          width: position.width,
+          placeAbove: position.placeAbove,
+        };
+      });
+      return;
+    }
+
+    const selectionInfo = getDomSelectionInfo(editableRef.current);
+    if (!selectionInfo) return;
+    const position = getInlineAiPanelPosition(selectionInfo.rect);
+
+    setInlineAiPanelState((prev) => {
+      if (!prev) return prev;
+      if (
+        prev.top === position.top &&
+        prev.left === position.left &&
+        prev.width === position.width &&
+        prev.placeAbove === position.placeAbove &&
+        prev.selectedText === selectionInfo.selectedText
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        selectedText: selectionInfo.selectedText,
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        placeAbove: position.placeAbove,
+      };
+    });
+  }, [editor, inlineAiPanelState]);
+
+  const closeInlineAiPanel = useCallback(() => {
+    setInlineAiPanelState(null);
+    setInlineAiQuestion("");
+
+    requestAnimationFrame(() => {
+      syncInlineToolbarState();
+      syncReadOnlyInlineAiToolbarState();
+    });
+  }, [syncInlineToolbarState, syncReadOnlyInlineAiToolbarState]);
 
   const syncSlashMenuState = useCallback(() => {
     if (editorReadOnly) {
@@ -832,6 +1105,60 @@ export function SlateEditor(props: {
   }, [editorReadOnly, syncInlineToolbarState]);
 
   useEffect(() => {
+    if (inlineAiMode !== "readonly") return;
+
+    const sync = () => {
+      syncReadOnlyInlineAiToolbarState();
+    };
+
+    window.addEventListener("mouseup", sync, true);
+    window.addEventListener("keyup", sync, true);
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+
+    return () => {
+      window.removeEventListener("mouseup", sync, true);
+      window.removeEventListener("keyup", sync, true);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [inlineAiMode, syncReadOnlyInlineAiToolbarState]);
+
+  useEffect(() => {
+    if (!inlineAiPanelState) return;
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && inlineAiPanelRef.current?.contains(target)) return;
+      if (target && inlineToolbarRef.current?.contains(target)) return;
+      if (target && readOnlyInlineToolbarRef.current?.contains(target)) return;
+      closeInlineAiPanel();
+    };
+
+    const onViewportChange = () => {
+      updateInlineAiPanelPosition();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeInlineAiPanel();
+    };
+
+    window.addEventListener("mousedown", onMouseDown, true);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("keydown", onKeyDown, true);
+
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown, true);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [closeInlineAiPanel, inlineAiPanelState, updateInlineAiPanelPosition]);
+
+  useEffect(() => {
     if (!inlineLinkDialogState) return;
 
     const onMouseDown = (event: MouseEvent) => {
@@ -905,6 +1232,7 @@ export function SlateEditor(props: {
         props.onChange(nextValue);
         syncSlashMenuState();
         syncInlineToolbarState();
+        syncReadOnlyInlineAiToolbarState();
       }}
     >
       {showToolbar ? (
@@ -1069,6 +1397,39 @@ export function SlateEditor(props: {
         }}
       />
 
+      {inlineAiMode === "readonly" && readOnlyInlineAiToolbarState && !inlineAiPanelState ? (
+        <div
+          ref={readOnlyInlineToolbarRef}
+          contentEditable={false}
+          className="fixed z-50 flex items-center justify-center rounded-md border border-input bg-background p-1 shadow-lg"
+          style={{
+            top: `${readOnlyInlineAiToolbarState.top}px`,
+            left: `${readOnlyInlineAiToolbarState.left}px`,
+            width: `${READONLY_INLINE_TOOLBAR_WIDTH}px`,
+            transform: readOnlyInlineAiToolbarState.placeBelow
+              ? "translate(-50%, 0)"
+              : "translate(-50%, -100%)",
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 w-8 px-0"
+            tooltip="Knowra AI"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              openInlineAiPanelFromReadOnlySelection();
+            }}
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
+
       {!editorReadOnly && inlineToolbarState && !inlineLinkDialogState ? (
         <div
           ref={inlineToolbarRef}
@@ -1077,7 +1438,7 @@ export function SlateEditor(props: {
           style={{
             top: `${inlineToolbarState.top}px`,
             left: `${inlineToolbarState.left}px`,
-            width: `${INLINE_TOOLBAR_WIDTH}px`,
+            width: `${inlineToolbarWidth}px`,
             transform: inlineToolbarState.placeBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)",
           }}
           onMouseDown={(event) => {
@@ -1136,6 +1497,95 @@ export function SlateEditor(props: {
           >
             <Link2 className="h-4 w-4" />
           </Button>
+
+          {inlineAiMode === "edit" ? (
+            <>
+              <Separator orientation="vertical" className="mx-0.5 h-5" />
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 w-8 px-0"
+                tooltip="Knowra AI"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  openInlineAiPanelFromEditorSelection();
+                }}
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {inlineAiPanelState && inlineAiMode === inlineAiPanelState.mode ? (
+        <div
+          ref={inlineAiPanelRef}
+          contentEditable={false}
+          className="fixed z-50 space-y-4 rounded-lg border border-input bg-background p-4 shadow-xl"
+          style={{
+            top: `${inlineAiPanelState.top}px`,
+            left: `${inlineAiPanelState.left}px`,
+            width: `${inlineAiPanelState.width}px`,
+            transform: inlineAiPanelState.placeAbove ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold">Knowra AI</div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 w-8 px-0"
+              tooltip="关闭"
+              onClick={closeInlineAiPanel}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="rounded-md border bg-muted/40 p-3 text-sm leading-6">
+            {truncateInlineAiSelectedText(
+              inlineAiPanelState.selectedText,
+              INLINE_AI_PREVIEW_TEXT_LIMIT,
+            ).text}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Input
+              value={inlineAiQuestion}
+              placeholder="向智能助手提问..."
+              onChange={(event) => setInlineAiQuestion(event.target.value)}
+            />
+            <Button type="button" disabled>
+              发送
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {(inlineAiPanelState.mode === "edit"
+              ? ["改写", "精简", "扩写", "摘要", "翻译", "自由提问"]
+              : ["问答", "翻译"]
+            ).map((item) => (
+              <Button
+                key={item}
+                type="button"
+                variant="outline"
+                className="justify-start"
+                disabled
+              >
+                <Sparkles className="mr-1 h-3.5 w-3.5" />
+                {item}
+              </Button>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Phase 1：已完成划词入口和面板骨架，动作执行将在下一阶段接入。
+          </p>
         </div>
       ) : null}
 
