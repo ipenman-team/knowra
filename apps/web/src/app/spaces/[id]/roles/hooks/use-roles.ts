@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { spaceRolesApi } from '@/lib/api';
 import type { SpaceRoleDto } from '@/lib/api/spaces/types';
 
-export function useRoles(spaceId: string) {
+export function useRoles(spaceId: string, options?: { disabled?: boolean }) {
+  const disabled = Boolean(options?.disabled);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [roles, setRoles] = useState<SpaceRoleDto[]>([]);
@@ -33,8 +34,16 @@ export function useRoles(spaceId: string) {
   }, [fetchRoles]);
 
   useEffect(() => {
+    if (disabled) {
+      setLoading(false);
+      setSubmitting(false);
+      setRoles([]);
+      setSelectedRoleId('');
+      return;
+    }
+
     void refresh();
-  }, [refresh]);
+  }, [disabled, refresh]);
 
   const selectedRole = useMemo(
     () => roles.find((role) => role.id === selectedRoleId) ?? null,
@@ -47,6 +56,8 @@ export function useRoles(spaceId: string) {
       description?: string | null;
       permissions: string[];
     }) => {
+      if (disabled) return false;
+
       setSubmitting(true);
       try {
         const created = await spaceRolesApi.create(spaceId, params);
@@ -61,7 +72,7 @@ export function useRoles(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchRoles, spaceId],
+    [disabled, fetchRoles, spaceId],
   );
 
   const updateRole = useCallback(
@@ -73,6 +84,8 @@ export function useRoles(spaceId: string) {
         permissions?: string[];
       },
     ) => {
+      if (disabled) return;
+
       setSubmitting(true);
       try {
         await spaceRolesApi.update(spaceId, roleId, params);
@@ -84,11 +97,13 @@ export function useRoles(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchRoles, spaceId],
+    [disabled, fetchRoles, spaceId],
   );
 
   const removeRole = useCallback(
     async (roleId: string) => {
+      if (disabled) return;
+
       setSubmitting(true);
       try {
         await spaceRolesApi.remove(spaceId, roleId);
@@ -100,7 +115,7 @@ export function useRoles(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchRoles, spaceId],
+    [disabled, fetchRoles, spaceId],
   );
 
   return {

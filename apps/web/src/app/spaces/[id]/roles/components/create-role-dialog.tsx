@@ -23,6 +23,7 @@ export function CreateRoleDialog(props: CreateRoleDialogProps) {
   return (
     <Modal
       open={open}
+      className="max-w-lg"
       onOpenChange={(nextOpen) => {
         onOpenChange(nextOpen);
         if (!nextOpen) {

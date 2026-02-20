@@ -16,7 +16,8 @@ function parseEmails(raw: string): string[] {
   return [...new Set(values)];
 }
 
-export function useMembers(spaceId: string) {
+export function useMembers(spaceId: string, options?: { disabled?: boolean }) {
+  const disabled = Boolean(options?.disabled);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [members, setMembers] = useState<SpaceMemberDto[]>([]);
@@ -31,7 +32,8 @@ export function useMembers(spaceId: string) {
 
   const defaultRoleId = useMemo(
     () =>
-      roles.find((role) => role.isBuiltIn && role.builtInType === 'MEMBER')?.id ??
+      roles.find((role) => role.isBuiltIn && role.builtInType === 'MEMBER')
+        ?.id ??
       roles[0]?.id ??
       '',
     [roles],
@@ -66,8 +68,17 @@ export function useMembers(spaceId: string) {
   }, [fetchMembers, fetchRoles]);
 
   useEffect(() => {
+    if (disabled) {
+      setLoading(false);
+      setSubmitting(false);
+      setMembers([]);
+      setRoles([]);
+      setTotal(0);
+      return;
+    }
+
     void refresh();
-  }, [refresh]);
+  }, [disabled, refresh]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -82,6 +93,8 @@ export function useMembers(spaceId: string) {
 
   const updateMemberRole = useCallback(
     async (memberId: string, roleId: string) => {
+      if (disabled) return;
+
       setSubmitting(true);
       try {
         await spacesApi.updateMemberRole(spaceId, memberId, { roleId });
@@ -93,11 +106,12 @@ export function useMembers(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchMembers, spaceId],
+    [disabled, fetchMembers, spaceId],
   );
 
   const batchUpdateMemberRole = useCallback(
     async (memberIds: string[], roleId: string) => {
+      if (disabled) return;
       if (memberIds.length === 0) return;
 
       setSubmitting(true);
@@ -114,11 +128,13 @@ export function useMembers(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchMembers, spaceId],
+    [disabled, fetchMembers, spaceId],
   );
 
   const removeMember = useCallback(
     async (memberId: string) => {
+      if (disabled) return;
+
       setSubmitting(true);
       try {
         await spacesApi.removeMember(spaceId, memberId);
@@ -130,11 +146,12 @@ export function useMembers(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchMembers, spaceId],
+    [disabled, fetchMembers, spaceId],
   );
 
   const batchRemoveMembers = useCallback(
     async (memberIds: string[]) => {
+      if (disabled) return;
       if (memberIds.length === 0) return;
 
       setSubmitting(true);
@@ -148,11 +165,13 @@ export function useMembers(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchMembers, spaceId],
+    [disabled, fetchMembers, spaceId],
   );
 
   const inviteMembers = useCallback(
     async (emailsRaw: string, roleId: string) => {
+      if (disabled) return false;
+
       const emails = parseEmails(emailsRaw);
       if (emails.length === 0) {
         toast.error('请输入至少一个邮箱');
@@ -172,7 +191,7 @@ export function useMembers(spaceId: string) {
         setSubmitting(false);
       }
     },
-    [fetchMembers, spaceId],
+    [disabled, fetchMembers, spaceId],
   );
 
   return {

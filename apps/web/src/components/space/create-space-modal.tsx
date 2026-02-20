@@ -13,7 +13,12 @@ import { FooterActions } from './create-space-modal/footer-actions';
 import { generateIdentifier, parseEmails } from './create-space-modal/helpers';
 import { StepBasicForm } from './create-space-modal/step-basic-form';
 import { StepInviteForm } from './create-space-modal/step-invite-form';
-import type { EmailInviteDraft, FormValues, InviteRole, Step } from './create-space-modal/types';
+import type {
+  EmailInviteDraft,
+  FormValues,
+  InviteRole,
+  Step,
+} from './create-space-modal/types';
 
 function getEmptyFormValues(): FormValues {
   return {
@@ -168,9 +173,12 @@ export function CreateSpaceModal(props: {
 
         if (createLinkInvite) {
           try {
-            const linkInvite = await spacesApi.createLinkInvitation(created.id, {
-              role: linkInviteRole,
-            });
+            const linkInvite = await spacesApi.createLinkInvitation(
+              created.id,
+              {
+                role: linkInviteRole,
+              },
+            );
             linkUrl = linkInvite.inviteUrl;
           } catch {
             inviteFailures += 1;
@@ -267,14 +275,16 @@ export function CreateSpaceModal(props: {
           onInviteRoleChange={setInviteRole}
           onAddEmails={addEmails}
           onRemoveInvite={(email) =>
-            setEmailInvites((prev) => prev.filter((item) => item.email !== email))
+            setEmailInvites((prev) =>
+              prev.filter((item) => item.email !== email),
+            )
           }
           onCreateLinkInviteChange={setCreateLinkInvite}
           onLinkInviteRoleChange={setLinkInviteRole}
         />
       ) : (
         <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          当前为单人空间，无需邀请成员。你可以直接创建空间，后续也可在成员管理中邀请。
+          当前为个人空间，仅支持你自己（Owner）。无需邀请成员，也不支持成员与角色管理。
         </div>
       )}
     </Modal>

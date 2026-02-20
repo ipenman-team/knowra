@@ -1,4 +1,8 @@
-import type { FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-form';
+import type {
+  FieldErrors,
+  UseFormRegister,
+  UseFormSetValue,
+} from 'react-hook-form';
 import { SpaceIcon } from '@/components/icon/space.icon';
 import {
   Field,
@@ -130,7 +134,7 @@ export function StepBasicForm(props: StepBasicFormProps) {
               <SelectValue placeholder="选择空间类型" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="PERSONAL">单人空间</SelectItem>
+              <SelectItem value="PERSONAL">个人空间</SelectItem>
               <SelectItem value="ORG">协作空间</SelectItem>
             </SelectContent>
           </Select>

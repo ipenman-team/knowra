@@ -96,6 +96,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
       id: space.id,
       name: space.name,
       color: space.color ?? null,
+      type: space.type ?? null,
       metadata,
     };
   }, []);
@@ -138,6 +139,7 @@ export const HomeSidebar = memo(function HomeSidebar() {
       updateSpaceLocal(updated.id, {
         name: normalized.name,
         color: normalized.color ?? null,
+        type: normalized.type ?? null,
         metadata: normalized.metadata ?? null,
       });
     },
@@ -167,7 +169,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   key="workbench"
                   onClick={() => handleSelectView('workbench')}
                 >
-                  <SidebarMenuButton asChild tooltip={t('homeSidebar.workbench')}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={t('homeSidebar.workbench')}
+                  >
                     <div
                       className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
@@ -201,7 +206,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   key="favorites"
                   onClick={() => handleSelectView('favorites')}
                 >
-                  <SidebarMenuButton asChild tooltip={t('homeSidebar.myFavorites')}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={t('homeSidebar.myFavorites')}
+                  >
                     <div
                       className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
@@ -237,7 +245,10 @@ export const HomeSidebar = memo(function HomeSidebar() {
               <SidebarMenu>
                 {isCollapsed && (
                   <SidebarMenuItem onClick={() => setOpenCreate(true)}>
-                    <SidebarMenuButton asChild tooltip={t('homeSidebar.createSpace')}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={t('homeSidebar.createSpace')}
+                    >
                       <div className="flex items-center gap-2 cursor-pointer text-muted-foreground justify-center">
                         <PlusIcon />
                       </div>

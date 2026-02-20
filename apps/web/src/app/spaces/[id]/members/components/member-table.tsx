@@ -1,7 +1,7 @@
 'use client';
 
 import { Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -62,17 +62,21 @@ export function MemberTable(props: MemberTableProps) {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchRoleId, setBatchRoleId] = useState('');
-
-  const allSelected = useMemo(
-    () => members.length > 0 && selectedIds.length === members.length,
-    [members.length, selectedIds.length],
+  const memberIdSet = useMemo(
+    () => new Set(members.map((member) => member.id)),
+    [members],
+  );
+  const visibleSelectedIds = useMemo(
+    () => selectedIds.filter((id) => memberIdSet.has(id)),
+    [memberIdSet, selectedIds],
   );
 
-  const selectedCount = selectedIds.length;
+  const allSelected = useMemo(
+    () => members.length > 0 && visibleSelectedIds.length === members.length,
+    [members.length, visibleSelectedIds.length],
+  );
 
-  useEffect(() => {
-    setSelectedIds((prev) => prev.filter((id) => members.some((member) => member.id === id)));
-  }, [members]);
+  const selectedCount = visibleSelectedIds.length;
 
   const toggleAll = (checked: boolean) => {
     if (checked) {
@@ -90,8 +94,8 @@ export function MemberTable(props: MemberTableProps) {
   };
 
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
+    <div className="rounded-xl bg-card ring-1 ring-border/50">
+      <div className="flex flex-wrap items-center gap-3 px-5 py-4">
         <div className="relative min-w-[220px] flex-1">
           <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -104,14 +108,18 @@ export function MemberTable(props: MemberTableProps) {
             }}
           />
         </div>
-        <Button variant="outline" onClick={onSearch} disabled={loading || submitting}>
+        <Button
+          variant="outline"
+          onClick={onSearch}
+          disabled={loading || submitting}
+        >
           搜索
         </Button>
         <div className="text-sm text-muted-foreground">共 {total} 人</div>
       </div>
 
       {selectedCount > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-4 py-3">
+        <div className="mx-5 mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
           <div className="text-sm">已选中 {selectedCount} 项</div>
           <Select value={batchRoleId} onValueChange={setBatchRoleId}>
             <SelectTrigger className="w-44">
@@ -128,14 +136,14 @@ export function MemberTable(props: MemberTableProps) {
           <Button
             variant="outline"
             disabled={!batchRoleId || submitting}
-            onClick={() => onBatchUpdateRole(selectedIds, batchRoleId)}
+            onClick={() => onBatchUpdateRole(visibleSelectedIds, batchRoleId)}
           >
             设置角色
           </Button>
           <Button
             variant="destructive"
             disabled={submitting}
-            onClick={() => onBatchRemove(selectedIds)}
+            onClick={() => onBatchRemove(visibleSelectedIds)}
           >
             移除成员
           </Button>
@@ -146,9 +154,9 @@ export function MemberTable(props: MemberTableProps) {
       ) : null}
 
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
+        <TableHeader className="[&_tr]:border-0">
+          <TableRow className="h-11 border-y border-border/50 bg-muted/20 hover:bg-muted/20">
+            <TableHead className="w-12 pl-5">
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={(value) => toggleAll(Boolean(value))}
@@ -157,25 +165,34 @@ export function MemberTable(props: MemberTableProps) {
             <TableHead>成员</TableHead>
             <TableHead>角色</TableHead>
             <TableHead>邮箱</TableHead>
-            <TableHead className="w-16" />
+            <TableHead className="w-20 pr-5 text-right" />
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="[&_tr:last-child]:border-b-0">
           {members.map((member) => (
-            <TableRow key={member.id}>
-              <TableCell>
+            <TableRow
+              key={member.id}
+              className="h-14 border-b border-border/40 hover:bg-muted/20"
+            >
+              <TableCell className="pl-5">
                 <Checkbox
-                  checked={selectedIds.includes(member.id)}
-                  onCheckedChange={(value) => toggleOne(member.id, Boolean(value))}
+                  checked={visibleSelectedIds.includes(member.id)}
+                  onCheckedChange={(value) =>
+                    toggleOne(member.id, Boolean(value))
+                  }
                 />
               </TableCell>
               <TableCell>
-                <div className="font-medium">{member.nickname || member.userId}</div>
-                <div className="text-xs text-muted-foreground">{member.userId}</div>
+                <div className="font-medium">
+                  {member.nickname || member.userId}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {member.userId}
+                </div>
               </TableCell>
               <TableCell>{member.roleName}</TableCell>
               <TableCell>{member.email || '-'}</TableCell>
-              <TableCell>
+              <TableCell className="pr-4 text-right">
                 <MemberRowActions
                   member={member}
                   roles={roles}
@@ -188,7 +205,10 @@ export function MemberTable(props: MemberTableProps) {
           ))}
           {!loading && members.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+              <TableCell
+                colSpan={5}
+                className="h-20 text-center text-muted-foreground"
+              >
                 暂无成员数据
               </TableCell>
             </TableRow>
@@ -196,7 +216,7 @@ export function MemberTable(props: MemberTableProps) {
         </TableBody>
       </Table>
 
-      <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+      <div className="flex items-center justify-end gap-2 border-t border-border/50 px-5 py-3">
         <Button
           variant="outline"
           disabled={page <= 1 || loading || submitting}
