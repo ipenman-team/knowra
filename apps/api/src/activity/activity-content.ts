@@ -147,6 +147,7 @@ export function formatActivityContent(activity: ActivityLike): string | null {
     case PageActivityAction.Rename:
       return formatPageRenameContent(metadata);
     case PageActivityAction.Create:
+    case PageActivityAction.View:
     case PageActivityAction.Publish:
     case PageActivityAction.Like:
     case PageActivityAction.Unlike:

@@ -22,7 +22,11 @@ import {
   buildTrashUrl,
   buildPageVersionsUrl,
 } from './route-builders';
-import type { NavigationView, NavigationOptions } from './types';
+import type {
+  NavigationView,
+  NavigationOptions,
+  NavigateToPageOptions,
+} from './types';
 
 /**
  * 导航服务 Hook
@@ -75,8 +79,8 @@ export function useNavigation() {
    * navigateToPage('space-1', 'page-123', { replace: true })
    */
   const navigateToPage = useCallback(
-    (spaceId: string, pageId: string, options?: NavigationOptions) => {
-      const url = buildPageUrl(spaceId, pageId);
+    (spaceId: string, pageId: string, options?: NavigateToPageOptions) => {
+      const url = buildPageUrl(spaceId, pageId, { mode: options?.mode });
       if (options?.replace) {
         router.replace(url);
       } else {

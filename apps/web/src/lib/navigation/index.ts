@@ -26,4 +26,9 @@ export {
 } from './route-builders';
 
 // 类型定义
-export type { NavigationView, NavigationOptions } from './types';
+export type {
+  NavigationView,
+  NavigationOptions,
+  NavigateToPageOptions,
+  PageMode,
+} from './types';

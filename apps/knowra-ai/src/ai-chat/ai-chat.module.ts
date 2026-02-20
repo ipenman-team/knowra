@@ -4,6 +4,7 @@ import {
   AiConversationUseCase,
   AiMessageUseCase,
   DefaultPromptConfigProvider,
+  InlineActionUseCase,
 } from '@knowra/application';
 import {
   PrismaAiConversationRepository,
@@ -26,10 +27,12 @@ import { ConversationService } from './conversation.service';
 import { MessageService } from './message.service';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
+import { InlineActionsController } from './inline-actions.controller';
+import { InlineActionsService } from './inline-actions.service';
 
 @Module({
   imports: [KnowledgeModule, AttachmentsModule],
-  controllers: [ConversationsController, ChatController],
+  controllers: [ConversationsController, ChatController, InlineActionsController],
   providers: [
     {
       provide: AI_CONVERSATION_REPOSITORY,
@@ -114,9 +117,18 @@ import { ChatService } from './chat.service';
         AI_KNOWLEDGE_SEARCHER,
       ],
     },
+    {
+      provide: InlineActionUseCase,
+      useFactory: (
+        chatProvider: OpenAICompatibleChatProvider,
+        promptConfigProvider: DefaultPromptConfigProvider,
+      ) => new InlineActionUseCase(chatProvider, promptConfigProvider),
+      inject: [AI_CHAT_PROVIDER, AI_PROMPT_CONFIG_PROVIDER],
+    },
     ConversationService,
     MessageService,
     ChatService,
+    InlineActionsService,
   ],
 })
 export class AiChatModule {}

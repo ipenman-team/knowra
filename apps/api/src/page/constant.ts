@@ -1,5 +1,6 @@
 export const PageActivityAction = {
   Create: 'page.create',
+  View: 'page.view',
   Rename: 'page.rename',
   Publish: 'page.publish',
   Like: 'page.like',
@@ -11,6 +12,7 @@ export const PageActivityAction = {
 
 export const PAGE_ACTIVITY_ACTION_NAME_MAP: Record<string, string> = {
   [PageActivityAction.Create]: '新建页面',
+  [PageActivityAction.View]: '访问页面',
   [PageActivityAction.Rename]: '重命名页面',
   [PageActivityAction.Publish]: '发布页面',
   [PageActivityAction.Like]: '点赞页面',

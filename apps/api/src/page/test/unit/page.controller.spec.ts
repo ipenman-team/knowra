@@ -107,13 +107,18 @@ describe('PageController', () => {
     expect(pageService.remove).toHaveBeenCalledWith('p1', 't1', undefined);
   });
 
-  it('get forwards id + tenantId', async () => {
+  it('get forwards id + tenantId + trackView options', async () => {
     pageService.get.mockResolvedValue({ id: 'p1' });
 
-    await expect(controller.get('p1', 't1')).resolves.toMatchObject({
+    await expect(
+      controller.get('p1', 't1', 'u1', { trackView: 'true' }),
+    ).resolves.toMatchObject({
       data: { id: 'p1' },
     });
-    expect(pageService.get).toHaveBeenCalledWith('p1', 't1');
+    expect(pageService.get).toHaveBeenCalledWith('p1', 't1', {
+      recordView: true,
+      actorUserId: 'u1',
+    });
   });
 
   it('list forwards tenantId', async () => {

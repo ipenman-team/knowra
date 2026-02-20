@@ -2,6 +2,10 @@ import { apiClient } from '../client';
 import type { CreatePageInput, PageDto, SavePageInput } from './types';
 import _ from 'lodash';
 
+type GetPageOptions = {
+  trackView?: boolean;
+};
+
 export const pagesApi = {
   async list(
     spaceId: string,
@@ -32,12 +36,24 @@ export const pagesApi = {
     return res.data;
   },
 
-  async get(...args: [string] | [string, string]) {
-    if (args.length === 2) {
+  async get(
+    ...args:
+      | [string, GetPageOptions?]
+      | [string, string, GetPageOptions?]
+  ) {
+    const options: GetPageOptions | undefined =
+      typeof args[1] === 'string' ? args[2] : args[1];
+    const params =
+      typeof options?.trackView === 'boolean'
+        ? { trackView: options.trackView }
+        : undefined;
+
+    if (typeof args[1] === 'string') {
       const spaceId = args[0];
       const id = args[1];
       const res = await apiClient.get<PageDto>(
         `/spaces/${encodeURIComponent(spaceId)}/pages/${encodeURIComponent(id)}`,
+        { params },
       );
       return res.data;
     }
@@ -45,6 +61,7 @@ export const pagesApi = {
     const id = args[0];
     const res = await apiClient.get<PageDto>(
       `/pages/${encodeURIComponent(id)}`,
+      { params },
     );
     return res.data;
   },

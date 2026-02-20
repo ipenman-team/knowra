@@ -155,6 +155,12 @@ export const PageEditor = memo(function PageEditor() {
         disabled={pageLoading}
         readOnly={isPreview}
         showToolbar={!isPreview}
+        inlineAi={{
+          enabled: true,
+          allowReadOnly: isPreview,
+          pageId: activePageId ?? undefined,
+          spaceId: activeSpaceId ?? undefined,
+        }}
         placeholder={isPreview ? undefined : '输入 / 唤起工具栏'}
         topContent={
           isPreview ? (

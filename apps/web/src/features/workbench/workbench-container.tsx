@@ -7,6 +7,13 @@ import type { ActivityItem, DailyCount } from '@knowra/shared';
 import { ContainerLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';
 import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from '@/components/ui/navigation-menu';
+import { cn } from '@/lib/utils';
+import {
   buildLinePath,
   buildDailyCountMap,
   buildDailySeries,
@@ -14,9 +21,9 @@ import {
   getDateKey,
   getGreetingKey,
 } from './components/activity-data';
-import { ActivityList } from './components/activity-list';
-import { ActivityOverviewCard } from './components/activity-overview-card';
 import { ProfileCard } from './components/profile-card';
+import { WorkbenchHomePanel } from './components/workbench-home-panel';
+import { WorkbenchDashboardPanel } from './components/workbench-dashboard-panel';
 import { workbenchApi } from '@/lib/api';
 import { useMeStore } from '@/stores';
 import { useI18n } from '@/lib/i18n/provider';
@@ -29,6 +36,7 @@ export const WorkbenchContainer = () => {
   const profile = useMeStore((s) => s.profile);
   const user = useMeStore((s) => s.user);
   const meLoaded = useMeStore((s) => s.loaded);
+  const [activeTab, setActiveTab] = useState<'home' | 'dashboard'>('home');
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [selectedYear, setSelectedYear] = useState<number>(todayYear);
   const [viewMode, setViewMode] = useState<'grid' | 'line'>('grid');
@@ -108,7 +116,8 @@ export const WorkbenchContainer = () => {
   }, [ensureMeLoaded]);
 
   useEffect(() => {
-    if (!meLoaded || !actorUserId || viewMode !== 'grid') return;
+    if (!meLoaded || !actorUserId) return;
+    if (activeTab !== 'dashboard' || viewMode !== 'grid') return;
     const requestKey = `${selectedYear}:${actorUserId}`;
     if (gridFetchedKeyRef.current === requestKey) return;
     if (gridRequestKeyRef.current === requestKey) return;
@@ -153,10 +162,18 @@ export const WorkbenchContainer = () => {
         setGridLoading(false);
       }
     };
-  }, [actorUserId, loadFailedText, meLoaded, selectedYear, viewMode]);
+  }, [
+    activeTab,
+    actorUserId,
+    loadFailedText,
+    meLoaded,
+    selectedYear,
+    viewMode,
+  ]);
 
   useEffect(() => {
-    if (!meLoaded || !actorUserId || viewMode !== 'line') return;
+    if (!meLoaded || !actorUserId) return;
+    if (activeTab !== 'dashboard' || viewMode !== 'line') return;
     const requestKey = `${format(lineRange.startDate, 'yyyy-MM-dd')}:${format(
       lineRange.endDate,
       'yyyy-MM-dd',
@@ -205,6 +222,7 @@ export const WorkbenchContainer = () => {
       }
     };
   }, [
+    activeTab,
     actorUserId,
     lineRange.endDate,
     lineRange.startDate,
@@ -245,7 +263,7 @@ export const WorkbenchContainer = () => {
   }, [actorUserId, loadFailedText, meLoaded, today]);
 
   useEffect(() => {
-    if (!meLoaded || !actorUserId) return;
+    if (!meLoaded || !actorUserId || activeTab !== 'dashboard') return;
     let cancelled = false;
     setDailyLoading(true);
     setDailyError(null);
@@ -276,7 +294,7 @@ export const WorkbenchContainer = () => {
     return () => {
       cancelled = true;
     };
-  }, [actorUserId, loadFailedText, meLoaded, selectedDate]);
+  }, [activeTab, actorUserId, loadFailedText, meLoaded, selectedDate]);
 
   return (
     <ContainerLayout
@@ -296,55 +314,88 @@ export const WorkbenchContainer = () => {
             error={todayError}
           />
 
-          <div className="flex min-h-0 flex-col gap-6 lg:h-full">
-            <ActivityOverviewCard
-              selectedYear={selectedYear}
-              yearOptions={yearOptions}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              onYearChange={handleYearChange}
-              gridProps={{
-                weeks,
-                selectedYear,
-                selectedDayKey,
-                activityMap,
-                onSelectDate: setSelectedDate,
-              }}
-              onJumpToToday={() => {
-                setSelectedDate(today);
-                setSelectedYear(today.getFullYear());
-              }}
-              lineProps={{
-                lineData,
-                rangeDays,
-                onRangeChange: setRangeDays,
-                chartSize,
-                chartPaths,
-                maxLineCount,
-                today,
-              }}
-              statusText={
-                viewMode === 'grid'
-                  ? gridLoading
-                    ? t('common.loading')
-                    : gridError
-                      ? t('workbench.loadFailed')
-                      : null
-                  : lineLoading
-                    ? t('common.loading')
-                    : lineError
-                      ? t('workbench.loadFailed')
-                      : null
-              }
-            />
+          <div className="flex min-h-0 flex-col gap-5 lg:h-full">
+            <NavigationMenu className="w-full max-w-full !flex-none justify-start">
+              <NavigationMenuList className="flex-nowrap justify-start gap-1 overflow-x-auto py-0">
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        'h-8 rounded-md px-3 text-sm font-medium transition-colors',
+                        activeTab === 'home'
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                      )}
+                      onClick={() => setActiveTab('home')}
+                    >
+                      {t('workbench.tab.home')}
+                    </button>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        'h-8 rounded-md px-3 text-sm font-medium transition-colors',
+                        activeTab === 'dashboard'
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                      )}
+                      onClick={() => setActiveTab('dashboard')}
+                    >
+                      {t('workbench.tab.dashboard')}
+                    </button>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
-            <div className="min-h-[20rem] lg:flex-1 lg:min-h-0">
-              <ActivityList
-                selectedDate={selectedDate}
-                items={dailyItems}
-                loading={dailyLoading}
-                error={dailyError}
-              />
+            <div className="min-h-0 lg:flex-1">
+              {activeTab === 'home' ? (
+                <WorkbenchHomePanel actorUserId={actorUserId} />
+              ) : (
+                <WorkbenchDashboardPanel
+                  selectedDate={selectedDate}
+                  selectedYear={selectedYear}
+                  yearOptions={yearOptions}
+                  viewMode={viewMode}
+                  rangeDays={rangeDays}
+                  weeks={weeks}
+                  selectedDayKey={selectedDayKey}
+                  activityMap={activityMap}
+                  lineData={lineData}
+                  chartSize={chartSize}
+                  chartPaths={chartPaths}
+                  maxLineCount={maxLineCount}
+                  today={today}
+                  dailyItems={dailyItems}
+                  dailyLoading={dailyLoading}
+                  dailyError={dailyError}
+                  statusText={
+                    viewMode === 'grid'
+                      ? gridLoading
+                        ? t('common.loading')
+                        : gridError
+                          ? t('workbench.loadFailed')
+                          : null
+                      : lineLoading
+                        ? t('common.loading')
+                        : lineError
+                          ? t('workbench.loadFailed')
+                          : null
+                  }
+                  onViewModeChange={setViewMode}
+                  onYearChange={handleYearChange}
+                  onSelectDate={setSelectedDate}
+                  onRangeChange={setRangeDays}
+                  onJumpToToday={() => {
+                    setSelectedDate(today);
+                    setSelectedYear(today.getFullYear());
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

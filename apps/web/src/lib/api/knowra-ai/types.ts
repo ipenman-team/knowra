@@ -31,3 +31,12 @@ export type AiAttachmentUploadResult = {
   ok: true;
   attachments: AiAttachmentDto[];
 };
+
+export type InlineAiActionType =
+  | 'rewrite'
+  | 'condense'
+  | 'expand'
+  | 'summarize'
+  | 'translate'
+  | 'qa'
+  | 'custom';

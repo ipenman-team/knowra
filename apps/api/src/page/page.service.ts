@@ -21,6 +21,11 @@ import {
 } from './constant';
 import _ from 'lodash';
 
+type GetPageOptions = {
+  recordView?: boolean;
+  actorUserId?: string;
+};
+
 @Injectable()
 export class PageService {
   private readonly logger = new Logger(PageService.name);
@@ -587,7 +592,37 @@ export class PageService {
       });
   }
 
-  async get(id: string, tenantId: string): Promise<PageDto> {
+  private recordPageViewActivity(args: {
+    tenantId: string;
+    actorUserId: string;
+    pageId: string;
+    spaceId: string;
+    title: string;
+  }) {
+    void this.activityRecorder
+      .record({
+        tenantId: args.tenantId,
+        actorUserId: args.actorUserId,
+        action: PageActivityAction.View,
+        subjectType: 'page',
+        subjectId: args.pageId,
+        metadata: {
+          spaceId: args.spaceId,
+          title: args.title,
+        },
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Failed to record activity(page.view): ${(e as Error)?.message ?? e}`,
+        );
+      });
+  }
+
+  async get(
+    id: string,
+    tenantId: string,
+    options?: GetPageOptions,
+  ): Promise<PageDto> {
     if (!id) throw new BadRequestException('id is required');
     if (!tenantId) throw new BadRequestException('tenantId is required');
 
@@ -595,6 +630,19 @@ export class PageService {
       where: { id, tenantId, isDeleted: false },
     });
     if (!page) throw new NotFoundException('page not found');
+
+    if (options?.recordView) {
+      const actorUserId = options.actorUserId?.trim();
+      if (actorUserId) {
+        this.recordPageViewActivity({
+          tenantId,
+          actorUserId,
+          pageId: page.id,
+          spaceId: page.spaceId,
+          title: page.title,
+        });
+      }
+    }
 
     return page;
   }

@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PageService } from '../../page.service';
 import type { PageDto } from '../../dto/page.dto';
 import { PageVersionService } from '../../page-version.service';
+import { PageActivityAction } from '../../constant';
 
 describe('PageService', () => {
   let service: PageService;
@@ -295,6 +296,7 @@ describe('PageService', () => {
       expect(prisma.page.findFirst).toHaveBeenCalledWith({
         where: { id: 'p1', tenantId: 't1', isDeleted: false },
       });
+      expect(activityRecorder.record).not.toHaveBeenCalled();
     });
 
     it('throws when not found', async () => {
@@ -303,6 +305,37 @@ describe('PageService', () => {
       await expect(service.get('p1', 't1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+
+    it('records page view activity when tracking is enabled', async () => {
+      prisma.page.findFirst.mockResolvedValue(samplePage());
+
+      await expect(
+        service.get('p1', 't1', { recordView: true, actorUserId: 'u1' }),
+      ).resolves.toMatchObject({
+        id: 'p1',
+        tenantId: 't1',
+      });
+
+      expect(activityRecorder.record).toHaveBeenCalledWith({
+        tenantId: 't1',
+        actorUserId: 'u1',
+        action: PageActivityAction.View,
+        subjectType: 'page',
+        subjectId: 'p1',
+        metadata: {
+          spaceId: 's1',
+          title: 'Hello',
+        },
+      });
+    });
+
+    it('skips page view activity when actor user is missing', async () => {
+      prisma.page.findFirst.mockResolvedValue(samplePage());
+
+      await service.get('p1', 't1', { recordView: true });
+
+      expect(activityRecorder.record).not.toHaveBeenCalled();
     });
   });
 

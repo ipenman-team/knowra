@@ -14,6 +14,8 @@
  */
 export type NavigationView = 'workbench' | 'knowra-ai' | 'favorites' | 'settings';
 
+export type PageMode = 'edit' | 'preview';
+
 /**
  * 导航选项
  */
@@ -25,4 +27,8 @@ export interface NavigationOptions {
    * - false: 使用 router.push()，保留历史
    */
   replace?: boolean;
+}
+
+export interface NavigateToPageOptions extends NavigationOptions {
+  mode?: PageMode;
 }
