@@ -141,6 +141,10 @@ export function MemberTable(props: MemberTableProps) {
     () => visibleSelectedIds.filter((id) => !ownerMemberIdSet.has(id)),
     [ownerMemberIdSet, visibleSelectedIds],
   );
+  const updatableRoleSelectedIds = useMemo(
+    () => visibleSelectedIds.filter((id) => !ownerMemberIdSet.has(id)),
+    [ownerMemberIdSet, visibleSelectedIds],
+  );
 
   const allSelected = useMemo(
     () => members.length > 0 && visibleSelectedIds.length === members.length,
@@ -198,7 +202,7 @@ export function MemberTable(props: MemberTableProps) {
               value={queryInput}
               onChange={(event) => onQueryInputChange(event.target.value)}
               placeholder="搜索成员昵称或邮箱"
-              className="px-0"
+              className="pl-2 pr-0"
             />
           </InputGroup>
         </div>
@@ -227,8 +231,17 @@ export function MemberTable(props: MemberTableProps) {
           </Select>
           <Button
             variant="outline"
-            disabled={!batchRoleId || submitting}
-            onClick={() => onBatchUpdateRole(visibleSelectedIds, batchRoleId)}
+            disabled={
+              !batchRoleId || submitting || updatableRoleSelectedIds.length === 0
+            }
+            tooltip={
+              selectedOwnerCount > 0
+                ? '所有者成员角色不可修改，将忽略该成员'
+                : undefined
+            }
+            onClick={() =>
+              onBatchUpdateRole(updatableRoleSelectedIds, batchRoleId)
+            }
           >
             设置角色
           </Button>
@@ -326,8 +339,10 @@ export function MemberTable(props: MemberTableProps) {
       </Table>
 
       <div className="flex items-center justify-end gap-4">
-        <div className="text-sm text-muted-foreground">共 {total} 人</div>
-        <Pagination className="justify-end">
+        <div className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
+          共 {total} 人
+        </div>
+        <Pagination className="mx-0 w-auto justify-end">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious

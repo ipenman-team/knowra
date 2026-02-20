@@ -329,7 +329,7 @@ export const PageHeader = () => {
         ) : null}
         {timeText ? (
           <span
-            className="hidden whitespace-nowrap text-xs text-muted-foreground tabular-nums md:inline"
+            className="hidden whitespace-nowrap text-xs text-muted-foreground tabular-nums md:ml-2 md:inline"
             title={timeTitle}
           >
             {timeTitle + ' ' + timeText}

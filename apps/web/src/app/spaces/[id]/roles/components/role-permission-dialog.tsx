@@ -28,7 +28,7 @@ export function RolePermissionDialog(props: RolePermissionDialogProps) {
   );
 
   const permissionSet = useMemo(() => new Set(permissions), [permissions]);
-  const isOwnerBuiltIn = role?.isBuiltIn && role.builtInType === 'OWNER';
+  const isBuiltInReadonlyPermissions = role?.isBuiltIn === true;
 
   const setManyPermissions = (keys: string[], checked: boolean) => {
     setPermissions((prev) => {
@@ -61,7 +61,7 @@ export function RolePermissionDialog(props: RolePermissionDialogProps) {
     ALL_PERMISSION_KEYS.every((permission) => permissionSet.has(permission));
 
   const handleSave = () => {
-    if (!role) return;
+    if (!role || role.isBuiltIn) return;
 
     onSave(role.id, { permissions });
   };
@@ -73,21 +73,28 @@ export function RolePermissionDialog(props: RolePermissionDialogProps) {
       className="max-w-5xl"
       title="配置权限"
       confirmText="保存"
-      confirmDisabled={!role || loading || isOwnerBuiltIn}
+      confirmDisabled={!role || loading || isBuiltInReadonlyPermissions}
       onConfirm={handleSave}
     >
       {role ? (
         <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
-          <label className="flex items-center gap-2 text-sm font-medium">
+          {isBuiltInReadonlyPermissions ? (
+            <div className="text-sm text-muted-foreground">
+              系统内置角色权限不可修改。
+            </div>
+          ) : null}
+
+          <div className="flex items-center gap-2 text-sm font-medium">
             <Checkbox
+              aria-label="全选"
               checked={allSelected}
-              disabled={loading || isOwnerBuiltIn}
+              disabled={loading || isBuiltInReadonlyPermissions}
               onCheckedChange={(value) =>
                 setManyPermissions([...ALL_PERMISSION_KEYS], Boolean(value))
               }
             />
             <span>全选</span>
-          </label>
+          </div>
 
           <div className="grid gap-4">
             {PERMISSION_GROUPS.map((group) => {
@@ -101,35 +108,34 @@ export function RolePermissionDialog(props: RolePermissionDialogProps) {
                   key={group.key}
                   className="rounded-lg border border-border/70 p-3"
                 >
-                  <label className="mb-3 flex items-center gap-2 text-sm font-medium">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-medium">
                     <Checkbox
+                      aria-label={`${group.label}全选`}
                       checked={groupAllSelected}
-                      disabled={loading || isOwnerBuiltIn}
+                      disabled={loading || isBuiltInReadonlyPermissions}
                       onCheckedChange={(value) =>
                         setManyPermissions(keys, Boolean(value))
                       }
                     />
                     <span>{group.label}</span>
-                  </label>
+                  </div>
 
                   <div className="grid gap-2 md:grid-cols-2">
                     {group.items.map((item) => (
-                      <label
+                      <div
                         key={item.key}
                         className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                       >
                         <Checkbox
+                          aria-label={item.label}
                           checked={permissionSet.has(item.key)}
-                          disabled={loading || isOwnerBuiltIn}
+                          disabled={loading || isBuiltInReadonlyPermissions}
                           onCheckedChange={(value) =>
                             togglePermission(item.key, Boolean(value))
                           }
                         />
                         <span>{item.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {item.key}
-                        </span>
-                      </label>
+                      </div>
                     ))}
                   </div>
                 </div>

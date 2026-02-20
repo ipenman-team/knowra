@@ -51,15 +51,12 @@ export function RoleTable(props: RoleTableProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <div className="text-sm text-muted-foreground">
-          共 {roles.length} 个角色
-        </div>
         <Button
           className="ml-auto"
           onClick={onCreateRole}
           disabled={loading || submitting}
         >
-          新建角色
+          新建
         </Button>
       </div>
 
@@ -99,9 +96,13 @@ export function RoleTable(props: RoleTableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      tooltip="配置权限"
+                      tooltip={
+                        role.isBuiltIn
+                          ? '系统内置角色权限不可修改'
+                          : '配置权限'
+                      }
                       aria-label="配置权限"
-                      disabled={loading || submitting}
+                      disabled={loading || submitting || role.isBuiltIn}
                       onClick={() => onConfigurePermissions(role.id)}
                     >
                       <Settings2 className="h-4 w-4 text-muted-foreground" />

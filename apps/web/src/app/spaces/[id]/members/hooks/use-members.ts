@@ -7,6 +7,10 @@ import type { SpaceMemberDto, SpaceRoleDto } from '@/lib/api/spaces/types';
 
 const PAGE_SIZE = 20;
 
+function isOwnerMember(member: SpaceMemberDto): boolean {
+  return member.roleBuiltInType === 'OWNER' || member.role === 'OWNER';
+}
+
 function parseEmails(raw: string): string[] {
   const values = raw
     .split(/[\n,;，；\s]+/g)
@@ -103,6 +107,11 @@ export function useMembers(spaceId: string, options?: { disabled?: boolean }) {
   const updateMemberRole = useCallback(
     async (memberId: string, roleId: string) => {
       if (disabled) return;
+      const member = members.find((item) => item.id === memberId);
+      if (member && isOwnerMember(member)) {
+        toast.error('所有者成员角色不可修改');
+        return;
+      }
 
       setSubmitting(true);
       try {
@@ -115,18 +124,28 @@ export function useMembers(spaceId: string, options?: { disabled?: boolean }) {
         setSubmitting(false);
       }
     },
-    [disabled, fetchMembers, spaceId],
+    [disabled, fetchMembers, members, spaceId],
   );
 
   const batchUpdateMemberRole = useCallback(
     async (memberIds: string[], roleId: string) => {
       if (disabled) return;
       if (memberIds.length === 0) return;
+      const ownerMemberIdSet = new Set(
+        members.filter((member) => isOwnerMember(member)).map((member) => member.id),
+      );
+      const updatableMemberIds = memberIds.filter(
+        (memberId) => !ownerMemberIdSet.has(memberId),
+      );
+      if (updatableMemberIds.length === 0) {
+        toast.error('所有者成员角色不可修改');
+        return;
+      }
 
       setSubmitting(true);
       try {
         await spacesApi.batchUpdateMemberRole(spaceId, {
-          memberIds,
+          memberIds: updatableMemberIds,
           roleId,
         });
         toast.success('批量角色更新成功');
@@ -137,7 +156,7 @@ export function useMembers(spaceId: string, options?: { disabled?: boolean }) {
         setSubmitting(false);
       }
     },
-    [disabled, fetchMembers, spaceId],
+    [disabled, fetchMembers, members, spaceId],
   );
 
   const removeMember = useCallback(

@@ -1112,11 +1112,7 @@ export function CommentSection(props: CommentSectionProps) {
             onChange={setPublicDraft}
             showToolbar
             toolbarVariant="compact"
-            placeholder={
-              isPublic && !isPublicRegisteredUser
-                ? '以访客身份发表评论（无需注册）'
-                : '写下你的评论...'
-            }
+            placeholder={'写下你的评论...'}
             className="min-h-[140px] px-2 py-2 text-sm leading-7"
           />
         </div>
@@ -1128,7 +1124,7 @@ export function CommentSection(props: CommentSectionProps) {
               onChange={(event) =>
                 setGuestProfile((prev) => ({ ...prev, nickname: event.target.value }))
               }
-              placeholder="访客昵称（用于区分用户）"
+              placeholder="昵称"
               maxLength={30}
             />
             <Input
@@ -1137,7 +1133,7 @@ export function CommentSection(props: CommentSectionProps) {
               onChange={(event) =>
                 setGuestProfile((prev) => ({ ...prev, email: event.target.value }))
               }
-              placeholder="邮箱（选填，用于接收回复通知）"
+              placeholder="邮箱（如果接收回复通知，请填写此项）"
               maxLength={320}
             />
           </div>

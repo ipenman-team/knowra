@@ -44,8 +44,8 @@ export function MemberRowActions(props: MemberRowActionsProps) {
           <Button
             variant="ghost"
             size="icon"
-            disabled={disabled}
-            tooltip="修改角色"
+            disabled={disabled || isOwnerMember}
+            tooltip={isOwnerMember ? '所有者成员角色不可修改' : '修改角色'}
             aria-label="修改角色"
           >
             <UserRoundCog className="h-4 w-4 text-muted-foreground" />

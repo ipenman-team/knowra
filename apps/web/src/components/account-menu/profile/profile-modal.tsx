@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { UploadIcon } from "lucide-react";
 import { useMeStore } from "@/stores";
-import { apiClient } from "@/lib/api";
+import { filesApi } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
@@ -58,23 +58,17 @@ export const ProfileModal = memo(function ProfileModal({
       setProfileError(null);
       setUploadingAvatar(true);
       try {
-        const fd = new FormData();
-        fd.set("file", file);
-        fd.set("from", "avatar");
-        const { data: res } = await apiClient.post("/files/upload", fd);
-
-        const data = res.data;
-        if (!data || typeof data !== "object") {
-          setProfileError("上传失败");
-          return;
-        }
-        const url = data?.url;
+        const result = await filesApi.upload({ file, from: "avatar" });
+        const url = result?.url;
         if (typeof url !== "string" || !url.trim()) {
           setProfileError("上传失败");
           return;
         }
         setDraftAvatarUrl(url.trim());
         draftTouchedRef.current = true;
+      } catch (error) {
+        console.error(error);
+        setProfileError("上传失败");
       } finally {
         setUploadingAvatar(false);
       }
