@@ -1,10 +1,34 @@
 'use client';
 
 import { Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type MouseEvent, useMemo, useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -20,8 +44,39 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import type { SpaceMemberDto, SpaceRoleDto } from '@/lib/api/spaces/types';
 import { MemberRowActions } from './member-row-actions';
+
+type PaginationToken = number | 'ellipsis-start' | 'ellipsis-end';
+
+function buildPaginationTokens(
+  currentPage: number,
+  totalPages: number,
+): PaginationToken[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const tokens: PaginationToken[] = [1];
+  const left = Math.max(2, currentPage - 1);
+  const right = Math.min(totalPages - 1, currentPage + 1);
+
+  if (left > 2) {
+    tokens.push('ellipsis-start');
+  }
+
+  for (let page = left; page <= right; page += 1) {
+    tokens.push(page);
+  }
+
+  if (right < totalPages - 1) {
+    tokens.push('ellipsis-end');
+  }
+
+  tokens.push(totalPages);
+  return tokens;
+}
 
 type MemberTableProps = {
   loading?: boolean;
@@ -33,12 +88,12 @@ type MemberTableProps = {
   totalPages: number;
   queryInput: string;
   onQueryInputChange: (value: string) => void;
-  onSearch: () => void;
   onPageChange: (page: number) => void;
   onUpdateRole: (memberId: string, roleId: string) => void;
   onBatchUpdateRole: (memberIds: string[], roleId: string) => void;
   onRemoveMember: (memberId: string) => void;
   onBatchRemove: (memberIds: string[]) => void;
+  onAddMember?: () => void;
 };
 
 export function MemberTable(props: MemberTableProps) {
@@ -52,12 +107,12 @@ export function MemberTable(props: MemberTableProps) {
     totalPages,
     queryInput,
     onQueryInputChange,
-    onSearch,
     onPageChange,
     onUpdateRole,
     onBatchUpdateRole,
     onRemoveMember,
     onBatchRemove,
+    onAddMember,
   } = props;
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -66,9 +121,25 @@ export function MemberTable(props: MemberTableProps) {
     () => new Set(members.map((member) => member.id)),
     [members],
   );
+  const ownerMemberIdSet = useMemo(
+    () =>
+      new Set(
+        members
+          .filter(
+            (member) =>
+              member.roleBuiltInType === 'OWNER' || member.role === 'OWNER',
+          )
+          .map((member) => member.id),
+      ),
+    [members],
+  );
   const visibleSelectedIds = useMemo(
     () => selectedIds.filter((id) => memberIdSet.has(id)),
     [memberIdSet, selectedIds],
+  );
+  const removableSelectedIds = useMemo(
+    () => visibleSelectedIds.filter((id) => !ownerMemberIdSet.has(id)),
+    [ownerMemberIdSet, visibleSelectedIds],
   );
 
   const allSelected = useMemo(
@@ -77,6 +148,11 @@ export function MemberTable(props: MemberTableProps) {
   );
 
   const selectedCount = visibleSelectedIds.length;
+  const selectedOwnerCount = selectedCount - removableSelectedIds.length;
+  const paginationTokens = useMemo(
+    () => buildPaginationTokens(page, totalPages),
+    [page, totalPages],
+  );
 
   const toggleAll = (checked: boolean) => {
     if (checked) {
@@ -93,33 +169,49 @@ export function MemberTable(props: MemberTableProps) {
     });
   };
 
+  const handlePageClick =
+    (nextPage: number) => (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+
+      if (
+        nextPage < 1 ||
+        nextPage > totalPages ||
+        nextPage === page ||
+        loading ||
+        submitting
+      ) {
+        return;
+      }
+
+      onPageChange(nextPage);
+    };
+
   return (
-    <div className="rounded-xl bg-card ring-1 ring-border/50">
-      <div className="flex flex-wrap items-center gap-3 px-5 py-4">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={queryInput}
-            onChange={(event) => onQueryInputChange(event.target.value)}
-            className="pl-8"
-            placeholder="搜索成员昵称或邮箱"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') onSearch();
-            }}
-          />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="w-64 shrink-0">
+          <InputGroup className="border-0 bg-transparent shadow-none">
+            <InputGroupAddon>
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={queryInput}
+              onChange={(event) => onQueryInputChange(event.target.value)}
+              placeholder="搜索成员昵称或邮箱"
+              className="px-0"
+            />
+          </InputGroup>
         </div>
-        <Button
-          variant="outline"
-          onClick={onSearch}
-          disabled={loading || submitting}
-        >
-          搜索
-        </Button>
-        <div className="text-sm text-muted-foreground">共 {total} 人</div>
+
+        {onAddMember ? (
+          <Button onClick={onAddMember} disabled={loading || submitting}>
+            添加成员
+          </Button>
+        ) : null}
       </div>
 
       {selectedCount > 0 ? (
-        <div className="mx-5 mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/30 px-4 py-3">
           <div className="text-sm">已选中 {selectedCount} 项</div>
           <Select value={batchRoleId} onValueChange={setBatchRoleId}>
             <SelectTrigger className="w-44">
@@ -140,41 +232,63 @@ export function MemberTable(props: MemberTableProps) {
           >
             设置角色
           </Button>
-          <Button
-            variant="destructive"
-            disabled={submitting}
-            onClick={() => onBatchRemove(visibleSelectedIds)}
-          >
-            移除成员
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                disabled={submitting || removableSelectedIds.length === 0}
+                tooltip={
+                  selectedOwnerCount > 0
+                    ? '所有者成员不可删除，将忽略该成员'
+                    : undefined
+                }
+              >
+                移除成员
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>批量删除成员</AlertDialogTitle>
+                <AlertDialogDescription>
+                  确认删除选中的 {removableSelectedIds.length}{' '}
+                  位成员吗？删除后，这些成员将失去此空间访问权限。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onBatchRemove(removableSelectedIds)}
+                >
+                  确认删除
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button variant="ghost" onClick={() => setSelectedIds([])}>
             取消选择
           </Button>
         </div>
       ) : null}
 
-      <Table>
+      <Table className="[&_tr]:border-0">
         <TableHeader className="[&_tr]:border-0">
-          <TableRow className="h-11 border-y border-border/50 bg-muted/20 hover:bg-muted/20">
-            <TableHead className="w-12 pl-5">
+          <TableRow className="h-11 bg-transparent hover:bg-transparent">
+            <TableHead className="w-12">
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={(value) => toggleAll(Boolean(value))}
               />
             </TableHead>
-            <TableHead>成员</TableHead>
+            <TableHead>名称</TableHead>
             <TableHead>角色</TableHead>
             <TableHead>邮箱</TableHead>
-            <TableHead className="w-20 pr-5 text-right" />
+            <TableHead className="w-28 text-left">操作</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody className="[&_tr:last-child]:border-b-0">
+        <TableBody>
           {members.map((member) => (
-            <TableRow
-              key={member.id}
-              className="h-14 border-b border-border/40 hover:bg-muted/20"
-            >
-              <TableCell className="pl-5">
+            <TableRow key={member.id} className="h-14 hover:bg-muted/20">
+              <TableCell>
                 <Checkbox
                   checked={visibleSelectedIds.includes(member.id)}
                   onCheckedChange={(value) =>
@@ -182,17 +296,12 @@ export function MemberTable(props: MemberTableProps) {
                   }
                 />
               </TableCell>
-              <TableCell>
-                <div className="font-medium">
-                  {member.nickname || member.userId}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {member.userId}
-                </div>
+              <TableCell className="font-medium">
+                {member.nickname || member.email || member.userId}
               </TableCell>
               <TableCell>{member.roleName}</TableCell>
               <TableCell>{member.email || '-'}</TableCell>
-              <TableCell className="pr-4 text-right">
+              <TableCell>
                 <MemberRowActions
                   member={member}
                   roles={roles}
@@ -216,24 +325,52 @@ export function MemberTable(props: MemberTableProps) {
         </TableBody>
       </Table>
 
-      <div className="flex items-center justify-end gap-2 border-t border-border/50 px-5 py-3">
-        <Button
-          variant="outline"
-          disabled={page <= 1 || loading || submitting}
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-        <div className="text-sm text-muted-foreground">
-          第 {page} / {totalPages} 页
-        </div>
-        <Button
-          variant="outline"
-          disabled={page >= totalPages || loading || submitting}
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
+      <div className="flex items-center justify-end gap-4">
+        <div className="text-sm text-muted-foreground">共 {total} 人</div>
+        <Pagination className="justify-end">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={handlePageClick(page - 1)}
+                className={cn(
+                  (page <= 1 || loading || submitting) &&
+                    'pointer-events-none opacity-50',
+                )}
+              />
+            </PaginationItem>
+
+            {paginationTokens.map((token) => (
+              <PaginationItem key={token}>
+                {typeof token === 'number' ? (
+                  <PaginationLink
+                    href="#"
+                    isActive={token === page}
+                    onClick={handlePageClick(token)}
+                    className={cn(
+                      (loading || submitting) && 'pointer-events-none',
+                    )}
+                  >
+                    {token}
+                  </PaginationLink>
+                ) : (
+                  <PaginationEllipsis />
+                )}
+              </PaginationItem>
+            ))}
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={handlePageClick(page + 1)}
+                className={cn(
+                  (page >= totalPages || loading || submitting) &&
+                    'pointer-events-none opacity-50',
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
     </div>
   );

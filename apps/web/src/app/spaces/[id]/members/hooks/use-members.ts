@@ -81,15 +81,24 @@ export function useMembers(spaceId: string, options?: { disabled?: boolean }) {
   }, [disabled, refresh]);
 
   useEffect(() => {
+    if (disabled) return;
+
+    const timer = window.setTimeout(() => {
+      const nextQuery = queryInput.trim();
+      setPage(1);
+      setQuery((prev) => (prev === nextQuery ? prev : nextQuery));
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [disabled, queryInput]);
+
+  useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
-
-  const search = useCallback(() => {
-    setPage(1);
-    setQuery(queryInput.trim());
-  }, [queryInput]);
 
   const updateMemberRole = useCallback(
     async (memberId: string, roleId: string) => {
@@ -206,7 +215,6 @@ export function useMembers(spaceId: string, options?: { disabled?: boolean }) {
     defaultRoleId,
     setQueryInput,
     setPage,
-    search,
     refresh,
     updateMemberRole,
     batchUpdateMemberRole,

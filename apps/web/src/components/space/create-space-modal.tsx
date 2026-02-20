@@ -211,7 +211,14 @@ export function CreateSpaceModal(props: {
     }
   };
 
-  const goToStep2 = handleSubmit(() => setStep(2));
+  const goToStep2 = handleSubmit((values) => {
+    if (values.type === 'ORG') {
+      setStep(2);
+      return;
+    }
+
+    void createSpace(values, true);
+  });
 
   const handleCreateOnly = handleSubmit(async (values) => {
     await createSpace(values, true);
@@ -263,7 +270,7 @@ export function CreateSpaceModal(props: {
           register={register}
           setValue={setValue}
         />
-      ) : isCollaborativeSpace ? (
+      ) : (
         <StepInviteForm
           inviteInputId="create-space-invite-input"
           inviteInput={inviteInput}
@@ -282,10 +289,6 @@ export function CreateSpaceModal(props: {
           onCreateLinkInviteChange={setCreateLinkInvite}
           onLinkInviteRoleChange={setLinkInviteRole}
         />
-      ) : (
-        <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          当前为个人空间，仅支持你自己（Owner）。无需邀请成员，也不支持成员与角色管理。
-        </div>
       )}
     </Modal>
   );

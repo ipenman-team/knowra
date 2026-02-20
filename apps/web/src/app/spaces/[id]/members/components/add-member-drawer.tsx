@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,21 +24,23 @@ type AddMemberDrawerProps = {
 
 export function AddMemberDrawer(props: AddMemberDrawerProps) {
   const { open, onOpenChange, roles, defaultRoleId, loading, onSubmit } = props;
+  const assignableRoles = roles.filter((role) => role.builtInType !== 'OWNER');
+  const fallbackRoleId = assignableRoles[0]?.id ?? '';
   const [emailsRaw, setEmailsRaw] = useState('');
-  const [roleId, setRoleId] = useState(defaultRoleId);
-
-  useEffect(() => {
-    if (!open) return;
-    setEmailsRaw('');
-    setRoleId(defaultRoleId);
-  }, [defaultRoleId, open]);
+  const [roleId, setRoleId] = useState(defaultRoleId || fallbackRoleId);
 
   const canSubmit = Boolean(emailsRaw.trim()) && Boolean(roleId) && !loading;
 
   return (
     <Modal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(nextOpen) => {
+        onOpenChange(nextOpen);
+        if (nextOpen) {
+          setEmailsRaw('');
+          setRoleId(defaultRoleId || fallbackRoleId);
+        }
+      }}
       title="添加成员"
       description="支持输入多个邮箱，使用逗号、空格或换行分隔。"
       confirmText="发送邀请"
@@ -69,7 +71,7 @@ export function AddMemberDrawer(props: AddMemberDrawerProps) {
               <SelectValue placeholder="选择角色" />
             </SelectTrigger>
             <SelectContent>
-              {roles.map((role) => (
+              {assignableRoles.map((role) => (
                 <SelectItem key={role.id} value={role.id}>
                   {role.name}
                 </SelectItem>

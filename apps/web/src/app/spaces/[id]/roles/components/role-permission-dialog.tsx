@@ -3,9 +3,6 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import type { SpaceRoleDto } from '@/lib/api/spaces/types';
 import { ALL_PERMISSION_KEYS, PERMISSION_GROUPS } from '../permission-keys';
 
@@ -26,15 +23,12 @@ type RolePermissionDialogProps = {
 
 export function RolePermissionDialog(props: RolePermissionDialogProps) {
   const { open, role, loading, onOpenChange, onSave } = props;
-  const [name, setName] = useState(role?.name ?? '');
-  const [description, setDescription] = useState(role?.description ?? '');
   const [permissions, setPermissions] = useState<string[]>(
     role?.permissions ?? [],
   );
 
   const permissionSet = useMemo(() => new Set(permissions), [permissions]);
   const isOwnerBuiltIn = role?.isBuiltIn && role.builtInType === 'OWNER';
-  const isBuiltInReadonlyName = Boolean(role?.isBuiltIn);
 
   const setManyPermissions = (keys: string[], checked: boolean) => {
     setPermissions((prev) => {
@@ -69,16 +63,7 @@ export function RolePermissionDialog(props: RolePermissionDialogProps) {
   const handleSave = () => {
     if (!role) return;
 
-    if (role.isBuiltIn) {
-      onSave(role.id, { permissions });
-      return;
-    }
-
-    onSave(role.id, {
-      name: name.trim(),
-      description: description.trim() || null,
-      permissions,
-    });
+    onSave(role.id, { permissions });
   };
 
   return (
@@ -86,42 +71,13 @@ export function RolePermissionDialog(props: RolePermissionDialogProps) {
       open={open}
       onOpenChange={onOpenChange}
       className="max-w-5xl"
-      title={role ? `配置权限：${role.name}` : '配置权限'}
+      title="配置权限"
       confirmText="保存"
       confirmDisabled={!role || loading || isOwnerBuiltIn}
       onConfirm={handleSave}
     >
       {role ? (
         <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="permission-role-name">角色名称</Label>
-              <Input
-                id="permission-role-name"
-                value={name}
-                disabled={isBuiltInReadonlyName || loading}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="permission-role-description">角色描述</Label>
-              <Textarea
-                id="permission-role-description"
-                value={description}
-                rows={3}
-                disabled={isBuiltInReadonlyName || loading}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </div>
-          </div>
-
-          {isOwnerBuiltIn ? (
-            <div className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-              所有者角色权限固定，不可编辑。
-            </div>
-          ) : null}
-
           <label className="flex items-center gap-2 text-sm font-medium">
             <Checkbox
               checked={allSelected}

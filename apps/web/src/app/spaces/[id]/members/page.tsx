@@ -2,7 +2,6 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { useSpaceStore } from '@/stores';
 import { AddMemberDrawer } from './components/add-member-drawer';
 import { MemberTable } from './components/member-table';
@@ -36,7 +35,6 @@ export default function SpaceMembersPage() {
     defaultRoleId,
     setQueryInput,
     setPage,
-    search,
     updateMemberRole,
     batchUpdateMemberRole,
     removeMember,
@@ -48,16 +46,8 @@ export default function SpaceMembersPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="flex h-14 shrink-0 items-center justify-between border-b px-6">
+      <div className="flex h-14 shrink-0 items-center border-b px-6">
         <h1 className="text-lg font-semibold">成员管理</h1>
-        {!isPersonalSpace ? (
-          <Button
-            onClick={() => setDrawerOpen(true)}
-            disabled={loading || submitting}
-          >
-            添加成员
-          </Button>
-        ) : null}
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -80,7 +70,6 @@ export default function SpaceMembersPage() {
             totalPages={totalPages}
             queryInput={queryInput}
             onQueryInputChange={setQueryInput}
-            onSearch={search}
             onPageChange={setPage}
             onUpdateRole={(memberId, roleId) => {
               void updateMemberRole(memberId, roleId);
@@ -94,6 +83,7 @@ export default function SpaceMembersPage() {
             onBatchRemove={(memberIds) => {
               void batchRemoveMembers(memberIds);
             }}
+            onAddMember={() => setDrawerOpen(true)}
           />
         )}
       </div>

@@ -2,7 +2,6 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { useSpaceStore } from '@/stores';
 import { CreateRoleDialog } from './components/create-role-dialog';
 import { RolePermissionDialog } from './components/role-permission-dialog';
@@ -38,16 +37,8 @@ export default function SpaceRolesPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="flex h-14 shrink-0 items-center justify-between border-b px-6">
+      <div className="flex h-14 shrink-0 items-center border-b px-6">
         <h1 className="text-lg font-semibold">角色管理</h1>
-        {!isPersonalSpace ? (
-          <Button
-            onClick={() => setCreateOpen(true)}
-            disabled={loading || submitting}
-          >
-            新建角色
-          </Button>
-        ) : null}
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -64,6 +55,7 @@ export default function SpaceRolesPage() {
             loading={loading}
             submitting={submitting}
             roles={roles}
+            onCreateRole={() => setCreateOpen(true)}
             onConfigurePermissions={setPermissionRoleId}
             onDeleteRole={(roleId) => {
               void removeRole(roleId);
