@@ -12,6 +12,7 @@ import {
   List,
   ListOrdered,
   Quote,
+  RotateCcw,
   Send,
   Sparkles,
   Table2,
@@ -2045,21 +2046,38 @@ export function SlateEditor(props: {
                   </Button>
                 </>
               ) : (
-                <Button type="button" variant="outline" disabled={!inlineAiHasResult} onClick={copyInlineAiResult}>
-                  <Copy className="mr-1.5 h-3.5 w-3.5" />
-                  复制
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 w-9 px-0"
+                  disabled={!inlineAiHasResult}
+                  tooltip="复制"
+                  onClick={copyInlineAiResult}
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="sr-only">复制</span>
                 </Button>
               )}
               <Button
                 type="button"
                 variant="outline"
+                className="h-9 w-9 px-0"
                 disabled={!inlineAiLastAction}
+                tooltip="重新生成"
                 onClick={regenerateInlineAiResult}
               >
-                重新生成
+                <RotateCcw className="h-4 w-4" />
+                <span className="sr-only">重新生成</span>
               </Button>
-              <Button type="button" variant="ghost" onClick={closeInlineAiPanel}>
-                关闭
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 w-9 px-0"
+                tooltip="关闭"
+                onClick={closeInlineAiPanel}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">关闭</span>
               </Button>
             </div>
           ) : null}
