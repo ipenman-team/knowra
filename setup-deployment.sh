@@ -83,7 +83,10 @@ echo "📦 构建Docker镜像..."
 read -p "是否现在构建镜像? (Y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-  $COMPOSE -f docker-compose.prod.yml build
+  for service in api knowra-ai web; do
+    echo "   - 构建 ${service}..."
+    $COMPOSE -f docker-compose.prod.yml build "$service"
+  done
   echo "✅ 镜像构建完成"
 fi
 

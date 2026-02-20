@@ -50,8 +50,11 @@ set -a
 source ./.env.prod
 set +a
 
-echo "📦 构建镜像..."
-$COMPOSE -f docker-compose.prod.yml build
+echo "📦 构建镜像（串行，降低依赖下载并发导致的超时概率）..."
+for service in api knowra-ai web; do
+  echo "   - 构建 ${service}..."
+  $COMPOSE -f docker-compose.prod.yml build "$service"
+done
 
 echo ""
 echo "▶️  启动数据库..."
