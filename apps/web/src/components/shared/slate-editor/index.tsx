@@ -2,10 +2,12 @@
 
 import {
   Bold,
+  Copy,
   Code2,
   Heading1,
   Heading2,
   Italic,
+  Loader2,
   Link2,
   List,
   ListOrdered,
@@ -35,6 +37,7 @@ import {
   Text,
   Transforms,
   type NodeEntry,
+  type RangeRef,
 } from "slate";
 import { withHistory } from "slate-history";
 import {
@@ -51,6 +54,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { knowraAiApi, type InlineAiActionType } from "@/lib/api/knowra-ai";
 import { cn } from "@/lib/utils";
 
 import {
@@ -128,6 +132,19 @@ const READONLY_INLINE_TOOLBAR_WIDTH = 44;
 const INLINE_AI_PANEL_MAX_WIDTH = 520;
 const INLINE_AI_PANEL_MIN_WIDTH = 240;
 const INLINE_AI_PANEL_ESTIMATED_HEIGHT = 360;
+const INLINE_AI_SELECTED_TEXT_LIMIT = 2000;
+const INLINE_AI_DEFAULT_TRANSLATE_TARGET = "中文";
+
+type InlineAiPanelStatus = "menu-open" | "generating" | "done";
+
+type InlineAiRequestAction = {
+  actionType: InlineAiActionType;
+  label: string;
+  userPrompt?: string;
+  actionParams?: {
+    targetLanguage?: string;
+  };
+};
 
 type SlashMenuItem = {
   id: string;
@@ -179,6 +196,12 @@ type DomSelectionInfo = {
   rect: DOMRect;
   selectedText: string;
   range: Range;
+};
+
+type InlineAiQuickAction = {
+  actionType: InlineAiActionType;
+  label: string;
+  requireQuestion?: boolean;
 };
 
 export function parseContentToSlateValue(content: unknown): SlateValue {
@@ -563,6 +586,19 @@ function getInlineAiPanelPosition(rect: DOMRect) {
   return { top, left, placeAbove, width };
 }
 
+function normalizeInlineAiSelectedText(input: string) {
+  const normalized = input.trim();
+  if (!normalized) return "";
+  if (normalized.length <= INLINE_AI_SELECTED_TEXT_LIMIT) return normalized;
+  return normalized.slice(0, INLINE_AI_SELECTED_TEXT_LIMIT);
+}
+
+function resolveInlineAiTargetLanguage(question: string) {
+  const normalized = question.trim();
+  if (!normalized) return INLINE_AI_DEFAULT_TRANSLATE_TARGET;
+  return normalized;
+}
+
 export function SlateEditor(props: {
   value: SlateValue;
   onChange: (value: SlateValue) => void;
@@ -610,8 +646,35 @@ export function SlateEditor(props: {
     useState<ReadOnlyInlineAiToolbarState | null>(null);
   const [inlineAiPanelState, setInlineAiPanelState] = useState<InlineAiPanelState | null>(null);
   const [inlineAiQuestion, setInlineAiQuestion] = useState("");
+  const [inlineAiStatus, setInlineAiStatus] = useState<InlineAiPanelStatus>("menu-open");
+  const [inlineAiResult, setInlineAiResult] = useState("");
+  const [inlineAiError, setInlineAiError] = useState<string | null>(null);
+  const [inlineAiLastAction, setInlineAiLastAction] =
+    useState<InlineAiRequestAction | null>(null);
+  const inlineAiRangeRef = useRef<RangeRef | null>(null);
+  const inlineAiAbortRef = useRef<AbortController | null>(null);
+  const inlineAiRequestSerialRef = useRef(0);
   const [inlineLinkText, setInlineLinkText] = useState(DEFAULT_LINK_PLACEHOLDER_TEXT);
   const [inlineLinkUrl, setInlineLinkUrl] = useState(DEFAULT_LINK_PLACEHOLDER_URL);
+
+  const inlineAiEditQuickActions = useMemo<InlineAiQuickAction[]>(
+    () => [
+      { actionType: "rewrite", label: "改写" },
+      { actionType: "condense", label: "精简" },
+      { actionType: "expand", label: "扩写" },
+      { actionType: "summarize", label: "摘要" },
+      { actionType: "translate", label: "翻译" },
+      { actionType: "custom", label: "自由提问", requireQuestion: true },
+    ],
+    [],
+  );
+  const inlineAiReadOnlyQuickActions = useMemo<InlineAiQuickAction[]>(
+    () => [
+      { actionType: "qa", label: "问答" },
+      { actionType: "translate", label: "翻译" },
+    ],
+    [],
+  );
 
   const slashMenuItems = useMemo<SlashMenuItem[]>(() => {
     return [
@@ -721,6 +784,19 @@ export function SlateEditor(props: {
   const hasInlineLinkValidationError =
     inlineLinkUrl.trim().length > 0 && !normalizedInlineLinkUrl;
   const canApplyInlineLink = Boolean(normalizedInlineLinkUrl && inlineLinkText.trim().length > 0);
+  const normalizedInlineAiQuestion = inlineAiQuestion.trim();
+  const inlineAiGenerating = inlineAiStatus === "generating";
+  const inlineAiHasResult = inlineAiResult.trim().length > 0;
+
+  const clearInlineAiAbortController = useCallback(() => {
+    inlineAiAbortRef.current?.abort();
+    inlineAiAbortRef.current = null;
+  }, []);
+
+  const clearInlineAiRangeRef = useCallback(() => {
+    inlineAiRangeRef.current?.unref();
+    inlineAiRangeRef.current = null;
+  }, []);
 
   const syncInlineToolbarState = useCallback(() => {
     if (editorReadOnly || inlineLinkDialogState || slashMenuState || inlineAiPanelState) {
@@ -864,6 +940,78 @@ export function SlateEditor(props: {
     setInlineLinkDialogState(null);
   }, [canApplyInlineLink, editor, inlineLinkDialogState, inlineLinkText, inlineLinkUrl]);
 
+  const getInlineAiTrackedRange = useCallback((): SlateRange | null => {
+    if (!inlineAiPanelState || inlineAiPanelState.mode !== "edit") return null;
+    const tracked = inlineAiRangeRef.current?.current;
+    if (!tracked || !SlateRange.isExpanded(tracked)) return null;
+    return cloneSlateRange(tracked);
+  }, [inlineAiPanelState]);
+
+  const runInlineAiAction = useCallback(
+    async (action: InlineAiRequestAction) => {
+      if (!inlineAiPanelState) return;
+
+      const selectedText = normalizeInlineAiSelectedText(inlineAiPanelState.selectedText);
+      if (!selectedText) {
+        setInlineAiError("选中文本为空，请重新划词后重试。");
+        return;
+      }
+
+      const requestSerial = inlineAiRequestSerialRef.current + 1;
+      inlineAiRequestSerialRef.current = requestSerial;
+      clearInlineAiAbortController();
+      const controller = new AbortController();
+      inlineAiAbortRef.current = controller;
+
+      setInlineAiStatus("generating");
+      setInlineAiResult("");
+      setInlineAiError(null);
+      setInlineAiLastAction(action);
+
+      let receivedDelta = false;
+      try {
+        await knowraAiApi.inlineActionStream(
+          {
+            selectedText,
+            actionType: action.actionType,
+            userPrompt: action.userPrompt,
+            actionParams: action.actionParams,
+            context: {
+              pageId: props.inlineAi?.pageId,
+              spaceId: props.inlineAi?.spaceId,
+              mode: inlineAiPanelState.mode,
+            },
+          },
+          {
+            onDelta: (delta) => {
+              if (inlineAiRequestSerialRef.current !== requestSerial) return;
+              receivedDelta = true;
+              setInlineAiResult((prev) => prev + delta);
+            },
+          },
+          { signal: controller.signal },
+        );
+
+        if (inlineAiRequestSerialRef.current !== requestSerial) return;
+        setInlineAiStatus("done");
+        if (!receivedDelta) {
+          setInlineAiError("未生成内容，请重试。");
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        if (inlineAiRequestSerialRef.current !== requestSerial) return;
+        const message = error instanceof Error ? error.message : "生成失败，请稍后重试。";
+        setInlineAiStatus("done");
+        setInlineAiError(message || "生成失败，请稍后重试。");
+      } finally {
+        if (inlineAiRequestSerialRef.current === requestSerial) {
+          inlineAiAbortRef.current = null;
+        }
+      }
+    },
+    [clearInlineAiAbortController, inlineAiPanelState, props.inlineAi?.pageId, props.inlineAi?.spaceId],
+  );
+
   const openInlineAiPanel = useCallback(
     (params: {
       mode: Exclude<InlineAiMode, "off">;
@@ -871,12 +1019,25 @@ export function SlateEditor(props: {
       rect: DOMRect;
       range: SlateRange | null;
     }) => {
-      const normalizedText = params.selectedText.trim();
+      const normalizedText = normalizeInlineAiSelectedText(params.selectedText);
       if (!normalizedText) return;
 
+      inlineAiRequestSerialRef.current += 1;
+      clearInlineAiAbortController();
+      clearInlineAiRangeRef();
       const position = getInlineAiPanelPosition(params.rect);
+      const nextRange = params.range ? cloneSlateRange(params.range) : null;
+      if (params.mode === "edit" && nextRange) {
+        inlineAiRangeRef.current = Editor.rangeRef(editor, nextRange, {
+          affinity: "inward",
+        });
+      }
 
       setInlineAiQuestion("");
+      setInlineAiStatus("menu-open");
+      setInlineAiResult("");
+      setInlineAiError(null);
+      setInlineAiLastAction(null);
       setInlineAiPanelState({
         mode: params.mode,
         selectedText: normalizedText,
@@ -884,12 +1045,12 @@ export function SlateEditor(props: {
         left: position.left,
         width: position.width,
         placeAbove: position.placeAbove,
-        range: params.range ? cloneSlateRange(params.range) : null,
+        range: nextRange,
       });
       setInlineToolbarState(null);
       setReadOnlyInlineAiToolbarState(null);
     },
-    [],
+    [clearInlineAiAbortController, clearInlineAiRangeRef, editor],
   );
 
   const openInlineAiPanelFromEditorSelection = useCallback(() => {
@@ -972,9 +1133,12 @@ export function SlateEditor(props: {
     if (!inlineAiPanelState) return;
 
     if (inlineAiPanelState.mode === "edit") {
-      if (!inlineAiPanelState.range) return;
-      const rect = getRangeViewportRect(editor, inlineAiPanelState.range);
+      const trackedRange = getInlineAiTrackedRange();
+      if (!trackedRange) return;
+
+      const rect = getRangeViewportRect(editor, trackedRange);
       if (!rect) return;
+
       const position = getInlineAiPanelPosition(rect);
       setInlineAiPanelState((prev) => {
         if (!prev) return prev;
@@ -982,7 +1146,9 @@ export function SlateEditor(props: {
           prev.top === position.top &&
           prev.left === position.left &&
           prev.width === position.width &&
-          prev.placeAbove === position.placeAbove
+          prev.placeAbove === position.placeAbove &&
+          prev.range &&
+          SlateRange.equals(prev.range, trackedRange)
         ) {
           return prev;
         }
@@ -992,6 +1158,7 @@ export function SlateEditor(props: {
           left: position.left,
           width: position.width,
           placeAbove: position.placeAbove,
+          range: trackedRange,
         };
       });
       return;
@@ -1021,17 +1188,172 @@ export function SlateEditor(props: {
         placeAbove: position.placeAbove,
       };
     });
-  }, [editor, inlineAiPanelState]);
+  }, [editor, getInlineAiTrackedRange, inlineAiPanelState]);
+
+  const stopInlineAiGeneration = useCallback(() => {
+    if (!inlineAiGenerating) return;
+    clearInlineAiAbortController();
+    inlineAiRequestSerialRef.current += 1;
+    setInlineAiStatus("done");
+  }, [clearInlineAiAbortController, inlineAiGenerating]);
 
   const closeInlineAiPanel = useCallback(() => {
+    inlineAiRequestSerialRef.current += 1;
+    clearInlineAiAbortController();
+    clearInlineAiRangeRef();
     setInlineAiPanelState(null);
     setInlineAiQuestion("");
+    setInlineAiStatus("menu-open");
+    setInlineAiResult("");
+    setInlineAiError(null);
+    setInlineAiLastAction(null);
 
     requestAnimationFrame(() => {
       syncInlineToolbarState();
       syncReadOnlyInlineAiToolbarState();
     });
-  }, [syncInlineToolbarState, syncReadOnlyInlineAiToolbarState]);
+  }, [
+    clearInlineAiAbortController,
+    clearInlineAiRangeRef,
+    syncInlineToolbarState,
+    syncReadOnlyInlineAiToolbarState,
+  ]);
+
+  const triggerInlineAiQuickAction = useCallback(
+    (quickAction: InlineAiQuickAction) => {
+      if (!inlineAiPanelState) return;
+      if (inlineAiGenerating) return;
+      if (quickAction.requireQuestion && !normalizedInlineAiQuestion) {
+        setInlineAiError("请输入问题后再发送。");
+        return;
+      }
+
+      const nextAction: InlineAiRequestAction = {
+        actionType: quickAction.actionType,
+        label: quickAction.label,
+      };
+
+      if (quickAction.actionType === "translate") {
+        nextAction.actionParams = {
+          targetLanguage: resolveInlineAiTargetLanguage(normalizedInlineAiQuestion),
+        };
+      }
+      if (quickAction.actionType === "custom") {
+        nextAction.userPrompt = normalizedInlineAiQuestion;
+      }
+      if (quickAction.actionType === "qa" && normalizedInlineAiQuestion) {
+        nextAction.userPrompt = normalizedInlineAiQuestion;
+      }
+
+      void runInlineAiAction(nextAction);
+    },
+    [inlineAiGenerating, inlineAiPanelState, normalizedInlineAiQuestion, runInlineAiAction],
+  );
+
+  const sendInlineAiQuestion = useCallback(() => {
+    if (!inlineAiPanelState) return;
+    if (inlineAiGenerating) return;
+    if (!normalizedInlineAiQuestion) {
+      setInlineAiError("请输入问题后再发送。");
+      return;
+    }
+
+    if (inlineAiPanelState.mode === "edit") {
+      void runInlineAiAction({
+        actionType: "custom",
+        label: "自由提问",
+        userPrompt: normalizedInlineAiQuestion,
+      });
+      return;
+    }
+
+    void runInlineAiAction({
+      actionType: "qa",
+      label: "问答",
+      userPrompt: normalizedInlineAiQuestion,
+    });
+  }, [inlineAiGenerating, inlineAiPanelState, normalizedInlineAiQuestion, runInlineAiAction]);
+
+  const regenerateInlineAiResult = useCallback(() => {
+    if (!inlineAiLastAction) return;
+    if (inlineAiGenerating) return;
+    void runInlineAiAction(inlineAiLastAction);
+  }, [inlineAiGenerating, inlineAiLastAction, runInlineAiAction]);
+
+  const resolveInlineAiWritableRange = useCallback(() => {
+    if (!inlineAiPanelState || inlineAiPanelState.mode !== "edit") return null;
+    const tracked = inlineAiRangeRef.current?.current;
+    if (!tracked || !SlateRange.isExpanded(tracked)) return null;
+    return cloneSlateRange(tracked);
+  }, [inlineAiPanelState]);
+
+  const replaceInlineAiResult = useCallback(() => {
+    const nextText = inlineAiResult.trim();
+    if (!nextText) {
+      setInlineAiError("暂无可写入内容。");
+      return;
+    }
+
+    const writableRange = resolveInlineAiWritableRange();
+    if (!writableRange) {
+      setInlineAiError("选区已变化，请重新划词后重试。");
+      return;
+    }
+
+    try {
+      Transforms.select(editor, writableRange);
+      ReactEditor.focus(editor);
+      Transforms.insertText(editor, nextText);
+      closeInlineAiPanel();
+    } catch {
+      setInlineAiError("写入失败，请重新划词后重试。");
+    }
+  }, [closeInlineAiPanel, editor, inlineAiResult, resolveInlineAiWritableRange]);
+
+  const insertInlineAiResultBelow = useCallback(() => {
+    const nextText = inlineAiResult.trim();
+    if (!nextText) {
+      setInlineAiError("暂无可写入内容。");
+      return;
+    }
+
+    const writableRange = resolveInlineAiWritableRange();
+    if (!writableRange) {
+      setInlineAiError("选区已变化，请重新划词后重试。");
+      return;
+    }
+
+    try {
+      Transforms.select(editor, writableRange);
+      Transforms.collapse(editor, { edge: "end" });
+      ReactEditor.focus(editor);
+      Editor.insertBreak(editor);
+      Transforms.insertText(editor, nextText);
+      closeInlineAiPanel();
+    } catch {
+      setInlineAiError("插入失败，请重新划词后重试。");
+    }
+  }, [closeInlineAiPanel, editor, inlineAiResult, resolveInlineAiWritableRange]);
+
+  const copyInlineAiResult = useCallback(async () => {
+    const nextText = inlineAiResult.trim();
+    if (!nextText) {
+      setInlineAiError("暂无可复制内容。");
+      return;
+    }
+
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      setInlineAiError("当前环境不支持复制，请手动复制。");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(nextText);
+      setInlineAiError(null);
+    } catch {
+      setInlineAiError("复制失败，请手动复制。");
+    }
+  }, [inlineAiResult]);
 
   const syncSlashMenuState = useCallback(() => {
     if (editorReadOnly) {
@@ -1191,6 +1513,13 @@ export function SlateEditor(props: {
   }, [closeInlineAiPanel, inlineAiPanelState, updateInlineAiPanelPosition]);
 
   useEffect(() => {
+    return () => {
+      clearInlineAiAbortController();
+      clearInlineAiRangeRef();
+    };
+  }, [clearInlineAiAbortController, clearInlineAiRangeRef]);
+
+  useEffect(() => {
     if (!inlineLinkDialogState) return;
 
     const onMouseDown = (event: MouseEvent) => {
@@ -1258,8 +1587,14 @@ export function SlateEditor(props: {
 
   const decorate = useCallback(
     ([node, path]: NodeEntry) => {
-      if (!inlineAiPanelState?.range) return [];
+      if (!inlineAiPanelState) return [];
       if (!Text.isText(node)) return [];
+
+      const highlightRange =
+        inlineAiPanelState.mode === "edit"
+          ? getInlineAiTrackedRange()
+          : inlineAiPanelState.range;
+      if (!highlightRange) return [];
 
       const nodeRange: SlateRange = {
         anchor: {
@@ -1271,13 +1606,20 @@ export function SlateEditor(props: {
           offset: node.text.length,
         },
       };
-      const intersection = SlateRange.intersection(inlineAiPanelState.range, nodeRange);
+      const intersection = SlateRange.intersection(highlightRange, nodeRange);
       if (!intersection) return [];
 
       return [{ ...intersection, inlineAiSelectionHighlight: true }];
     },
-    [inlineAiPanelState],
+    [getInlineAiTrackedRange, inlineAiPanelState],
   );
+
+  const inlineAiWritableRange =
+    inlineAiPanelState?.mode === "edit" ? resolveInlineAiWritableRange() : null;
+  const inlineAiSelectionInvalid =
+    inlineAiPanelState?.mode === "edit" && inlineAiStatus === "done" && !inlineAiWritableRange;
+  const inlineAiQuickActions =
+    inlineAiPanelState?.mode === "edit" ? inlineAiEditQuickActions : inlineAiReadOnlyQuickActions;
 
   return (
     <Slate
@@ -1285,6 +1627,7 @@ export function SlateEditor(props: {
       initialValue={props.value}
       onChange={(nextValue) => {
         props.onChange(nextValue);
+        updateInlineAiPanelPosition();
         syncSlashMenuState();
         syncInlineToolbarState();
         syncReadOnlyInlineAiToolbarState();
@@ -1607,35 +1950,119 @@ export function SlateEditor(props: {
             <Input
               value={inlineAiQuestion}
               placeholder="向智能助手提问..."
-              onChange={(event) => setInlineAiQuestion(event.target.value)}
+              onChange={(event) => {
+                setInlineAiQuestion(event.target.value);
+                if (inlineAiError) setInlineAiError(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                sendInlineAiQuestion();
+              }}
             />
-            <Button type="button" className="h-10 w-10 px-0" disabled tooltip="发送">
+            <Button
+              type="button"
+              className="h-10 w-10 px-0"
+              disabled={inlineAiGenerating || normalizedInlineAiQuestion.length === 0}
+              tooltip="发送"
+              onClick={sendInlineAiQuestion}
+            >
               <Send className="h-4 w-4" />
               <span className="sr-only">发送</span>
             </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            {(inlineAiPanelState.mode === "edit"
-              ? ["改写", "精简", "扩写", "摘要", "翻译", "自由提问"]
-              : ["问答", "翻译"]
-            ).map((item) => (
+            {inlineAiQuickActions.map((item) => (
               <Button
-                key={item}
+                key={item.label}
                 type="button"
                 variant="outline"
                 className="justify-start"
-                disabled
+                disabled={
+                  inlineAiGenerating || (item.requireQuestion && normalizedInlineAiQuestion.length === 0)
+                }
+                onClick={() => triggerInlineAiQuickAction(item)}
               >
                 <Sparkles className="mr-1 h-3.5 w-3.5" />
-                {item}
+                {item.label}
               </Button>
             ))}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Phase 1：已完成划词入口和面板骨架，动作执行将在下一阶段接入。
-          </p>
+          <div className="rounded-md border bg-muted/20 p-3 text-sm">
+            {inlineAiResult ? (
+              <p className="whitespace-pre-wrap leading-6">{inlineAiResult}</p>
+            ) : (
+              <p className="text-muted-foreground">
+                {inlineAiStatus === "menu-open"
+                  ? "选择动作开始生成结果。"
+                  : inlineAiGenerating
+                    ? "正在生成..."
+                    : "暂无生成内容。"}
+              </p>
+            )}
+          </div>
+
+          {inlineAiSelectionInvalid ? (
+            <p className="text-xs text-amber-600">选区已变化，请重新划词后重试。</p>
+          ) : null}
+
+          {inlineAiError ? (
+            <p className="text-xs text-destructive">{inlineAiError}</p>
+          ) : null}
+
+          {inlineAiGenerating ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                正在生成
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={stopInlineAiGeneration}>
+                停止
+              </Button>
+            </div>
+          ) : null}
+
+          {inlineAiStatus === "done" ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {inlineAiPanelState.mode === "edit" ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!inlineAiHasResult || inlineAiSelectionInvalid}
+                    onClick={insertInlineAiResultBelow}
+                  >
+                    插入选区下方
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={!inlineAiHasResult || inlineAiSelectionInvalid}
+                    onClick={replaceInlineAiResult}
+                  >
+                    替换选中内容
+                  </Button>
+                </>
+              ) : (
+                <Button type="button" variant="outline" disabled={!inlineAiHasResult} onClick={copyInlineAiResult}>
+                  <Copy className="mr-1.5 h-3.5 w-3.5" />
+                  复制
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!inlineAiLastAction}
+                onClick={regenerateInlineAiResult}
+              >
+                重新生成
+              </Button>
+              <Button type="button" variant="ghost" onClick={closeInlineAiPanel}>
+                关闭
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

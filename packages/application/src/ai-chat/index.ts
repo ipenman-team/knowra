@@ -1,6 +1,8 @@
 export { AiConversationUseCase } from './ai-conversation.usecase';
 export { AiMessageUseCase } from './ai-message.usecase';
 export { AiChatUseCase } from './ai-chat.usecase';
+export { InlineActionUseCase } from './inline-action.usecase';
+export type { InlineActionType } from './inline-action.usecase';
 export { AiConversationNotFoundError } from './errors';
 
 // Prompt configuration
