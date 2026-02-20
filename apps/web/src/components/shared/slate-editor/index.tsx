@@ -10,6 +10,7 @@ import {
   List,
   ListOrdered,
   Quote,
+  Send,
   Sparkles,
   Table2,
   Underline,
@@ -25,7 +26,16 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { createEditor, Descendant, Editor, Element as SlateElement, Range as SlateRange, Transforms } from "slate";
+import {
+  createEditor,
+  Descendant,
+  Editor,
+  Element as SlateElement,
+  Range as SlateRange,
+  Text,
+  Transforms,
+  type NodeEntry,
+} from "slate";
 import { withHistory } from "slate-history";
 import {
   Editable,
@@ -104,7 +114,6 @@ import {
 import { PLUGIN_SCOPE_INLINE } from "./plugins/types";
 import {
   resolveInlineAiMode,
-  truncateInlineAiSelectedText,
   type InlineAiMode,
   type SlateEditorInlineAiConfig,
 } from "./plugins/knowra-ai/logic";
@@ -119,7 +128,6 @@ const READONLY_INLINE_TOOLBAR_WIDTH = 44;
 const INLINE_AI_PANEL_MAX_WIDTH = 520;
 const INLINE_AI_PANEL_MIN_WIDTH = 240;
 const INLINE_AI_PANEL_ESTIMATED_HEIGHT = 360;
-const INLINE_AI_PREVIEW_TEXT_LIMIT = 200;
 
 type SlashMenuItem = {
   id: string;
@@ -170,6 +178,7 @@ type InlineAiPanelState = {
 type DomSelectionInfo = {
   rect: DOMRect;
   selectedText: string;
+  range: Range;
 };
 
 export function parseContentToSlateValue(content: unknown): SlateValue {
@@ -240,6 +249,7 @@ function Leaf(props: RenderLeafProps) {
     fontSize?: string;
     pluginScope?: string;
     pluginKind?: string;
+    inlineAiSelectionHighlight?: boolean;
   };
 
   let next = children;
@@ -266,6 +276,10 @@ function Leaf(props: RenderLeafProps) {
 
   const backgroundColor = normalizeLeafColor(anyLeaf.backgroundColor);
   if (backgroundColor) inlineStyle.backgroundColor = backgroundColor;
+  if (anyLeaf.inlineAiSelectionHighlight) {
+    inlineStyle.backgroundColor = "rgba(147, 197, 253, 0.55)";
+    inlineStyle.borderRadius = "0.125rem";
+  }
 
   const fontSize = normalizeFontSize(anyLeaf.fontSize);
   if (fontSize && fontSize !== DEFAULT_FONT_SIZE) {
@@ -510,7 +524,24 @@ function getDomSelectionInfo(container: HTMLElement | null): DomSelectionInfo | 
   const rect = getSelectionViewportRect(range);
   if (!rect) return null;
 
-  return { rect, selectedText };
+  return {
+    rect,
+    selectedText,
+    range: range.cloneRange(),
+  };
+}
+
+function toSlateRangeFromDomRange(editor: Editor, domRange: Range): SlateRange | null {
+  try {
+    const range = ReactEditor.toSlateRange(editor as ReactEditor, domRange, {
+      exactMatch: false,
+      suppressThrow: true,
+    });
+    if (!range || !SlateRange.isExpanded(range)) return null;
+    return cloneSlateRange(range);
+  } catch {
+    return null;
+  }
 }
 
 function getInlineAiPanelPosition(rect: DOMRect) {
@@ -882,14 +913,15 @@ export function SlateEditor(props: {
 
     const selectionInfo = getDomSelectionInfo(editableRef.current);
     if (!selectionInfo) return;
+    const slateRange = toSlateRangeFromDomRange(editor, selectionInfo.range);
 
     openInlineAiPanel({
       mode: "readonly",
       selectedText: selectionInfo.selectedText,
       rect: selectionInfo.rect,
-      range: null,
+      range: slateRange,
     });
-  }, [inlineAiMode, openInlineAiPanel]);
+  }, [editor, inlineAiMode, openInlineAiPanel]);
 
   const syncReadOnlyInlineAiToolbarState = useCallback(() => {
     if (inlineAiMode !== "readonly" || inlineAiPanelState) {
@@ -1224,6 +1256,29 @@ export function SlateEditor(props: {
     );
   }, []);
 
+  const decorate = useCallback(
+    ([node, path]: NodeEntry) => {
+      if (!inlineAiPanelState?.range) return [];
+      if (!Text.isText(node)) return [];
+
+      const nodeRange: SlateRange = {
+        anchor: {
+          path,
+          offset: 0,
+        },
+        focus: {
+          path,
+          offset: node.text.length,
+        },
+      };
+      const intersection = SlateRange.intersection(inlineAiPanelState.range, nodeRange);
+      if (!intersection) return [];
+
+      return [{ ...intersection, inlineAiSelectionHighlight: true }];
+    },
+    [inlineAiPanelState],
+  );
+
   return (
     <Slate
       editor={editor}
@@ -1258,6 +1313,7 @@ export function SlateEditor(props: {
         renderPlaceholder={renderPlaceholder}
         renderElement={renderElement}
         renderLeaf={renderLeaf}
+        decorate={decorate}
         readOnly={editorReadOnly}
         onKeyDown={(e) => {
           if (slashMenuState) {
@@ -1547,21 +1603,15 @@ export function SlateEditor(props: {
             </Button>
           </div>
 
-          <div className="rounded-md border bg-muted/40 p-3 text-sm leading-6">
-            {truncateInlineAiSelectedText(
-              inlineAiPanelState.selectedText,
-              INLINE_AI_PREVIEW_TEXT_LIMIT,
-            ).text}
-          </div>
-
           <div className="flex items-center gap-2">
             <Input
               value={inlineAiQuestion}
               placeholder="向智能助手提问..."
               onChange={(event) => setInlineAiQuestion(event.target.value)}
             />
-            <Button type="button" disabled>
-              发送
+            <Button type="button" className="h-10 w-10 px-0" disabled tooltip="发送">
+              <Send className="h-4 w-4" />
+              <span className="sr-only">发送</span>
             </Button>
           </div>
 
