@@ -59,6 +59,8 @@ export const SpaceSidebar = memo(function SpaceSidebar() {
   
   const isSettings = pathname.includes('/page-share') ||
                      pathname.includes('/space-share') ||
+                     pathname.includes('/members') ||
+                     pathname.includes('/roles') ||
                      pathname.includes('/site-builder') ||
                      pathname.includes('/settings')
 

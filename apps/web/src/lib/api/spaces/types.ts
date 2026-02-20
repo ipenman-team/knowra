@@ -30,6 +30,31 @@ export type SpaceMemberDto = {
   spaceId: string;
   userId: string;
   role: SpaceMemberRole;
+  spaceRoleId: string | null;
+  roleName: string;
+  roleBuiltInType: SpaceMemberRole | null;
+  roleIsBuiltIn: boolean;
+  nickname: string | null;
+  avatarUrl: string | null;
+  email: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SpaceRoleBuiltInType = 'OWNER' | 'ADMIN' | 'MEMBER';
+
+export type SpaceRoleDto = {
+  id: string;
+  tenantId: string;
+  spaceId: string;
+  name: string;
+  description: string | null;
+  isBuiltIn: boolean;
+  builtInType: SpaceRoleBuiltInType | null;
+  permissions: string[];
+  createdBy: string;
+  updatedBy: string;
+  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -42,6 +67,7 @@ export type SpaceInvitationDto = {
   inviteeEmail: string | null;
   inviteeUserId: string | null;
   role: SpaceMemberRole;
+  spaceRoleId: string | null;
   channel: SpaceInvitationChannel;
   status: SpaceInvitationStatus;
   expiresAt: string;

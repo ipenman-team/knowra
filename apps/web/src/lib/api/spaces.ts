@@ -7,8 +7,15 @@ import type {
 } from '@/lib/api/spaces/types';
 
 export const spacesApi = {
-  async list(params?: { q?: string; skip?: number; take?: number; includeArchived?: boolean }) {
-    const res = await apiClient.get<{ items: SpaceDto[]; total: number }>('/spaces', { params });
+  async list(params?: {
+    q?: string;
+    skip?: number;
+    take?: number;
+    includeArchived?: boolean;
+  }) {
+    const res = await apiClient.get<{ items: SpaceDto[]; total: number }>('/spaces', {
+      params,
+    });
     return res.data;
   },
 
@@ -19,9 +26,7 @@ export const spacesApi = {
 
   async create(input: unknown) {
     const res = await apiClient.post('/spaces', input);
-    // server returns { ok: true, space }
-    const data = res.data as any;
-    if (data && data.space) return data.space as SpaceDto;
+    const data = res.data as unknown;
     return data as SpaceDto;
   },
 
@@ -38,34 +43,71 @@ export const spacesApi = {
     },
   ) {
     const res = await apiClient.put(`/spaces/${encodeURIComponent(id)}`, input);
-    // server returns { ok: true, space }
-    const data = res.data as any;
-    if (data && data.space) return data.space as SpaceDto;
+    const data = res.data as unknown;
     return data as SpaceDto;
   },
 
   async rename(id: string, input: { name: string }) {
     const res = await apiClient.put(`/spaces/${encodeURIComponent(id)}/rename`, input);
-    const data = res.data as any;
-    if (data && data.space) return data.space as SpaceDto;
+    const data = res.data as unknown;
     return data as SpaceDto;
   },
 
   async setFavorite(id: string, input: { favorite: boolean }) {
     const res = await apiClient.put(`/spaces/${encodeURIComponent(id)}/favorite`, input);
-    const data = res.data as any;
-    if (data && typeof data.favorite === 'boolean') {
-      return { favorite: data.favorite };
-    }
-    return data as { favorite: boolean };
+    const data = res.data as { favorite: boolean };
+    return data;
   },
 
-  async listMembers(spaceId: string) {
-    const res = await apiClient.get<{ items: SpaceMemberDto[] }>(
-      `/spaces/${encodeURIComponent(spaceId)}/members`,
+  async listMembers(
+    spaceId: string,
+    params?: { q?: string; skip?: number; take?: number },
+  ) {
+    const res = await apiClient.get<{
+      items: SpaceMemberDto[];
+      total: number;
+      skip: number;
+      take: number;
+    }>(`/spaces/${encodeURIComponent(spaceId)}/members`, { params });
+    return res.data;
+  },
+
+  async updateMemberRole(
+    spaceId: string,
+    memberId: string,
+    input: { roleId: string },
+  ) {
+    const res = await apiClient.put<{ ok: true }>(
+      `/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(memberId)}/role`,
+      input,
     );
-    const data = res.data as any;
-    return Array.isArray(data?.items) ? (data.items as SpaceMemberDto[]) : [];
+    return res.data;
+  },
+
+  async batchUpdateMemberRole(
+    spaceId: string,
+    input: { memberIds: string[]; roleId: string },
+  ) {
+    const res = await apiClient.put<{ ok: true; affected: number }>(
+      `/spaces/${encodeURIComponent(spaceId)}/members/batch-role`,
+      input,
+    );
+    return res.data;
+  },
+
+  async removeMember(spaceId: string, memberId: string) {
+    const res = await apiClient.delete<{ ok: true }>(
+      `/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(memberId)}`,
+    );
+    return res.data;
+  },
+
+  async batchRemoveMembers(spaceId: string, input: { memberIds: string[] }) {
+    const res = await apiClient.post<{ ok: true; affected: number }>(
+      `/spaces/${encodeURIComponent(spaceId)}/members/batch-remove`,
+      input,
+    );
+    return res.data;
   },
 
   async listInvitations(
@@ -78,38 +120,47 @@ export const spacesApi = {
       params?.statuses && params.statuses.length > 0
         ? params.statuses.join(',')
         : undefined;
-    const res = await apiClient.get<{ items: SpaceInvitationDto[] }>(
+    const res = await apiClient.get<SpaceInvitationDto[] | { items: SpaceInvitationDto[] }>(
       `/spaces/${encodeURIComponent(spaceId)}/invitations`,
       {
         params: { status },
       },
     );
-    const data = res.data as any;
-    return Array.isArray(data?.items)
-      ? (data.items as SpaceInvitationDto[])
-      : [];
+    const data = res.data as unknown;
+    if (Array.isArray(data)) return data as SpaceInvitationDto[];
+    if (data && typeof data === 'object' && Array.isArray((data as { items?: unknown }).items)) {
+      return (data as { items: SpaceInvitationDto[] }).items;
+    }
+    return [];
   },
 
   async createEmailInvitations(
     spaceId: string,
-    input: { emails: string[]; role?: string },
+    input: { emails: string[]; roleId?: string; role?: string },
   ) {
-    const res = await apiClient.post<{ items: SpaceInvitationWithTokenDto[] }>(
+    const res = await apiClient.post<
+      SpaceInvitationWithTokenDto[] | { items: SpaceInvitationWithTokenDto[] }
+    >(
       `/spaces/${encodeURIComponent(spaceId)}/invitations`,
       input,
     );
-    const data = res.data as any;
-    return Array.isArray(data?.items)
-      ? (data.items as SpaceInvitationWithTokenDto[])
-      : [];
+    const data = res.data as unknown;
+    if (Array.isArray(data)) return data as SpaceInvitationWithTokenDto[];
+    if (data && typeof data === 'object' && Array.isArray((data as { items?: unknown }).items)) {
+      return (data as { items: SpaceInvitationWithTokenDto[] }).items;
+    }
+    return [];
   },
 
-  async createLinkInvitation(spaceId: string, input?: { role?: string }) {
+  async createLinkInvitation(
+    spaceId: string,
+    input?: { roleId?: string; role?: string },
+  ) {
     const res = await apiClient.post<SpaceInvitationWithTokenDto>(
       `/spaces/${encodeURIComponent(spaceId)}/invitations/link`,
       input ?? {},
     );
-    return res.data as SpaceInvitationWithTokenDto;
+    return res.data;
   },
 
   async resendInvitation(spaceId: string, invitationId: string) {
@@ -117,7 +168,7 @@ export const spacesApi = {
       `/spaces/${encodeURIComponent(spaceId)}/invitations/${encodeURIComponent(invitationId)}/resend`,
       {},
     );
-    return res.data as SpaceInvitationWithTokenDto;
+    return res.data;
   },
 
   async acceptInvitation(input: { token: string }) {

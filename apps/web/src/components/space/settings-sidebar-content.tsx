@@ -8,7 +8,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { FileText, FolderKanban } from 'lucide-react';
+import { FileText, FolderKanban, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useSpaceStore } from '@/stores';
@@ -56,6 +56,29 @@ export function SettingsSidebarContent({ spaceId, pathname }: { spaceId: string,
                                     <Link href={`/spaces/${spaceId}/space-share`}>
                                         <FolderKanban className="w-4 h-4" />
                                         <span>空间共享</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+                <SidebarGroup>
+                    <SidebarGroupLabel>管理</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={isActive('/members')}>
+                                    <Link href={`/spaces/${spaceId}/members`}>
+                                        <Users className="w-4 h-4" />
+                                        <span>成员管理</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild isActive={isActive('/roles')}>
+                                    <Link href={`/spaces/${spaceId}/roles`}>
+                                        <Shield className="w-4 h-4" />
+                                        <span>角色管理</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
