@@ -2,7 +2,7 @@ import type {
   SpaceMemberRepository,
   SpaceMemberSummary,
   SpaceRoleRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { normalizePagination, normalizeRequiredText } from './utils';
 
 export class ListSpaceMembersUseCase {

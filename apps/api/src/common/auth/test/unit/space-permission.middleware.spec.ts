@@ -2,14 +2,14 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { hasSpacePermission } from '@contexta/infrastructure';
+import { hasSpacePermission } from '@knowra/infrastructure';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import {
   __spacePermissionMiddlewareInternals,
   SpacePermissionMiddleware,
 } from '../../space-permission.middleware';
 
-jest.mock('@contexta/infrastructure', () => ({
+jest.mock('@knowra/infrastructure', () => ({
   hasSpacePermission: jest.fn(),
 }));
 

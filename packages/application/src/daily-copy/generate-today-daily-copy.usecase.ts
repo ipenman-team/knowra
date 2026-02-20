@@ -2,7 +2,7 @@ import type {
   CreateDailyCopyParams,
   DailyCopyCategory,
   DailyCopyRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   endOfLocalDay,
   formatLocalDayKey,

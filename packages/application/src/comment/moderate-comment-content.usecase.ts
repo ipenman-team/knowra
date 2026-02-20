@@ -2,7 +2,7 @@ import type {
   ModerateCommentContentInput,
   ModerateCommentContentResult,
   CommentRiskCategory,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   DEFAULT_MODERATION_KEYWORD_GROUPS,
   type ModerationKeywordGroup,

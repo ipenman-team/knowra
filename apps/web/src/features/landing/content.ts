@@ -123,8 +123,8 @@ export interface LandingContent {
 
 export const DEFAULT_CTA_HREF = '/login';
 export const WECHAT_QR_IMAGE_URL =
-  'https://placehold.co/360x360/png?text=Contexta+WeChat+QR+Placeholder';
-export const OFFICIAL_EMAIL = 'support@contexta.ai';
+  'https://placehold.co/360x360/png?text=Knowra+WeChat+QR+Placeholder';
+export const OFFICIAL_EMAIL = 'support@knowra.ai';
 
 const ZH_CONTENT: LandingContent = {
   navItems: [
@@ -244,7 +244,7 @@ const ZH_CONTENT: LandingContent = {
     eyebrow: '用户视角架构',
     title: '围绕真实使用场景设计的智能化知识库闭环',
     description:
-      'Contexta 的架构并非单纯技术分层，而是围绕用户从上传资料到回答落地的全过程设计。下面展示两个核心场景如何在同一系统中完成闭环。',
+      'Knowra 的架构并非单纯技术分层，而是围绕用户从上传资料到回答落地的全过程设计。下面展示两个核心场景如何在同一系统中完成闭环。',
     supportTitle: '闭环支撑能力',
     featureCoverageTitle: '关键功能覆盖',
     stepLabel: '步骤',
@@ -489,7 +489,7 @@ const EN_CONTENT: LandingContent = {
     eyebrow: 'User-centric Workflow Architecture',
     title: 'A scenario-driven architecture for intelligent knowledge loops',
     description:
-      'This is not just a technical layering diagram. Contexta is designed around the full user path from material input to answer execution and iterative improvement.',
+      'This is not just a technical layering diagram. Knowra is designed around the full user path from material input to answer execution and iterative improvement.',
     supportTitle: 'Capabilities Behind the Loop',
     featureCoverageTitle: 'Feature Coverage',
     stepLabel: 'Step',

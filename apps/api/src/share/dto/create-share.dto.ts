@@ -1,5 +1,5 @@
-import type { ShareStatus, ShareType, ShareVisibility } from '@contexta/domain';
-import { ShareScopeType } from '@contexta/domain/src/share/types';
+import type { ShareStatus, ShareType, ShareVisibility } from '@knowra/domain';
+import { ShareScopeType } from '@knowra/domain/src/share/types';
 
 export type CreateShareDto = {
   type: ShareType;

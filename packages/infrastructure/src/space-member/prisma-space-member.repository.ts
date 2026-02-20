@@ -1,6 +1,6 @@
-import type { SpaceMemberRepository } from '@contexta/domain';
-import type { SpaceMemberRecord, SpaceMemberSummary } from '@contexta/domain';
-import type { SpaceMemberRoleValue } from '@contexta/domain';
+import type { SpaceMemberRepository } from '@knowra/domain';
+import type { SpaceMemberRecord, SpaceMemberSummary } from '@knowra/domain';
+import type { SpaceMemberRoleValue } from '@knowra/domain';
 import type { PrismaClient } from '@prisma/client';
 import { fallbackRoleNameFromMemberRole } from '../space-role/repository-utils';
 

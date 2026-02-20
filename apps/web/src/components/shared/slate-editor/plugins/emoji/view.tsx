@@ -58,7 +58,7 @@ export function EmojiPluginView(props: ToolbarPluginProps) {
       placeholderEmoji="🙂"
       triggerClassName="h-8 w-8 p-0"
       contentClassName="w-[360px]"
-      recentStorageKey="contexta:editor:emoji-recent"
+      recentStorageKey="knowra:editor:emoji-recent"
       onChange={onEmojiChange}
       onOpenChange={(open) => {
         if (open) cacheSelection();

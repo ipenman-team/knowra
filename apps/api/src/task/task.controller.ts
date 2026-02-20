@@ -4,7 +4,7 @@ import { concat, from, map, type Observable } from 'rxjs';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { TaskRuntimeService } from './task.runtime.service';
 import { TaskService } from './task.service';
-import { Response } from '@contexta/shared';
+import { Response } from '@knowra/shared';
 
 @Controller('tasks')
 export class TaskController {

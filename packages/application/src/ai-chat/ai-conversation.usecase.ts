@@ -2,7 +2,7 @@ import type {
   AiConversation,
   AiConversationDataSource,
   AiConversationRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { AiConversationNotFoundError } from './errors';
 
 function normalizeSpaceIds(spaceIds: unknown): string[] {

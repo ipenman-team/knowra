@@ -9,9 +9,9 @@ export function LoginHeader({ subtitle }: LoginHeaderProps) {
     <>
       <div className="mb-2 flex items-center gap-3">
         <div className="h-8 w-8 rounded bg-primary" aria-hidden="true" />
-        <span className="text-lg font-semibold">Contexta</span>
+        <span className="text-lg font-semibold">Knowra</span>
       </div>
-      <CardTitle className="text-2xl">欢迎使用 Contexta</CardTitle>
+      <CardTitle className="text-2xl">欢迎使用 Knowra</CardTitle>
       <div className="text-sm text-muted-foreground">{subtitle}</div>
     </>
   );

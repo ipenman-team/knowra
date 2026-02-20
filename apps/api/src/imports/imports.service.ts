@@ -6,7 +6,7 @@ import { TaskService } from '../task/task.service';
 import {
   markdownToSlateValue,
   pdfPagesToMarkdown,
-} from '@contexta/slate-converters';
+} from '@knowra/slate-converters';
 import {
   fileNameToTitle,
   normalizeDocxMarkdown,

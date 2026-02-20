@@ -1,4 +1,4 @@
-import type { CommentRepository, CommentThread } from '@contexta/domain';
+import type { CommentRepository, CommentThread } from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class GetCommentThreadUseCase {

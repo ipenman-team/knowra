@@ -2,7 +2,7 @@ import type {
   GetTodayDailyCopyResponse,
   SetTodayDailyCopyLikeBody,
   SetTodayDailyCopyLikeResponse,
-} from '@contexta/shared';
+} from '@knowra/shared';
 import { apiClient } from './client';
 
 export const dailyCopiesApi = {

@@ -8,7 +8,7 @@ import {
   ListNotificationsUseCase,
   MarkAllNotificationsReadUseCase,
   MarkNotificationReadUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import { NotificationController } from '../../notification.controller';
 import { NotificationSseService } from '../../sse/notification-sse.service';
 

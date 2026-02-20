@@ -11,7 +11,7 @@ import { memoryStorage } from 'multer';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import type { ImportRequest } from './imports.types';
 import { ImportsService } from './imports.service';
-import { Response as ApiResponse } from '@contexta/shared';
+import { Response as ApiResponse } from '@knowra/shared';
 
 @Controller('imports')
 export class ImportsController {

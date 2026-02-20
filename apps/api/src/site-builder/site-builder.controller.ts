@@ -8,7 +8,7 @@ import {
   Put,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from '@contexta/shared';
+import { Response } from '@knowra/shared';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { PublishSiteBuilderDto } from './dto/publish-site-builder.dto';
 import { SaveSiteBuilderDraftDto } from './dto/save-site-builder-draft.dto';

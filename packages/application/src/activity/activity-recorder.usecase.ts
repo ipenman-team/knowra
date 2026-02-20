@@ -1,4 +1,4 @@
-import type { Activity, ActivityRepository, CreateActivityParams } from '@contexta/domain';
+import type { Activity, ActivityRepository, CreateActivityParams } from '@knowra/domain';
 
 function normalizeRequiredText(name: string, raw: unknown): string {
   if (typeof raw !== 'string') throw new Error(`${name} is required`);

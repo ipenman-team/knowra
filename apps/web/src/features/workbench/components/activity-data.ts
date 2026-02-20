@@ -7,7 +7,7 @@ import {
   startOfWeek,
   startOfYear,
 } from 'date-fns';
-import type { DailyCount } from '@contexta/shared';
+import type { DailyCount } from '@knowra/shared';
 
 export const ACTIVITY_LEVELS = [
   'bg-muted',

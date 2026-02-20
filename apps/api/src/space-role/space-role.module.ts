@@ -4,8 +4,8 @@ import {
   DeleteSpaceRoleUseCase,
   ListSpaceRolesUseCase,
   UpdateSpaceRoleUseCase,
-} from '@contexta/application';
-import { PrismaSpaceRoleRepository } from '@contexta/infrastructure';
+} from '@knowra/application';
+import { PrismaSpaceRoleRepository } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { SpaceRoleController } from './space-role.controller';
 import { SPACE_ROLE_REPOSITORY } from './space-role.tokens';

@@ -5,11 +5,11 @@ import {
   ListSpaceMembersUseCase,
   RemoveMemberUseCase,
   UpdateMemberRoleUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import {
   PrismaSpaceMemberRepository,
   PrismaSpaceRoleRepository,
-} from '@contexta/infrastructure';
+} from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { SPACE_ROLE_REPOSITORY } from '../space-role/space-role.tokens';
 import { SpaceMemberController } from './space-member.controller';

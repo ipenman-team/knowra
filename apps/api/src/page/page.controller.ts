@@ -22,8 +22,8 @@ import { PageLikeService } from './page-like.service';
 import { RagIndexService } from '../rag/rag.index.service';
 import { ListPageQuery } from './dto/list-page.query';
 import { ListPageTreeQuery } from './dto/list-page-tree.query';
-import { ListResponse, Response } from '@contexta/shared';
-import { ExportPageUseCase } from '@contexta/application';
+import { ListResponse, Response } from '@knowra/shared';
+import { ExportPageUseCase } from '@knowra/application';
 import { ExportPageQuery } from './dto/export-page.query';
 
 @Controller('spaces/:spaceId/pages')

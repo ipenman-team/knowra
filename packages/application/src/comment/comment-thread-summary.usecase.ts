@@ -1,7 +1,7 @@
 import type {
   CommentRepository,
   CommentThreadCounts,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class CommentThreadSummaryUseCase {

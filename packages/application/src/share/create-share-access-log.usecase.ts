@@ -2,7 +2,7 @@ import type {
   CreateShareAccessLogParams,
   ShareAccessLog,
   ShareAccessLogRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class CreateShareAccessLogUseCase {

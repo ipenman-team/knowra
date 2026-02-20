@@ -1,4 +1,4 @@
-import type { SpaceInvitationRepository } from '@contexta/domain';
+import type { SpaceInvitationRepository } from '@knowra/domain';
 import {
   hashInvitationToken,
   normalizeRequiredText,

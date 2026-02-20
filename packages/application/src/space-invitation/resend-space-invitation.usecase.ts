@@ -1,10 +1,10 @@
 import type {
   SpaceInvitationRepository,
   SpaceInvitationWithToken,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   SpaceInvitationStatus,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   buildInvitationUrl,
   createInvitationToken,

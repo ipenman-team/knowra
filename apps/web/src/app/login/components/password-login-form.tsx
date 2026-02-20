@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isValidE164, isValidEmail } from '@contexta/utils';
+import { isValidE164, isValidEmail } from '@knowra/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

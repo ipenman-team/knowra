@@ -8,7 +8,7 @@ import type {
   SpaceInvitation,
   SpaceMember,
   SpaceMemberRoleValue,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 export type DbClient = PrismaClient | Prisma.TransactionClient;
 

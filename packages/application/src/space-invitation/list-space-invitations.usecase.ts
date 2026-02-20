@@ -2,7 +2,7 @@ import type {
   SpaceInvitation,
   SpaceInvitationRepository,
   SpaceInvitationStatusValue,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   normalizeInvitationStatuses,
   normalizeRequiredText,

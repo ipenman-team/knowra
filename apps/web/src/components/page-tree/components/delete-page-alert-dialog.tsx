@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
+import { buildPageTreeFromFlatPages } from '@knowra/shared';
 
 import {
   AlertDialog,

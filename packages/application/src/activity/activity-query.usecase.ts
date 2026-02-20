@@ -4,7 +4,7 @@ import type {
   ActivityRepository,
   ListActivitiesParams,
   ListActivitiesResult,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 function clampLimit(raw: unknown): number {
   const n = Number(raw ?? 50);

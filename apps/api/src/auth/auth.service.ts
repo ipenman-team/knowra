@@ -14,7 +14,7 @@ import {
   normalizeLowerTrim,
   normalizeTrim,
   pickActorId,
-} from '@contexta/utils';
+} from '@knowra/utils';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -76,11 +76,11 @@ export class AuthService {
             ? '重置密码'
             : '验证';
 
-    const subject = `Contexta ${action}验证码`;
-    const text = `你的 Contexta ${action}验证码是：${args.code}\n\n有效期：${args.ttlMinutes} 分钟。\n如非本人操作，请忽略此邮件。`;
+    const subject = `Knowra ${action}验证码`;
+    const text = `你的 Knowra ${action}验证码是：${args.code}\n\n有效期：${args.ttlMinutes} 分钟。\n如非本人操作，请忽略此邮件。`;
     const html = `
       <div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; line-height: 1.6;">
-        <div style="font-size: 16px; font-weight: 600;">Contexta ${action}验证码</div>
+        <div style="font-size: 16px; font-weight: 600;">Knowra ${action}验证码</div>
         <div style="margin-top: 12px; font-size: 14px;">你的验证码是：</div>
         <div style="margin-top: 10px; font-size: 28px; font-weight: 700; letter-spacing: 4px;">${args.code}</div>
         <div style="margin-top: 12px; font-size: 14px; color: #6b7280;">有效期：${args.ttlMinutes} 分钟。如非本人操作，请忽略此邮件。</div>

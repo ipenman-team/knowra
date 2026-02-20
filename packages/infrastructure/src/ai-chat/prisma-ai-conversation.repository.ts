@@ -3,7 +3,7 @@ import type {
   AiConversation,
   AiConversationDataSource,
   AiConversationRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 
 function normalizeSpaceIds(spaceIds: unknown): string[] {

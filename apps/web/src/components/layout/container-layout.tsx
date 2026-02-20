@@ -68,7 +68,7 @@ export const ContainerLayout = memo(function ContainerLayout({
     root: '打开模块导航',
     space: '打开空间导航',
     favorites: '打开收藏筛选',
-    'contexta-ai': '打开会话列表',
+    'knowra-ai': '打开会话列表',
   };
   const resolvedMobileTriggerLabel =
     mobileTriggerLabel ??

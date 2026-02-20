@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from 'react';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
+import { buildPageTreeFromFlatPages } from '@knowra/shared';
 import {
   usePageSelectionStore,
   usePageTreeStore,

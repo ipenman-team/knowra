@@ -87,17 +87,17 @@ export function useNavigation() {
   );
 
   /**
-   * 导航到主视图（工作台、ContextA AI、设置）
+   * 导航到主视图（工作台、Knowra AI、设置）
    *
    * NOTE: 视图切换总是使用 replace，避免产生过多历史记录
-   * 理由：用户在"工作台 ↔ ContextA AI"快速切换时，
+   * 理由：用户在"工作台 ↔ Knowra AI"快速切换时，
    * 不应该需要多次点击返回键才能回到起点
    *
    * @param view - 视图类型
    *
    * @example
    * navigateToView('workbench')
-   * navigateToView('contexta-ai')
+   * navigateToView('knowra-ai')
    */
   const navigateToView = useCallback(
     (view: NavigationView) => {

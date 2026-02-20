@@ -65,11 +65,11 @@ test('landing cta routes to login', async ({ page }) => {
 test('contact page includes qr, mailto and centered footer', async ({ page }) => {
   await page.goto('/contact?lang=zh');
 
-  const qrImage = page.locator('img[alt="Contexta community QR code"]');
+  const qrImage = page.locator('img[alt="Knowra community QR code"]');
   await expect(qrImage).toBeVisible();
   await expect(qrImage).toHaveAttribute('src', /placehold\.co\/360x360/);
 
-  await expect(page.locator('a[href="mailto:support@contexta.ai"]')).toBeVisible();
+  await expect(page.locator('a[href="mailto:support@knowra.ai"]')).toBeVisible();
   await expect(page.locator('footer > div')).toHaveClass(/text-center/);
 });
 

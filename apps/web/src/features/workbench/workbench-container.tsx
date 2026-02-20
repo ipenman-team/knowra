@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, endOfDay, endOfMonth, format, startOfDay } from 'date-fns';
-import type { ActivityItem, DailyCount } from '@contexta/shared';
+import type { ActivityItem, DailyCount } from '@knowra/shared';
 
 import { ContainerLayout } from '@/components/layout';
 import { HomeSidebar } from '@/components/sidebar';

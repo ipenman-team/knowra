@@ -9,7 +9,7 @@ import {
 } from '../common/http/access-token-cookie';
 import { AuthService } from './auth.service';
 import type { Request, Response } from 'express';
-import { Response as ApiResponse } from '@contexta/shared';
+import { Response as ApiResponse } from '@knowra/shared';
 
 type SendVerificationCodeBody = {
   channel: string;

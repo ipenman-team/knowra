@@ -1,4 +1,4 @@
-import type { Share, ShareRepository } from '@contexta/domain';
+import type { Share, ShareRepository } from '@knowra/domain';
 import * as crypto from 'node:crypto';
 import { normalizeRequiredText } from './utils';
 

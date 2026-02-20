@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@contexta/shared', '@contexta/slate-converters'],
+  transpilePackages: ['@knowra/shared', '@knowra/slate-converters'],
   output: 'standalone',
 };
 

@@ -1,4 +1,4 @@
-import type { ShareStatus, ShareType, ShareVisibility } from '@contexta/domain';
+import type { ShareStatus, ShareType, ShareVisibility } from '@knowra/domain';
 import { ShareScopeType } from '@prisma/client';
 
 export type ListShareQuery = {

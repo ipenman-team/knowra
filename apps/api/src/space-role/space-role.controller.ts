@@ -16,8 +16,8 @@ import {
   DeleteSpaceRoleUseCase,
   ListSpaceRolesUseCase,
   UpdateSpaceRoleUseCase,
-} from '@contexta/application';
-import { ListResponse, Response } from '@contexta/shared';
+} from '@knowra/application';
+import { ListResponse, Response } from '@knowra/shared';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import type { CreateSpaceRoleDto } from './dto/create-space-role.dto';
 import type { UpdateSpaceRoleDto } from './dto/update-space-role.dto';

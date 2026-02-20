@@ -186,17 +186,17 @@ export const HomeSidebar = memo(function HomeSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem
-                  key="contexta-ai"
-                  onClick={() => handleSelectView('contexta-ai')}
+                  key="knowra-ai"
+                  onClick={() => handleSelectView('knowra-ai')}
                 >
-                  <SidebarMenuButton asChild tooltip="ContextA AI">
+                  <SidebarMenuButton asChild tooltip="Knowra AI">
                     <div
                       className={`flex w-full min-w-0 items-center gap-2 cursor-pointer text-muted-foreground ${isCollapsed && 'justify-center'}`}
                     >
                       <BotIcon fill color="#525252" size={iconSize} />
                       {!isCollapsed && (
                         <span className="min-w-0 flex-1 truncate">
-                          ContextA AI
+                          Knowra AI
                         </span>
                       )}
                     </div>

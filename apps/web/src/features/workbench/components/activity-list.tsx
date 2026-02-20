@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ActivityItem } from '@contexta/shared';
+import { ActivityItem } from '@knowra/shared';
 import { mapActivityItems } from './activity-list-helper';
 import { Empty } from '@/components/empty';
 import { useI18n } from '@/lib/i18n/provider';

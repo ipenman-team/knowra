@@ -1,5 +1,5 @@
-import type { PageExportRepository } from '@contexta/domain';
-import { slateToMarkdown } from '@contexta/slate-converters';
+import type { PageExportRepository } from '@knowra/domain';
+import { slateToMarkdown } from '@knowra/slate-converters';
 
 function normalizeRequiredText(name: string, raw: unknown): string {
   if (typeof raw !== 'string') throw new Error(`${name} is required`);

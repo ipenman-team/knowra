@@ -21,7 +21,7 @@ import {
   GetShareByIdUseCase,
   ListSharesUseCase,
   UpdateShareStatusUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import { PageService } from '../page/page.service';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { CreateShareDto } from './dto/create-share.dto';
@@ -29,9 +29,9 @@ import { ListShareQuery } from './dto/list-share.query';
 import { UpdateShareStatusDto } from './dto/update-share-status.dto';
 import { CreateShareSnapshotDto } from './dto/create-share-snapshot.dto';
 import { AccessShareDto } from './dto/access-share.dto';
-import { ListResponse, Response } from '@contexta/shared';
+import { ListResponse, Response } from '@knowra/shared';
 import { Page } from '@prisma/client';
-import { Share } from '@contexta/domain';
+import { Share } from '@knowra/domain';
 
 function sanitizeShare<T extends { tokenHash?: unknown; passwordHash?: unknown }>(
   share: T,

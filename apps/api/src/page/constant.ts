@@ -27,7 +27,7 @@ export const DefaultPageContent = [
     type: 'heading-one',
     children: [
       {
-        text: '👋 欢迎来到 Contexta',
+        text: '👋 欢迎来到 Knowra',
       },
     ],
   },

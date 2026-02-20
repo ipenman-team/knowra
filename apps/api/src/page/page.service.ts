@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Page, PageVersionStatus, type Prisma } from '@prisma/client';
-import { ActivityRecorderUseCase } from '@contexta/application';
+import { ActivityRecorderUseCase } from '@knowra/application';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { PageDto } from './dto/page.dto';

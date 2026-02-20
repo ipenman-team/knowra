@@ -1,4 +1,4 @@
-import type { SpaceInvitationRepository, SpaceMember } from '@contexta/domain';
+import type { SpaceInvitationRepository, SpaceMember } from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class ListSpaceMembersUseCase {

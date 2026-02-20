@@ -10,7 +10,7 @@ import {
   type PermissionKey,
   type SpaceRole,
   type SpaceRoleBuiltInTypeValue,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 export type DbClient = PrismaClient | Prisma.TransactionClient;
 

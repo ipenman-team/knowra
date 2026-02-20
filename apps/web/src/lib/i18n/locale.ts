@@ -2,7 +2,7 @@ export type AppLocale = 'zh-CN' | 'en-US';
 
 export const DEFAULT_LOCALE: AppLocale = 'zh-CN';
 export const SUPPORTED_LOCALES: readonly AppLocale[] = ['zh-CN', 'en-US'];
-export const LOCALE_COOKIE_KEY = 'contexta_locale';
+export const LOCALE_COOKIE_KEY = 'knowra_locale';
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 function isSupportedLocale(value: string): value is AppLocale {

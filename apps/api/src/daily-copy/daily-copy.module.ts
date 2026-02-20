@@ -2,9 +2,9 @@ import { Global, Module } from '@nestjs/common';
 import {
   GenerateTodayDailyCopyUseCase,
   SetTodayDailyCopyLikeUseCase,
-} from '@contexta/application';
-import { OpenAICompatibleChatProvider } from '@contexta/rag';
-import { PrismaDailyCopyRepository } from '@contexta/infrastructure';
+} from '@knowra/application';
+import { OpenAICompatibleChatProvider } from '@knowra/rag';
+import { PrismaDailyCopyRepository } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   DAILY_COPY_CHAT_PROVIDER,

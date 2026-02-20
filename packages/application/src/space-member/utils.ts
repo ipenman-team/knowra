@@ -1,5 +1,5 @@
-import type { SpaceMemberRoleValue } from '@contexta/domain';
-import type { SpaceRole } from '@contexta/domain';
+import type { SpaceMemberRoleValue } from '@knowra/domain';
+import type { SpaceRole } from '@knowra/domain';
 
 export function normalizeRequiredText(name: string, raw: unknown): string {
   if (typeof raw !== 'string') throw new Error(`${name} is required`);

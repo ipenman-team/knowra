@@ -4,7 +4,7 @@ import type {
   DailyCopyRepository,
   FindDailyCopyParams,
   UpdateDailyCopyMetadataParams,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 export class PrismaDailyCopyRepository implements DailyCopyRepository {
   constructor(private readonly prisma: PrismaClient) {}

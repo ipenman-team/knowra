@@ -3,7 +3,7 @@ import type {
   ShareSnapshot,
   ShareRepository,
   ShareSnapshotRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class CreateShareSnapshotUseCase {

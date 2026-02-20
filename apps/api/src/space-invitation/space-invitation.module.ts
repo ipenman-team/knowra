@@ -5,8 +5,8 @@ import {
   CreateSpaceLinkInvitationUseCase,
   ListSpaceInvitationsUseCase,
   ResendSpaceInvitationUseCase,
-} from '@contexta/application';
-import { PrismaSpaceInvitationRepository } from '@contexta/infrastructure';
+} from '@knowra/application';
+import { PrismaSpaceInvitationRepository } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   SpaceInvitationAcceptController,

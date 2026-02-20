@@ -12,7 +12,7 @@ import { useMobileSidebarController } from '@/stores/mobile-sidebar-controller-s
 import { useI18n } from '@/lib/i18n/provider';
 
 type SecondarySlot = {
-  id: 'space' | 'favorites' | 'contexta-ai';
+  id: 'space' | 'favorites' | 'knowra-ai';
 };
 
 function getSecondarySlot(pathname: string): SecondarySlot | null {
@@ -22,8 +22,8 @@ function getSecondarySlot(pathname: string): SecondarySlot | null {
   if (pathname.startsWith('/favorites')) {
     return { id: 'favorites' };
   }
-  if (pathname.startsWith('/contexta-ai')) {
-    return { id: 'contexta-ai' };
+  if (pathname.startsWith('/knowra-ai')) {
+    return { id: 'knowra-ai' };
   }
   return null;
 }
@@ -34,7 +34,7 @@ function getTitle(pathname: string, params: {
   fallbackTitle: string;
   trashTitle: string;
   favoritesTitle: string;
-  contextaAiTitle: string;
+  knowraAiTitle: string;
   workbenchTitle: string;
 }): string {
   if (pathname.startsWith('/spaces/trash')) return params.trashTitle;
@@ -42,7 +42,7 @@ function getTitle(pathname: string, params: {
     return params.pageTitle ?? params.spaceName ?? params.fallbackTitle;
   }
   if (pathname.startsWith('/favorites')) return params.favoritesTitle;
-  if (pathname.startsWith('/contexta-ai')) return params.contextaAiTitle;
+  if (pathname.startsWith('/knowra-ai')) return params.knowraAiTitle;
   if (pathname.startsWith('/workbench')) return params.workbenchTitle;
   return params.fallbackTitle;
 }
@@ -53,7 +53,7 @@ export function MobileTopNav() {
   const rootController = useMobileSidebarController('root');
   const spaceController = useMobileSidebarController('space');
   const favoritesController = useMobileSidebarController('favorites');
-  const contextaAiController = useMobileSidebarController('contexta-ai');
+  const knowraAiController = useMobileSidebarController('knowra-ai');
 
   const routeSpaceId = useSpaceRoute();
   const currentSpaceId = useCurrentSpaceId();
@@ -74,8 +74,8 @@ export function MobileTopNav() {
       ? spaceController
       : secondarySlot?.id === 'favorites'
         ? favoritesController
-        : secondarySlot?.id === 'contexta-ai'
-          ? contextaAiController
+        : secondarySlot?.id === 'knowra-ai'
+          ? knowraAiController
           : undefined;
 
   const title = getTitle(pathname, {
@@ -84,7 +84,7 @@ export function MobileTopNav() {
     fallbackTitle: t('mobile.defaultTitle'),
     trashTitle: t('mobile.trash'),
     favoritesTitle: t('mobile.myFavorites'),
-    contextaAiTitle: t('mobile.contextaAi'),
+    knowraAiTitle: t('mobile.knowraAi'),
     workbenchTitle: t('mobile.workbench'),
   });
 
@@ -97,7 +97,7 @@ export function MobileTopNav() {
   const secondaryTextById: Record<SecondarySlot['id'], string> = {
     space: t('mobile.space'),
     favorites: t('mobile.favorites'),
-    'contexta-ai': t('mobile.conversation'),
+    'knowra-ai': t('mobile.conversation'),
   };
 
   return (

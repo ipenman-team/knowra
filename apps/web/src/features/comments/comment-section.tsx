@@ -27,8 +27,8 @@ import { CommentAgreementModal } from './comment-agreement-modal';
 import { cn } from '@/lib/utils';
 import { useMeStore } from '@/stores';
 
-const PUBLIC_COMMENT_GUEST_ID_STORAGE_KEY = 'contexta.public-comment.guest-id';
-const PUBLIC_COMMENT_GUEST_PROFILE_STORAGE_KEY = 'contexta.public-comment.guest-profile';
+const PUBLIC_COMMENT_GUEST_ID_STORAGE_KEY = 'knowra.public-comment.guest-id';
+const PUBLIC_COMMENT_GUEST_PROFILE_STORAGE_KEY = 'knowra.public-comment.guest-profile';
 
 function createGuestId(): string {
   if (typeof window !== 'undefined' && window.crypto?.randomUUID) {

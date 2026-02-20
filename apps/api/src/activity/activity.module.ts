@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { ActivityQueryUseCase, ActivityRecorderUseCase } from '@contexta/application';
-import { PrismaActivityRepository } from '@contexta/infrastructure';
+import { ActivityQueryUseCase, ActivityRecorderUseCase } from '@knowra/application';
+import { PrismaActivityRepository } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAGE_ACTIVITY_ACTION_NAME_MAP } from '../page/constant';
 import { SPACE_ACTIVITY_ACTION_NAME_MAP } from '../space/constant';

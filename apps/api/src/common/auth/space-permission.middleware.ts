@@ -5,8 +5,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { NextFunction, Response } from 'express';
-import type { PermissionKey } from '@contexta/domain';
-import { hasSpacePermission } from '@contexta/infrastructure';
+import type { PermissionKey } from '@knowra/domain';
+import { hasSpacePermission } from '@knowra/infrastructure';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { TenantRequest } from '../tenant/tenant.middleware';
 

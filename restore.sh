@@ -13,10 +13,10 @@ fi
 if [ $# -eq 0 ]; then
   echo "❌ 错误: 未指定备份文件"
   echo "用法: $0 <backup_file>"
-  echo "示例: $0 backups/contexta_20240116_120000.sql.gz"
+  echo "示例: $0 backups/knowra_20240116_120000.sql.gz"
   echo ""
   echo "可用的备份文件:"
-  ls -lh ./backups/contexta_*.sql.gz 2>/dev/null || echo "无备份文件"
+  ls -lh ./backups/knowra_*.sql.gz 2>/dev/null || echo "无备份文件"
   exit 1
 fi
 
@@ -28,7 +28,7 @@ if [ ! -f "$BACKUP_FILE" ]; then
 fi
 
 echo "=========================================="
-echo "🔄 Contexta 数据库恢复"
+echo "🔄 Knowra 数据库恢复"
 echo "=========================================="
 echo ""
 echo "⚠️  警告: 此操作将覆盖现有数据库!"
@@ -52,9 +52,9 @@ fi
 echo "📥 恢复数据库..."
 
 if [[ "$BACKUP_FILE" == *.gz ]]; then
-  gunzip -c "$BACKUP_FILE" | $COMPOSE -f docker-compose.prod.yml exec -T postgres psql -U contexta contexta
+  gunzip -c "$BACKUP_FILE" | $COMPOSE -f docker-compose.prod.yml exec -T postgres psql -U knowra knowra
 else
-  $COMPOSE -f docker-compose.prod.yml exec -T postgres psql -U contexta contexta < "$BACKUP_FILE"
+  $COMPOSE -f docker-compose.prod.yml exec -T postgres psql -U knowra knowra < "$BACKUP_FILE"
 fi
 
 echo ""

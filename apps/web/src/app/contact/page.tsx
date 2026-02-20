@@ -4,8 +4,8 @@ import { ContactSection, LandingShell } from '@/features/landing/components';
 import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Contexta - Contact',
-  description: 'Contact Contexta via community channel or official support email.',
+  title: 'Knowra - Contact',
+  description: 'Contact Knowra via community channel or official support email.',
 };
 
 interface ContactPageProps {

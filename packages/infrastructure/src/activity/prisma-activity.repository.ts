@@ -6,8 +6,8 @@ import type {
   CreateActivityParams,
   ListActivitiesParams,
   ListActivitiesResult,
-} from '@contexta/domain';
-import { decodeActivityCursor, encodeActivityCursor } from '@contexta/domain';
+} from '@knowra/domain';
+import { decodeActivityCursor, encodeActivityCursor } from '@knowra/domain';
 
 function toUtcStartOfDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));

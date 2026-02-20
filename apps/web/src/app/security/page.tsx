@@ -4,7 +4,7 @@ import { LandingShell, SecuritySection } from '@/features/landing/components';
 import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Contexta - Security',
+  title: 'Knowra - Security',
   description: 'Data protection, permission governance, and model key security for knowledge workflows.',
 };
 

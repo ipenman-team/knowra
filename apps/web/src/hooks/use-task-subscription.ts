@@ -5,7 +5,7 @@ import { useRequiredSpaceId } from '@/hooks/use-required-space';
 import type { ApiTaskDto } from '@/lib/api';
 import type { ProgressTask } from '@/features/home/components/progress-manager';
 import { pagesApi } from '@/lib/api';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
+import { buildPageTreeFromFlatPages } from '@knowra/shared';
 
 function mapApiStatus(
   status: ApiTaskDto['status']

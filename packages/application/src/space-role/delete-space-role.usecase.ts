@@ -1,4 +1,4 @@
-import type { SpaceRoleRepository } from '@contexta/domain';
+import type { SpaceRoleRepository } from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class DeleteSpaceRoleUseCase {

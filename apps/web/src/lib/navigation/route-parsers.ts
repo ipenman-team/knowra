@@ -81,7 +81,7 @@ export function usePageRoute(): string | null {
  * @example
  * pathname: /workbench → 'workbench'
  * pathname: /workbench/settings → 'workbench'
- * pathname: /contexta-ai → 'contexta-ai'
+ * pathname: /knowra-ai → 'knowra-ai'
  * pathname: /spaces/123 → null
  */
 export function useViewRoute(): NavigationView | null {
@@ -91,8 +91,8 @@ export function useViewRoute(): NavigationView | null {
     if (pathname === '/workbench' || pathname.startsWith('/workbench/')) {
       return 'workbench';
     }
-    if (pathname === '/contexta-ai' || pathname.startsWith('/contexta-ai/')) {
-      return 'contexta-ai';
+    if (pathname === '/knowra-ai' || pathname.startsWith('/knowra-ai/')) {
+      return 'knowra-ai';
     }
     if (pathname === '/favorites' || pathname.startsWith('/favorites/')) {
       return 'favorites';

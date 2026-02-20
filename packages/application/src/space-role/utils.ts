@@ -2,8 +2,8 @@ import {
   PermissionKeys,
   type PermissionKey,
   type SpaceRole,
-} from '@contexta/domain';
-import type { SpaceMemberRoleValue } from '@contexta/domain';
+} from '@knowra/domain';
+import type { SpaceMemberRoleValue } from '@knowra/domain';
 
 const permissionSet = new Set<string>(PermissionKeys);
 

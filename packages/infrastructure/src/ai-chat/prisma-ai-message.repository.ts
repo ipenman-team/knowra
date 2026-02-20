@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { AiMessageRepository } from '@contexta/domain';
+import type { AiMessageRepository } from '@knowra/domain';
 
 export class PrismaAiMessageRepository implements AiMessageRepository {
   constructor(private readonly prisma: PrismaClient) {}

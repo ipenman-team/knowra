@@ -1,4 +1,4 @@
-import { Share, ShareRepository } from '@contexta/domain';
+import { Share, ShareRepository } from '@knowra/domain';
 
 export type GetShareByIdParams = {
   tenantId: string;

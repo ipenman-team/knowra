@@ -18,8 +18,8 @@ import {
   ListSpaceMembersUseCase,
   RemoveMemberUseCase,
   UpdateMemberRoleUseCase,
-} from '@contexta/application';
-import { ListResponse, Response } from '@contexta/shared';
+} from '@knowra/application';
+import { ListResponse, Response } from '@knowra/shared';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import type { BatchRemoveMembersDto, BatchUpdateMemberRoleDto } from './dto/batch-member.dto';
 import type { ListSpaceMembersQuery } from './dto/list-space-members.query';

@@ -2,8 +2,8 @@ import {
   CountFavoriteByTargetUseCase,
   GetFavoriteStatusUseCase,
   SetFavoriteUseCase,
-} from '@contexta/application';
-import { FavoriteTarget } from '@contexta/domain';
+} from '@knowra/application';
+import { FavoriteTarget } from '@knowra/domain';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PageService } from './page.service';
 

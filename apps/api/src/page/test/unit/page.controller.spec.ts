@@ -3,7 +3,7 @@ import { PageController } from '../../page.controller';
 import { PageService } from '../../page.service';
 import { PageLikeService } from '../../page-like.service';
 import { RagIndexService } from '../../../rag/rag.index.service';
-import { ExportPageUseCase } from '@contexta/application';
+import { ExportPageUseCase } from '@knowra/application';
 
 describe('PageController', () => {
   let controller: PageController;

@@ -1,7 +1,7 @@
 import type {
   SpaceInvitationRepository,
   SpaceInvitationWithToken,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   buildInvitationUrl,
   createInvitationToken,

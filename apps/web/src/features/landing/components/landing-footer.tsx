@@ -11,7 +11,7 @@ export function LandingFooter({ locale }: LandingFooterProps) {
   return (
     <footer className="border-t">
       <div className="mx-auto max-w-7xl px-6 py-7 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Contexta · {prefix} · {ICP_FILING_NUMBER}
+        © {new Date().getFullYear()} Knowra · {prefix} · {ICP_FILING_NUMBER}
       </div>
     </footer>
   );

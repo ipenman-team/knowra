@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { ExportPageData, GetPageForExportParams, PageExportRepository } from '@contexta/domain';
+import type { ExportPageData, GetPageForExportParams, PageExportRepository } from '@knowra/domain';
 
 export class PrismaPageExportRepository implements PageExportRepository {
   constructor(private readonly prisma: PrismaClient) { }

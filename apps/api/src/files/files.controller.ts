@@ -14,7 +14,7 @@ import os from 'os';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { unlinkSync } from 'fs';
-import { Response } from '@contexta/shared';
+import { Response } from '@knowra/shared';
 
 @Controller('files')
 export class FilesController {

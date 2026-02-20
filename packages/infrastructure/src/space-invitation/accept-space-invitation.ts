@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { AcceptSpaceInvitationResult } from '@contexta/domain';
+import type { AcceptSpaceInvitationResult } from '@knowra/domain';
 import { mapInvitation, resolveHigherRole } from './repository-utils';
 import { ensureBuiltInRoles } from '../space-role/repository-utils';
 

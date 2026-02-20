@@ -1,6 +1,6 @@
-import type { AiMessage, AiMessageRepository } from '@contexta/domain';
+import type { AiMessage, AiMessageRepository } from '@knowra/domain';
 import { AiConversationNotFoundError } from './errors';
-import type { AiConversationRepository } from '@contexta/domain';
+import type { AiConversationRepository } from '@knowra/domain';
 
 export class AiMessageUseCase {
   constructor(

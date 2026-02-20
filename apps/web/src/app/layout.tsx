@@ -42,7 +42,7 @@ export default async function RootLayout({
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
-          storageKey="contexta-theme"
+          storageKey="knowra-theme"
         >
           <I18nProvider initialLocale={initialLocale}>
             <MeStoreInit />

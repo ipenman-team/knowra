@@ -1,4 +1,4 @@
-import { normalizeTrim, pickActorId } from "@contexta/utils";
+import { normalizeTrim, pickActorId } from "@knowra/utils";
 import { BadRequestException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 

@@ -38,7 +38,7 @@ export function LandingHeader({ isLoggedIn, locale }: LandingHeaderProps) {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
         <Link href={withLandingLocale('/', locale)} className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-xl bg-blue-500" aria-hidden="true" />
-          <span className="text-3xl font-semibold tracking-tight">Contexta</span>
+          <span className="text-3xl font-semibold tracking-tight">Knowra</span>
         </Link>
 
         <NavigationMenu className="hidden md:flex">

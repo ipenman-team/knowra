@@ -12,7 +12,7 @@ import {
   type SendNotificationsParams,
   type SendNotificationsResult,
   type SoftDeleteNotificationParams,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 function normalizeMetadata(
   value: Prisma.JsonValue | null,

@@ -1,4 +1,4 @@
-import type { ShareVisibility } from '@contexta/domain';
+import type { ShareVisibility } from '@knowra/domain';
 
 export type SiteBuilderMenuKey = 'home' | 'about' | 'blog' | 'contact';
 

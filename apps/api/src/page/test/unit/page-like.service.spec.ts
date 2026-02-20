@@ -3,8 +3,8 @@ import {
   CountFavoriteByTargetUseCase,
   GetFavoriteStatusUseCase,
   SetFavoriteUseCase,
-} from '@contexta/application';
-import { FavoriteTarget } from '@contexta/domain';
+} from '@knowra/application';
+import { FavoriteTarget } from '@knowra/domain';
 
 import { PageLikeService } from '../../page-like.service';
 import { PageService } from '../../page.service';

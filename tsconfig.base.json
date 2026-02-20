@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@contexta/domain": ["packages/domain/src/index.ts"]
+      "@knowra/domain": ["packages/domain/src/index.ts"]
     },
     "target": "ES2022",
     "module": "CommonJS",

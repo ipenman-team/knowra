@@ -9,8 +9,8 @@ import {
   CreateShareUseCase,
   ListSharesUseCase,
   UpdateShareStatusUseCase,
-} from '@contexta/application';
-import type { Share, ShareStatus } from '@contexta/domain';
+} from '@knowra/application';
+import type { Share, ShareStatus } from '@knowra/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { PageService } from '../page/page.service';
 import type { PublishSiteBuilderDto } from './dto/publish-site-builder.dto';

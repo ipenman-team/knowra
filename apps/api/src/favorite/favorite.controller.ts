@@ -11,8 +11,8 @@ import {
   GetFavoriteStatusUseCase,
   ListFavoritesUseCase,
   SetFavoriteUseCase,
-} from '@contexta/application';
-import { ListResponse, Response } from '@contexta/shared';
+} from '@knowra/application';
+import { ListResponse, Response } from '@knowra/shared';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { SetFavoriteDto } from './dto/set-favorite.dto';
 import { ListFavoriteQuery } from './dto/list-favorite.query';

@@ -3,7 +3,7 @@ import type {
   CreateShareSnapshotParams,
   ShareSnapshot,
   ShareSnapshotRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 function toDomain(row: {
   id: string;

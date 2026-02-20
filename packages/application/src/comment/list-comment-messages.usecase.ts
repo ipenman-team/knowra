@@ -1,7 +1,7 @@
 import type {
   CommentRepository,
   ListCommentMessagesResult,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { clampLimit, normalizeRequiredText } from './utils';
 
 export class ListCommentMessagesUseCase {

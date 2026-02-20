@@ -9,12 +9,12 @@ import {
   GetShareByIdUseCase,
   ListSharesUseCase,
   UpdateShareStatusUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import {
   PrismaShareAccessLogRepository,
   PrismaShareRepository,
   PrismaShareSnapshotRepository,
-} from '@contexta/infrastructure';
+} from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   SHARE_ACCESS_LOG_REPOSITORY,

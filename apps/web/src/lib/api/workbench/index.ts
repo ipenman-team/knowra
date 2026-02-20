@@ -3,7 +3,7 @@ import type {
   ActivitiesResponse,
   ActivityDailyStatsQuery,
   ActivityDailyStatsResponse,
-} from '@contexta/shared';
+} from '@knowra/shared';
 import { apiClient } from '../client';
 
 function buildParams(input: Record<string, unknown>) {

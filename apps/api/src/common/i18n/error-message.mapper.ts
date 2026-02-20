@@ -1,4 +1,4 @@
-import { ERROR_CODES, type ErrorCode } from '@contexta/shared';
+import { ERROR_CODES, type ErrorCode } from '@knowra/shared';
 
 import type { AppLocale } from './locale.constants';
 

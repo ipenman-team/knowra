@@ -1,4 +1,4 @@
-import type { NotificationRepository } from '@contexta/domain';
+import type { NotificationRepository } from '@knowra/domain';
 import {
   normalizeBoolean,
   normalizeLimit,

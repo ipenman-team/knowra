@@ -1,5 +1,5 @@
 {
-  "name": "@contexta/application",
+  "name": "@knowra/application",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
@@ -9,8 +9,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@contexta/domain": "workspace:*",
-    "@contexta/shared": "workspace:*",
-    "@contexta/slate-converters": "workspace:*"
+    "@knowra/domain": "workspace:*",
+    "@knowra/shared": "workspace:*",
+    "@knowra/slate-converters": "workspace:*"
   }
 }

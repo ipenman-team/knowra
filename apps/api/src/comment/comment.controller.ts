@@ -22,11 +22,11 @@ import {
   type CreateCommentThreadResult,
   type ReplyCommentThreadResult,
   GetShareAccessUseCase,
-} from '@contexta/application';
-import { ListResponse, Response } from '@contexta/shared';
+} from '@knowra/application';
+import { ListResponse, Response } from '@knowra/shared';
 import { PageService } from '../page/page.service';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
-import type { Share } from '@contexta/domain';
+import type { Share } from '@knowra/domain';
 import type { CreateCommentThreadDto } from './dto/create-comment-thread.dto';
 import type { ReplyCommentDto } from './dto/reply-comment.dto';
 import type { ListCommentThreadsQuery } from './dto/list-comment-threads.query';

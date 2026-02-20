@@ -15,8 +15,8 @@ import {
   ListNotificationsUseCase,
   MarkAllNotificationsReadUseCase,
   MarkNotificationReadUseCase,
-} from '@contexta/application';
-import { ListResponse, Response as HttpResponse } from '@contexta/shared';
+} from '@knowra/application';
+import { ListResponse, Response as HttpResponse } from '@knowra/shared';
 import type { Request, Response } from 'express';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { ListNotificationsDto } from './dto/list-notifications.dto';

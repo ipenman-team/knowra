@@ -2,7 +2,7 @@ import type {
   GetLatestShareSnapshotParams,
   ShareSnapshot,
   ShareSnapshotRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class GetLatestShareSnapshotUseCase {

@@ -7,7 +7,7 @@ import type {
   ListFavoritesParams,
   ListFavoritesResult,
   UpsertFavoriteParams,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 export class PrismaFavoriteRepository implements FavoriteRepository {
   constructor(private readonly prisma: PrismaClient) {}

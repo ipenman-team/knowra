@@ -3,7 +3,7 @@ import type {
   CommentSource,
   CommentThreadStatus,
   ListCommentThreadsResult,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { clampLimit, normalizeRequiredText } from './utils';
 
 export class ListCommentThreadsUseCase {

@@ -1,5 +1,5 @@
 export { ApiError, apiClient } from './client';
-export { contextaAiApi } from './contexta-ai';
+export { knowraAiApi } from './knowra-ai';
 export { pagesApi } from './pages';
 export { pageVersionsApi } from './page-versions';
 export { importsApi } from './imports';

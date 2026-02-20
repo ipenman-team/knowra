@@ -1,4 +1,4 @@
-import type { ListSharesParams, ListSharesResult, ShareRepository } from '@contexta/domain';
+import type { ListSharesParams, ListSharesResult, ShareRepository } from '@knowra/domain';
 import { clampNumber, normalizeRequiredText } from './utils';
 
 export class ListSharesUseCase {

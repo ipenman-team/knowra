@@ -4,12 +4,12 @@ import {
   OpenAICompatibleChatProvider,
   OpenAICompatibleEmbeddingProvider,
   RAG,
-} from '@contexta/rag';
+} from '@knowra/rag';
 import {
   PrismaPgVectorVectorStore,
   PrismaPublishedPageKnowledgeSource,
-} from '@contexta/infrastructure';
-import { slateToPlainText } from '@contexta/slate-converters';
+} from '@knowra/infrastructure';
+import { slateToPlainText } from '@knowra/slate-converters';
 
 @Injectable()
 export class RagService {

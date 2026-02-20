@@ -6,7 +6,7 @@ import type {
   SpaceInvitationStatusValue,
   SpaceMember,
   SpaceMemberRoleValue,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { acceptSpaceInvitationByTokenHash } from './accept-space-invitation';
 import { expireInvitations, mapInvitation, mapMember } from './repository-utils';
 import { ensureBuiltInRoles, hasSpacePermission } from '../space-role/repository-utils';

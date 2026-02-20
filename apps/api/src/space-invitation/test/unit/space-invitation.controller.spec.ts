@@ -11,7 +11,7 @@ import {
   CreateSpaceLinkInvitationUseCase,
   ListSpaceInvitationsUseCase,
   ResendSpaceInvitationUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import {
   SpaceInvitationAcceptController,
   SpaceInvitationController,

@@ -3,7 +3,7 @@ import type {
   SpaceRole,
   SpaceRoleBuiltInTypeValue,
   SpaceRoleRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import type { PrismaClient } from '@prisma/client';
 import {
   ensureBuiltInRoles,

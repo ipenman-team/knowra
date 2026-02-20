@@ -3,7 +3,7 @@ import type {
   CreateShareAccessLogParams,
   ShareAccessLog,
   ShareAccessLogRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 function toDomain(row: {
   id: string;

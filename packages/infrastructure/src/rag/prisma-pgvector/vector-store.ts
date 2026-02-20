@@ -1,4 +1,4 @@
-import type { VectorSearchResult, VectorStore, VectorStoreChunk } from '@contexta/rag';
+import type { VectorSearchResult, VectorStore, VectorStoreChunk } from '@knowra/rag';
 
 export type PrismaPgVectorStoreConfig = {
   vectorDim: number;

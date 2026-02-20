@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { Response } from '@contexta/shared';
+import { Response } from '@knowra/shared';
 
 @Controller()
 export class AppController {

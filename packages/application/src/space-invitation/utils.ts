@@ -4,7 +4,7 @@ import {
   type SpaceInvitationRepository,
   type SpaceInvitationStatusValue,
   type SpaceMemberRoleValue,
-} from '@contexta/domain';
+} from '@knowra/domain';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

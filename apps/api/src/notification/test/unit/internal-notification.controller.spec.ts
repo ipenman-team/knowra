@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { SendNotificationUseCase } from '@contexta/application';
+import { SendNotificationUseCase } from '@knowra/application';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { InternalNotificationController } from '../../internal-notification.controller';
 import { NotificationSseService } from '../../sse/notification-sse.service';
@@ -48,7 +48,7 @@ describe('InternalNotificationController', () => {
         link: '/spaces/s1/pages/p1',
       },
       'req-header',
-      'contexta-ai',
+      'knowra-ai',
     );
 
     expect(sendUseCase.send).toHaveBeenCalledWith({
@@ -59,7 +59,7 @@ describe('InternalNotificationController', () => {
       title: 't',
       body: 'b',
       link: '/spaces/s1/pages/p1',
-      metadata: { callerService: 'contexta-ai' },
+      metadata: { callerService: 'knowra-ai' },
       requestId: 'req-header',
     });
 

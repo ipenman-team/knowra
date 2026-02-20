@@ -1,8 +1,8 @@
-import type { AiMessage, AiMessageRole } from '@contexta/domain';
+import type { AiMessage, AiMessageRole } from '@knowra/domain';
 import type {
   AiConversationRepository,
   AiMessageRepository,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { AiConversationNotFoundError } from './errors';
 import type { AiChatMessage, AiChatProvider } from './ports/ai-chat-provider';
 import type { PromptConfigProvider } from './ports/prompt-config';

@@ -10,10 +10,10 @@ import {
 import {
   GenerateTodayDailyCopyUseCase,
   SetTodayDailyCopyLikeUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { SetDailyCopyLikeDto } from './dto/set-daily-copy-like.dto';
-import { Response } from '@contexta/shared';
+import { Response } from '@knowra/shared';
 
 @Controller('daily-copies')
 export class DailyCopyController {

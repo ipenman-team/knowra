@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma, SpaceType } from '@prisma/client';
-import { ActivityRecorderUseCase } from '@contexta/application';
-import { ensureBuiltInRoles } from '@contexta/infrastructure';
+import { ActivityRecorderUseCase } from '@knowra/application';
+import { ensureBuiltInRoles } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { PageService } from '../page/page.service';
 import { CreateSpaceDto } from './dto/create-space.dto';

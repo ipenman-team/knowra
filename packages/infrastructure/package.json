@@ -1,5 +1,5 @@
 {
-  "name": "@contexta/infrastructure",
+  "name": "@knowra/infrastructure",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
@@ -17,10 +17,10 @@
     "prisma:studio:local": "dotenv -e ../../.env -o -- prisma studio"
   },
   "dependencies": {
-    "@contexta/application": "workspace:*",
-    "@contexta/domain": "workspace:*",
-    "@contexta/rag": "workspace:*",
-    "@contexta/shared": "workspace:*",
+    "@knowra/application": "workspace:*",
+    "@knowra/domain": "workspace:*",
+    "@knowra/rag": "workspace:*",
+    "@knowra/shared": "workspace:*",
     "@prisma/client": "^6.2.1"
   },
   "devDependencies": {

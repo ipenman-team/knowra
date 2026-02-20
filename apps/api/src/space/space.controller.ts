@@ -10,7 +10,7 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SetFavoriteUseCase } from '@contexta/application';
+import { SetFavoriteUseCase } from '@knowra/application';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { SpaceService } from './space.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
@@ -18,7 +18,7 @@ import { UpdateSpaceDto } from './dto/update-space.dto';
 import { ListSpaceQuery } from './dto/list-space.query';
 import { RenameSpaceDto } from './dto/rename-space.dto';
 import { SetSpaceFavoriteDto } from './dto/set-space-favorite.dto';
-import { ListResponse, Response } from '@contexta/shared';
+import { ListResponse, Response } from '@knowra/shared';
 
 @Controller('spaces')
 export class SpaceController {

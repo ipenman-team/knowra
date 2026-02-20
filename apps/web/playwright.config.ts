@@ -22,7 +22,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm -F @contexta/web dev',
+    command: 'pnpm -F @knowra/web dev',
     url: 'http://127.0.0.1:3000/login',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

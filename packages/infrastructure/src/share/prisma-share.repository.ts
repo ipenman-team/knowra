@@ -6,7 +6,7 @@ import type {
   Share,
   ShareRepository,
   UpdateShareStatusParams,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { GetShareByTargetIdParams } from 'packages/domain/src/share/types';
 
 function toDomain(row: {

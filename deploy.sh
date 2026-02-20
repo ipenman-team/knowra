@@ -35,7 +35,7 @@ else
 fi
 
 echo "=========================================="
-echo "🚀 Contexta 部署"
+echo "🚀 Knowra 部署"
 echo "=========================================="
 echo ""
 
@@ -61,7 +61,7 @@ echo ""
 echo "⏳ 等待数据库就绪..."
 DB_READY=0
 for i in {1..30}; do
-  if $COMPOSE -f docker-compose.prod.yml exec -T postgres pg_isready -U "${DB_USER:-contexta}" -d "${DB_NAME:-contexta}" > /dev/null 2>&1; then
+  if $COMPOSE -f docker-compose.prod.yml exec -T postgres pg_isready -U "${DB_USER:-knowra}" -d "${DB_NAME:-knowra}" > /dev/null 2>&1; then
     DB_READY=1
     break
   fi
@@ -75,7 +75,7 @@ fi
 
 echo ""
 echo "🗄️  执行数据库迁移..."
-if ! $COMPOSE -f docker-compose.prod.yml run --rm --no-deps api bash -lc "cd /app && pnpm -F @contexta/infrastructure prisma:migrate:deploy"; then
+if ! $COMPOSE -f docker-compose.prod.yml run --rm --no-deps api bash -lc "cd /app && pnpm -F @knowra/infrastructure prisma:migrate:deploy"; then
   echo "⚠️  数据库迁移失败，请检查日志"
   echo "   运行: $COMPOSE -f docker-compose.prod.yml logs --tail=200 api"
 fi
@@ -86,13 +86,13 @@ $COMPOSE -f docker-compose.prod.yml up -d
 
 echo ""
 echo "🏷️  当前运行版本..."
-if ! $COMPOSE -f docker-compose.prod.yml exec -T api bash -lc 'echo "api:${CONTEXTA_GIT_COMMIT:-unknown}"'; then
+if ! $COMPOSE -f docker-compose.prod.yml exec -T api bash -lc 'echo "api:${KNOWRA_GIT_COMMIT:-unknown}"'; then
   echo "⚠️  无法读取 API 版本"
 fi
-if ! $COMPOSE -f docker-compose.prod.yml exec -T contexta-ai bash -lc 'echo "contexta-ai:${CONTEXTA_GIT_COMMIT:-unknown}"'; then
-  echo "⚠️  无法读取 Contexta-AI 版本"
+if ! $COMPOSE -f docker-compose.prod.yml exec -T knowra-ai bash -lc 'echo "knowra-ai:${KNOWRA_GIT_COMMIT:-unknown}"'; then
+  echo "⚠️  无法读取 Knowra-AI 版本"
 fi
-if ! $COMPOSE -f docker-compose.prod.yml exec -T web bash -lc 'echo "web:${CONTEXTA_GIT_COMMIT:-unknown}"'; then
+if ! $COMPOSE -f docker-compose.prod.yml exec -T web bash -lc 'echo "web:${KNOWRA_GIT_COMMIT:-unknown}"'; then
   echo "⚠️  无法读取 Web 版本"
 fi
 
@@ -121,10 +121,10 @@ else
   echo "⚠️  API: /api/ping 异常"
 fi
 
-if curl -s -f http://localhost/contexta-ai/ping > /dev/null 2>&1; then
-  echo "✅ Contexta-AI: /contexta-ai/ping 正常"
+if curl -s -f http://localhost/knowra-ai/ping > /dev/null 2>&1; then
+  echo "✅ Knowra-AI: /knowra-ai/ping 正常"
 else
-  echo "⚠️  Contexta-AI: /contexta-ai/ping 异常"
+  echo "⚠️  Knowra-AI: /knowra-ai/ping 异常"
 fi
 
 if curl -s -f http://localhost > /dev/null 2>&1; then

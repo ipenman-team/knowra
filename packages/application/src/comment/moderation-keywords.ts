@@ -1,4 +1,4 @@
-import type { CommentRiskCategory } from '@contexta/domain';
+import type { CommentRiskCategory } from '@knowra/domain';
 
 export type ModerationSeverity = 'REJECT' | 'REVIEW';
 

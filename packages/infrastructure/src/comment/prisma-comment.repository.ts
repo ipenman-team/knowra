@@ -13,13 +13,13 @@ import type {
   ListCommentThreadsResult,
   ReplyCommentThreadWithMessageParams,
   ResolveCommentThreadParams,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import {
   decodeCommentMessageCursor,
   decodeCommentThreadCursor,
   encodeCommentMessageCursor,
   encodeCommentThreadCursor,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 function toRiskCategories(value: Prisma.JsonValue | null): CommentRiskCategory[] | null {

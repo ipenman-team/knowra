@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Prisma } from '@prisma/client';
-import { ActivityRecorderUseCase } from '@contexta/application';
+import { ActivityRecorderUseCase } from '@knowra/application';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PageService } from '../../page.service';
 import type { PageDto } from '../../dto/page.dto';

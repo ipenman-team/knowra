@@ -1,6 +1,6 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ActivityRecorderUseCase } from '@contexta/application';
+import { ActivityRecorderUseCase } from '@knowra/application';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PageService } from '../../../page/page.service';
 import { SpaceService } from '../../space.service';

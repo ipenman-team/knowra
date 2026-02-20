@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import { UserService } from './user.service';
-import { Response } from '@contexta/shared';
+import { Response } from '@knowra/shared';
 
 @Controller('users')
 export class UserController {

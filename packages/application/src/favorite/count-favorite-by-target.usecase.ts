@@ -1,4 +1,4 @@
-import type { FavoriteRepository } from '@contexta/domain';
+import type { FavoriteRepository } from '@knowra/domain';
 import { normalizeRequiredText, normalizeTargetType } from './utils';
 
 export class CountFavoriteByTargetUseCase {

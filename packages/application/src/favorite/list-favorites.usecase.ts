@@ -1,4 +1,4 @@
-import type { FavoriteRepository, ListFavoritesResult } from '@contexta/domain';
+import type { FavoriteRepository, ListFavoritesResult } from '@knowra/domain';
 import {
   normalizePositiveInteger,
   normalizeRequiredText,

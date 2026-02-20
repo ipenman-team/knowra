@@ -44,11 +44,11 @@ export function buildPageUrl(spaceId: string, pageId: string): string {
  * 构建主视图 URL
  *
  * @param view - 视图类型
- * @returns /workbench | /contexta-ai | /settings
+ * @returns /workbench | /knowra-ai | /settings
  *
  * @example
  * buildViewUrl('workbench') → '/workbench'
- * buildViewUrl('contexta-ai') → '/contexta-ai'
+ * buildViewUrl('knowra-ai') → '/knowra-ai'
  */
 export function buildViewUrl(view: NavigationView): string {
   return `/${view}`;

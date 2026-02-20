@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 
-import type { DailyCopyDto, DailyCopyMetadata } from '@contexta/shared';
+import type { DailyCopyDto, DailyCopyMetadata } from '@knowra/shared';
 import { Heart } from 'lucide-react';
 
 import { dailyCopiesApi } from '@/lib/api';

@@ -1,7 +1,7 @@
 import type {
   CommentModerationLogRepository,
   CreateCommentModerationLogParams,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 export class PrismaCommentModerationLogRepository

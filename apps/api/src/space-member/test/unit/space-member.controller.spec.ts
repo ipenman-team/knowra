@@ -10,7 +10,7 @@ import {
   ListSpaceMembersUseCase,
   RemoveMemberUseCase,
   UpdateMemberRoleUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import { SpaceMemberController } from '../../space-member.controller';
 
 describe('SpaceMemberController', () => {

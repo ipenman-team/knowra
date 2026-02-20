@@ -1,4 +1,4 @@
-import type { FavoriteExtraData, FavoriteRepository } from '@contexta/domain';
+import type { FavoriteExtraData, FavoriteRepository } from '@knowra/domain';
 import { normalizeRequiredText, normalizeTargetType } from './utils';
 
 export class SetFavoriteUseCase {

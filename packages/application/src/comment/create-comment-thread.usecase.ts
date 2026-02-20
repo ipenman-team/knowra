@@ -5,7 +5,7 @@ import type {
   CommentAuthorType,
   CommentSource,
   ModerateCommentContentResult,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { ModerateCommentContentUseCase } from './moderate-comment-content.usecase';
 import { normalizeRequiredText, toContentText } from './utils';
 import * as crypto from 'node:crypto';

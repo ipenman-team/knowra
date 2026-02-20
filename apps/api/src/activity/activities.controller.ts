@@ -1,9 +1,9 @@
 import { BadRequestException, Controller, Get, Inject, Query } from '@nestjs/common';
-import { ActivityQueryUseCase } from '@contexta/application';
+import { ActivityQueryUseCase } from '@knowra/application';
 import { TenantId } from '../common/tenant/tenant-id.decorator';
 import { ACTIVITY_ACTION_NAME_MAP } from './activity.tokens';
 import { formatActivityContent } from './activity-content';
-import { ListResponse, Response } from '@contexta/shared';
+import { ListResponse, Response } from '@knowra/shared';
 
 type ListActivitiesQuery = {
   limit?: string;

@@ -6,8 +6,8 @@ import { PageVersionService } from './page-version.service';
 import { PageLikeService } from './page-like.service';
 import { RagModule } from '../rag/rag.module';
 import { PrismaService } from '../prisma/prisma.service';
-import { ExportPageUseCase } from '@contexta/application';
-import { PrismaPageExportRepository } from '@contexta/infrastructure';
+import { ExportPageUseCase } from '@knowra/application';
+import { PrismaPageExportRepository } from '@knowra/infrastructure';
 import { PAGE_EXPORT_REPOSITORY } from './page.tokens';
 
 @Module({

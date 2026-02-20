@@ -41,7 +41,7 @@ type EmojiEntry = {
 
 type EmojiMartPickerComponent = ComponentType<Record<string, unknown>>;
 
-const EMOJI_RECENT_FALLBACK_KEY = "contexta:emoji-picker:recent";
+const EMOJI_RECENT_FALLBACK_KEY = "knowra:emoji-picker:recent";
 const DEFAULT_RECENT_LIMIT = 24;
 const EMOJI_MART_REACT_CDN_URL = "https://esm.sh/@emoji-mart/react@1.1.1?bundle";
 const EMOJI_MART_DATA_CDN_URL = "https://esm.sh/@emoji-mart/data@1.2.1?bundle";

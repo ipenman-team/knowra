@@ -8,11 +8,11 @@ import {
   ModerateCommentContentUseCase,
   ReplyCommentThreadUseCase,
   ResolveCommentThreadUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import {
   PrismaCommentModerationLogRepository,
   PrismaCommentRepository,
-} from '@contexta/infrastructure';
+} from '@knowra/infrastructure';
 import { PageModule } from '../page/page.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShareModule } from '../share/share.module';

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isValidEmail, toDigits } from '@contexta/utils';
+import { isValidEmail, toDigits } from '@knowra/utils';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

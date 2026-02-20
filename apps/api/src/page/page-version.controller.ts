@@ -2,7 +2,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 
 import { TenantId } from '../common/tenant/tenant-id.decorator';
 import { PageVersionService } from './page-version.service';
-import { ListResponse, Response } from '@contexta/shared';
+import { ListResponse, Response } from '@knowra/shared';
 
 @Controller('pages/:pageId')
 export class PageVersionController {

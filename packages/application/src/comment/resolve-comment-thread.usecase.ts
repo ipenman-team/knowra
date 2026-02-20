@@ -2,7 +2,7 @@ import type {
   CommentRepository,
   CommentThread,
   CommentThreadStatus,
-} from '@contexta/domain';
+} from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class ResolveCommentThreadUseCase {

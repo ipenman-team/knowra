@@ -22,7 +22,7 @@ export function LoginAgreement({
           disabled={disabled}
         />
         <div className="text-sm text-muted-foreground">
-          我已阅读并同意 Contexta{' '}
+          我已阅读并同意 Knowra{' '}
           <a className="text-foreground underline" href="#">
             服务协议
           </a>{' '}

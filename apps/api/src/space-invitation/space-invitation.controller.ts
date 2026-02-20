@@ -16,9 +16,9 @@ import {
   CreateSpaceLinkInvitationUseCase,
   ListSpaceInvitationsUseCase,
   ResendSpaceInvitationUseCase,
-} from '@contexta/application';
-import type { SpaceInvitationStatusValue } from '@contexta/domain';
-import { ListResponse, Response } from '@contexta/shared';
+} from '@knowra/application';
+import type { SpaceInvitationStatusValue } from '@knowra/domain';
+import { ListResponse, Response } from '@knowra/shared';
 import { TenantId, UserId } from '../common/tenant/tenant-id.decorator';
 import type { AcceptSpaceInvitationDto } from './dto/accept-space-invitation.dto';
 import type { CreateSpaceEmailInvitationsDto } from './dto/create-space-email-invitations.dto';

@@ -1,4 +1,4 @@
-import type { SpaceRole, SpaceRoleRepository } from '@contexta/domain';
+import type { SpaceRole, SpaceRoleRepository } from '@knowra/domain';
 import {
   normalizeOptionalText,
   normalizePermissionKeys,

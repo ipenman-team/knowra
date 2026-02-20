@@ -6,8 +6,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SendNotificationUseCase } from '@contexta/application';
-import { Response } from '@contexta/shared';
+import { SendNotificationUseCase } from '@knowra/application';
+import { Response } from '@knowra/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { SendNotificationDto } from './dto/send-notification.dto';
 import { ServiceTokenGuard } from './guards/service-token.guard';

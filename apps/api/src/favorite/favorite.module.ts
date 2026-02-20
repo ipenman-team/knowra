@@ -4,8 +4,8 @@ import {
   GetFavoriteStatusUseCase,
   ListFavoritesUseCase,
   SetFavoriteUseCase,
-} from '@contexta/application';
-import { PrismaFavoriteRepository } from '@contexta/infrastructure';
+} from '@knowra/application';
+import { PrismaFavoriteRepository } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { FavoriteController } from './favorite.controller';
 import { FAVORITE_REPOSITORY } from './favorite.tokens';

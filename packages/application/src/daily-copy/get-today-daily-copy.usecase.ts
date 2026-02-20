@@ -1,4 +1,4 @@
-import type { DailyCopyRepository } from '@contexta/domain';
+import type { DailyCopyRepository } from '@knowra/domain';
 import { formatLocalDayKey, normalizeRequiredText } from './utils';
 
 export class GetTodayDailyCopyUseCase {

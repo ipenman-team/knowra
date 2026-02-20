@@ -1,4 +1,4 @@
-import { ActivityItem } from '@contexta/shared';
+import { ActivityItem } from '@knowra/shared';
 import { format } from 'date-fns';
 
 export function mapActivityItems(

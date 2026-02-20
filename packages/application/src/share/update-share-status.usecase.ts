@@ -1,4 +1,4 @@
-import type { Share, ShareRepository, ShareStatus } from '@contexta/domain';
+import type { Share, ShareRepository, ShareStatus } from '@knowra/domain';
 import { normalizeRequiredText } from './utils';
 
 export class UpdateShareStatusUseCase {

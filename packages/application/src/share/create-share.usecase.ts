@@ -1,7 +1,7 @@
-import type { Share, ShareRepository, ShareStatus, ShareType, ShareVisibility } from '@contexta/domain';
+import type { Share, ShareRepository, ShareStatus, ShareType, ShareVisibility } from '@knowra/domain';
 import * as crypto from 'node:crypto';
 import { normalizeRequiredText } from './utils';
-import { ShareScopeType } from '@contexta/domain/src/share/types';
+import { ShareScopeType } from '@knowra/domain/src/share/types';
 
 function makePublicId(): string {
   return crypto.randomBytes(8).toString('base64url');

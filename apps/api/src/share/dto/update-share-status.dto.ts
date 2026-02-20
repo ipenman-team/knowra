@@ -1,4 +1,4 @@
-import type { ShareStatus } from '@contexta/domain';
+import type { ShareStatus } from '@knowra/domain';
 
 export type UpdateShareStatusDto = {
   status: ShareStatus;

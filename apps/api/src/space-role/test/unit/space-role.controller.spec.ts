@@ -9,7 +9,7 @@ import {
   DeleteSpaceRoleUseCase,
   ListSpaceRolesUseCase,
   UpdateSpaceRoleUseCase,
-} from '@contexta/application';
+} from '@knowra/application';
 import { SpaceRoleController } from '../../space-role.controller';
 
 describe('SpaceRoleController', () => {

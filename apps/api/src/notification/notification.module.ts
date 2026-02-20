@@ -6,8 +6,8 @@ import {
   MarkAllNotificationsReadUseCase,
   MarkNotificationReadUseCase,
   SendNotificationUseCase,
-} from '@contexta/application';
-import { PrismaNotificationRepository } from '@contexta/infrastructure';
+} from '@knowra/application';
+import { PrismaNotificationRepository } from '@knowra/infrastructure';
 import { PrismaService } from '../prisma/prisma.service';
 import { InternalNotificationController } from './internal-notification.controller';
 import { NotificationController } from './notification.controller';

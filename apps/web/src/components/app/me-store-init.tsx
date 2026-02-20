@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 import { useMeStore } from '@/stores';
 
-const PROTECTED_PREFIXES = ['/workbench', '/spaces', '/contexta-ai'];
+const PROTECTED_PREFIXES = ['/workbench', '/spaces', '/knowra-ai'];
 
 function isProtectedPath(pathname: string | null): boolean {
   if (!pathname) return false;

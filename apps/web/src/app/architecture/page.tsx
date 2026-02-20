@@ -4,8 +4,8 @@ import { ArchitectureSection, LandingShell } from '@/features/landing/components
 import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Contexta - Workflow Architecture',
-  description: 'Scenario-driven workflow architecture for Contexta intelligent knowledge loops.',
+  title: 'Knowra - Workflow Architecture',
+  description: 'Scenario-driven workflow architecture for Knowra intelligent knowledge loops.',
 };
 
 interface ArchitecturePageProps {

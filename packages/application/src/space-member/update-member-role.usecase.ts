@@ -1,4 +1,4 @@
-import type { SpaceMemberRepository, SpaceRoleRepository } from '@contexta/domain';
+import type { SpaceMemberRepository, SpaceRoleRepository } from '@knowra/domain';
 import {
   normalizeRequiredText,
   resolveMemberRoleFromSpaceRole,

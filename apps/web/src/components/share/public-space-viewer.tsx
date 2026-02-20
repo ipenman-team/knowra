@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { buildPageTreeFromFlatPages } from '@contexta/shared';
+import { buildPageTreeFromFlatPages } from '@knowra/shared';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
 import { EditorTitleDisplay } from '@/components/editor/components/title-display';
 import { SharePageHeader } from '@/components/share/share-page-header';

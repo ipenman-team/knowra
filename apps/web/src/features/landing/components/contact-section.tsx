@@ -26,7 +26,7 @@ export function ContactSection({ locale }: ContactSectionProps) {
           <div className="mt-4 w-fit rounded-xl bg-card p-3 shadow-sm">
             <img
               src={WECHAT_QR_IMAGE_URL}
-              alt="Contexta community QR code"
+              alt="Knowra community QR code"
               className="h-40 w-40 rounded-md object-cover"
               loading="lazy"
             />

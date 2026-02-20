@@ -5,7 +5,7 @@ import { resolveLandingLocale } from '@/features/landing/locale';
 import { LandingHome } from './landing-home';
 
 export const metadata: Metadata = {
-  title: 'Contexta - 智能化知识库',
+  title: 'Knowra - 智能化知识库',
   description:
     '面向用户场景的智能化知识库：语义化问答、知识协作闭环、可追溯版本治理。',
 };
