@@ -1,0 +1,21 @@
+export type PaymentWebhookDto = {
+  eventId?: string;
+  notify_id?: string;
+  outTradeNo?: string;
+  out_trade_no?: string;
+  providerTradeNo?: string;
+  trade_no?: string;
+  status?: string;
+  tradeStatus?: string;
+  trade_status?: string;
+  amount?: number | string;
+  totalAmount?: number | string;
+  total_fee?: number | string;
+  currency?: string;
+  fee_type?: string;
+  paidAt?: string;
+  successTime?: string;
+  time_end?: string;
+  signature?: string;
+  sign?: string;
+};

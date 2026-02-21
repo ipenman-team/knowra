@@ -24,6 +24,7 @@ import { SpaceInvitationModule } from './space-invitation/space-invitation.modul
 import { SpaceRoleModule } from './space-role/space-role.module';
 import { SpaceMemberModule } from './space-member/space-member.module';
 import { SpacePermissionMiddleware } from './common/auth/space-permission.middleware';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { SpacePermissionMiddleware } from './common/auth/space-permission.middle
     SpaceInvitationModule,
     SpaceRoleModule,
     SpaceMemberModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [

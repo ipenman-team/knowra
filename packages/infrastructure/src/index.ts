@@ -10,3 +10,4 @@ export * from './notification';
 export * from './space-invitation';
 export * from './space-role';
 export * from './space-member';
+export * from './billing';

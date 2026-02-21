@@ -9,6 +9,7 @@ export * from './notification';
 export * from './space-invitation';
 export * from './space-role';
 export * from './space-member';
+export * from './billing';
 export type {
   Share,
   ShareType,
@@ -53,7 +54,11 @@ export type {
   SpaceMemberSummary,
   SpaceMemberRecord,
 } from './space-member';
-export type { PageExportRepository, ExportPageData, GetPageForExportParams } from './page';
+export type {
+  PageExportRepository,
+  ExportPageData,
+  GetPageForExportParams,
+} from './page';
 export type {
   CommentRepository,
   CommentModerationLogRepository,

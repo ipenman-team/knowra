@@ -139,6 +139,60 @@ enum NotificationType {
   CUSTOM
 }
 
+enum BillingChannel {
+  ALIPAY
+  WECHAT_PAY
+}
+
+enum BillingClientType {
+  WEB_PC
+  WEB_MOBILE_BROWSER
+  WECHAT_IN_APP_BROWSER
+  ALIPAY_IN_APP_BROWSER
+  APP_WEBVIEW
+}
+
+enum BillingOrderStatus {
+  CREATED
+  PAYING
+  PAID
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum BillingPaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  CLOSED
+  FAILED
+}
+
+enum BillingBillStatus {
+  ISSUED
+  VOID
+  REFUNDED
+}
+
+enum BillingWebhookVerifyStatus {
+  PASS
+  FAIL
+}
+
+enum TenantSubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum EntitlementSourceType {
+  SUBSCRIPTION
+  ONE_TIME_PURCHASE
+  MANUAL
+}
+
 model RagChunk {
   id       String @id
   tenantId String @map("tenant_id")
@@ -520,6 +574,192 @@ model CommentModerationLog {
   @@index([tenantId, result, createdAt], map: "comment_mod_logs_tenant_result_created_idx")
   @@index([tenantId, actorGuestId, createdAt], map: "comment_mod_logs_tenant_guest_created_idx")
   @@map("comment_moderation_logs")
+}
+
+model BillingOrder {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  buyerUserId String @map("buyer_user_id")
+
+  orderNo String @unique @map("order_no")
+  idempotencyKey String? @map("idempotency_key")
+
+  status BillingOrderStatus @default(CREATED)
+  channel BillingChannel
+  clientType BillingClientType @default(WEB_PC)
+
+  currency String @default("CNY")
+  amount   Int
+
+  subject     String
+  description String?
+  lineItems   Json @map("line_items") @db.JsonB
+  metadata    Json? @db.JsonB
+
+  paidAt    DateTime? @map("paid_at")
+  expiredAt DateTime? @map("expired_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  payments BillingPayment[]
+  bill     BillingBill?
+  subscriptions TenantSubscription[]
+
+  @@index([tenantId, buyerUserId], map: "billing_orders_tenant_buyer_idx")
+  @@index([tenantId, status, createdAt], map: "billing_orders_tenant_status_created_idx")
+  @@index([tenantId, idempotencyKey], map: "billing_orders_tenant_idempotency_idx")
+  @@map("billing_orders")
+}
+
+model BillingPayment {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  orderId  String @map("order_id")
+
+  channel    BillingChannel
+  clientType BillingClientType @default(WEB_PC)
+  status     BillingPaymentStatus @default(INITIATED)
+
+  outTradeNo      String  @map("out_trade_no")
+  providerTradeNo String? @map("provider_trade_no")
+
+  requestPayload  Json? @map("request_payload") @db.JsonB
+  responsePayload Json? @map("response_payload") @db.JsonB
+
+  paidAt   DateTime? @map("paid_at")
+  closedAt DateTime? @map("closed_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order BillingOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bill  BillingBill?
+
+  @@index([tenantId, orderId], map: "billing_payments_tenant_order_idx")
+  @@index([tenantId, status, createdAt], map: "billing_payments_tenant_status_created_idx")
+  @@unique([channel, outTradeNo], map: "billing_payments_channel_out_trade_no_key")
+  @@unique([channel, providerTradeNo], map: "billing_payments_channel_provider_trade_no_key")
+  @@map("billing_payments")
+}
+
+model BillingWebhookEvent {
+  id       String @id @default(cuid())
+  tenantId String? @map("tenant_id")
+
+  channel BillingChannel
+  eventId String @map("event_id")
+
+  outTradeNo      String? @map("out_trade_no")
+  providerTradeNo String? @map("provider_trade_no")
+
+  verifyStatus BillingWebhookVerifyStatus @map("verify_status")
+  rawBody      String @map("raw_body") @db.Text
+  headers      Json   @db.JsonB
+  receivedAt   DateTime @map("received_at")
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([channel, eventId], map: "billing_webhooks_channel_event_id_key")
+  @@index([tenantId, receivedAt], map: "billing_webhooks_tenant_received_idx")
+  @@index([channel, outTradeNo], map: "billing_webhooks_channel_out_trade_idx")
+  @@index([channel, providerTradeNo], map: "billing_webhooks_channel_provider_trade_idx")
+  @@map("billing_webhook_events")
+}
+
+model BillingBill {
+  id       String @id @default(cuid())
+  tenantId String @map("tenant_id")
+  orderId  String @unique @map("order_id")
+  paymentId String @unique @map("payment_id")
+
+  billNo String @unique @map("bill_no")
+  status BillingBillStatus @default(ISSUED)
+
+  currency   String @default("CNY")
+  amountPaid Int @map("amount_paid")
+  issuedAt   DateTime @map("issued_at")
+
+  lineItemsSnapshot Json @map("line_items_snapshot") @db.JsonB
+  buyerSnapshot     Json? @map("buyer_snapshot") @db.JsonB
+  metadata          Json? @db.JsonB
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order   BillingOrder   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment BillingPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, issuedAt], map: "billing_bills_tenant_issued_idx")
+  @@map("billing_bills")
+}
+
+model TenantSubscription {
+  id String @id @default(cuid())
+  tenantId String @unique @map("tenant_id")
+
+  status TenantSubscriptionStatus @default(ACTIVE)
+  currentPeriodStartAt DateTime @map("current_period_start_at")
+  currentPeriodEndAt   DateTime @map("current_period_end_at")
+  autoRenew            Boolean  @default(false) @map("auto_renew")
+
+  sourceOrderId String? @map("source_order_id")
+  planSnapshot  Json @map("plan_snapshot") @db.JsonB
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sourceOrder BillingOrder? @relation(fields: [sourceOrderId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, currentPeriodEndAt], map: "tenant_subscriptions_tenant_status_end_idx")
+  @@map("tenant_subscriptions")
+}
+
+model TenantEntitlement {
+  id String @id @default(cuid())
+  tenantId String @map("tenant_id")
+
+  key   String
+  value Json @db.JsonB
+
+  effectiveFrom DateTime @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+
+  sourceType  EntitlementSourceType @map("source_type")
+  sourceRefId String @map("source_ref_id")
+  reason      String?
+
+  createdBy String @map("created_by")
+  updatedBy String @map("updated_by")
+
+  isDeleted Boolean @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, key, effectiveFrom, effectiveTo], map: "tenant_entitlements_tenant_key_effective_idx")
+  @@index([tenantId, sourceType, sourceRefId], map: "tenant_entitlements_tenant_source_idx")
+  @@map("tenant_entitlements")
 }
 
 model VerificationCode {
