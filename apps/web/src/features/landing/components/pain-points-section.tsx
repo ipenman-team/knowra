@@ -9,34 +9,37 @@ export function PainPointsSection({ locale }: PainPointsSectionProps) {
   const content = getLandingContent(locale);
 
   return (
-    <section id="pain-points" className="mx-auto max-w-7xl px-6 py-8 lg:py-12">
-      <div>
-        <p className="text-sm font-medium text-blue-600">{content.scenarioSection.eyebrow}</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          {content.scenarioSection.title}
-        </h2>
-      </div>
+    <section id="pain-points" className="mx-auto max-w-7xl px-6 py-12 lg:py-16">
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
+        <div className="max-w-3xl lg:col-span-4 lg:max-w-none">
+          <p className="text-sm font-medium text-blue-700">{content.homeNarrative.eyebrow}</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+            {content.homeNarrative.title}
+          </h2>
+          <p className="mt-4 text-base leading-7 text-slate-600">{content.homeNarrative.intro}</p>
+        </div>
 
-      <div className="mt-8 grid gap-5 xl:grid-cols-2">
-        {content.scenarios.map((item) => (
-          <article key={item.title} className="rounded-2xl bg-slate-50/80 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold">{item.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:col-span-8">
+          {content.homeNarrative.painGroups.map((item, index) => (
+            <article
+              key={item.title}
+              className="landing-fade-in bg-white p-6 shadow-[0_18px_42px_-30px_rgba(15,23,42,0.45)] [animation-delay:140ms]"
+              style={{ animationDelay: `${index * 80}ms` }}
+            >
+              <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
 
-            <ul className="mt-4 space-y-2 text-sm text-foreground">
-              {item.flow.map((flow) => (
-                <li key={flow} className="flex items-start gap-2">
-                  <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
-                  <span>{flow}</span>
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-4 text-sm font-medium text-foreground">
-              {item.result}
-            </p>
-          </article>
-        ))}
+              <ul className="mt-4 space-y-2 text-sm leading-6 text-slate-700">
+                {item.points.map((point) => (
+                  <li key={point} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
