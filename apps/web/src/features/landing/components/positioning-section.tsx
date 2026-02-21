@@ -22,7 +22,7 @@ export function PositioningSection({ locale }: PositioningSectionProps) {
           {content.coreCapabilities.items.map((item, index) => (
             <article
               key={item.title}
-              className="landing-fade-in bg-white p-6 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.45)]"
+              className="landing-fade-in rounded-lg bg-white p-6 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.45)]"
               style={{ animationDelay: `${index * 70}ms` }}
             >
               <div className="flex items-start justify-between gap-3">

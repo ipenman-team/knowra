@@ -23,7 +23,7 @@ export function PainPointsSection({ locale }: PainPointsSectionProps) {
           {content.homeNarrative.painGroups.map((item, index) => (
             <article
               key={item.title}
-              className="landing-fade-in bg-white p-6 shadow-[0_18px_42px_-30px_rgba(15,23,42,0.45)] [animation-delay:140ms]"
+              className="landing-fade-in rounded-lg bg-white p-6 shadow-[0_18px_42px_-30px_rgba(15,23,42,0.45)] [animation-delay:140ms]"
               style={{ animationDelay: `${index * 80}ms` }}
             >
               <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>

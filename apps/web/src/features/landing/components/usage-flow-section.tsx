@@ -28,14 +28,14 @@ export function UsageFlowSection({ locale }: UsageFlowSectionProps) {
             return (
               <article
                 key={item.title}
-                className="landing-fade-in bg-white p-6 shadow-[0_20px_46px_-34px_rgba(15,23,42,0.48)]"
+                className="landing-fade-in rounded-lg bg-white p-6 shadow-[0_20px_46px_-34px_rgba(15,23,42,0.48)]"
                 style={{ animationDelay: `${index * 90}ms` }}
               >
                 <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
                   <div className={cn(index % 2 === 0 ? 'lg:order-1' : 'lg:order-2')}>
                     <LandingSceneImage
                       scene={scene}
-                      className="h-52"
+                      className="w-full"
                       sizes="(min-width: 1280px) 520px, (min-width: 1024px) 44vw, 100vw"
                     />
                   </div>
@@ -55,7 +55,7 @@ export function UsageFlowSection({ locale }: UsageFlowSectionProps) {
                       ))}
                     </ol>
 
-                    <p className="mt-4 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">
+                    <p className="mt-4 rounded-md bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">
                       {item.outcome}
                     </p>
                   </div>
