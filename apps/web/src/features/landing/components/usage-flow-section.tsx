@@ -12,7 +12,7 @@ export function UsageFlowSection({ locale }: UsageFlowSectionProps) {
 
   return (
     <section id="entry-loop" className="mx-auto max-w-7xl px-6 py-12 lg:py-16">
-      <div className="max-w-4xl">
+      <div className="text-center">
         <p className="text-sm font-medium text-blue-700">{content.entryLoop.eyebrow}</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
           {content.entryLoop.title}
@@ -46,12 +46,7 @@ export function UsageFlowSection({ locale }: UsageFlowSectionProps) {
 
               <div className="hidden lg:block lg:order-2" aria-hidden="true" />
 
-              <div
-                className={cn(
-                  'rounded-lg bg-white p-6 shadow-[0_20px_46px_-34px_rgba(15,23,42,0.48)]',
-                  imageFirst ? 'lg:order-3' : 'lg:order-1',
-                )}
-              >
+              <div className={cn('p-1 lg:p-0', imageFirst ? 'lg:order-3' : 'lg:order-1')}>
                 <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
 
