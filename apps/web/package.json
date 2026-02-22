@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --environment node",
     "test:ui": "playwright test",
-    "test:ui:headed": "playwright test --headed"
+    "test:ui:headed": "playwright test --headed",
+    "capture:landing-scenes": "PW_CAPTURE_LANDING_SCENES=1 playwright test tests/playwright/capture-landing-scenes.spec.ts --project=chromium --reporter=line"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.2",

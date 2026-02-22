@@ -2,6 +2,52 @@ import type { LandingLocale } from '@/features/landing/locale';
 
 export type LandingPricingTier = 'free' | 'pro' | 'team' | 'enterprise';
 
+export interface LandingSceneAsset {
+  id:
+    | 'ai-question-internet'
+    | 'ai-insert-panel'
+    | 'editor-ai-toolbar'
+    | 'editor-ai-result'
+    | 'ai-search-all-knowledge';
+  title: string;
+  caption: string;
+  src: string;
+  fallbackSrc: string;
+  alt: string;
+}
+
+export interface MarketingNavItem {
+  label: string;
+  href: string;
+  kind: 'route' | 'anchor';
+}
+
+export interface LandingPainGroup {
+  title: string;
+  summary: string;
+  points: string[];
+}
+
+export interface EntryLoopItem {
+  title: string;
+  summary: string;
+  steps: string[];
+  outcome: string;
+  sceneId: LandingSceneAsset['id'];
+}
+
+export interface CoreCapability {
+  title: string;
+  description: string;
+  badge?: string;
+}
+
+export interface SceneShowcaseItem {
+  title: string;
+  description: string;
+  sceneId: LandingSceneAsset['id'];
+}
+
 export interface PricingPlan {
   tier: LandingPricingTier;
   name: string;
@@ -20,83 +66,76 @@ export interface PricingFeatureRow {
   enterprise: boolean | 'optional';
 }
 
-export interface SecurityScenario {
+export interface ArchitectureLoopStep {
+  stage: string;
   title: string;
   description: string;
-}
-
-export interface FeatureHighlight {
-  title: string;
-  description: string;
-  badge?: string;
-}
-
-export interface LandingNavItem {
-  label: string;
-  href: string;
-}
-
-export interface UserScenario {
-  title: string;
-  summary: string;
-  flow: string[];
-  result: string;
-}
-
-export interface UsageStep {
-  step: string;
-  title: string;
-  description: string;
-  outcome: string;
+  capability: string;
 }
 
 export interface LandingContent {
-  navItems: ReadonlyArray<LandingNavItem>;
+  navItems: ReadonlyArray<MarketingNavItem>;
   header: {
     loginCta: string;
     startCta: string;
     workbenchCta: string;
-    localeZh: string;
-    localeEn: string;
+    mobileMenuTitle: string;
   };
   hero: {
     title: string;
     description: string;
-    tags: readonly string[];
     primaryCta: string;
     secondaryCta: string;
+    supportText: string;
+    metrics: ReadonlyArray<{ label: string; value: string }>;
+    carouselSceneIds: ReadonlyArray<LandingSceneAsset['id']>;
   };
-  scenarioSection: {
+  homeNarrative: {
     eyebrow: string;
     title: string;
+    intro: string;
+    painGroups: ReadonlyArray<LandingPainGroup>;
   };
-  scenarios: ReadonlyArray<UserScenario>;
-  featureSection: {
-    eyebrow: string;
-    title: string;
-  };
-  featureHighlights: ReadonlyArray<FeatureHighlight>;
-  usageSection: {
-    eyebrow: string;
-    title: string;
-  };
-  usageSteps: ReadonlyArray<UsageStep>;
-  architectureSection: {
+  entryLoop: {
     eyebrow: string;
     title: string;
     description: string;
-    supportTitle: string;
-    featureCoverageTitle: string;
-    stepLabel: string;
-    resultLabel: string;
+    items: ReadonlyArray<EntryLoopItem>;
   };
-  architectureBullets: readonly string[];
-  securitySection: {
+  coreCapabilities: {
     eyebrow: string;
     title: string;
+    items: ReadonlyArray<CoreCapability>;
   };
-  securityScenarios: ReadonlyArray<SecurityScenario>;
-  pricingSection: {
+  sceneShowcase: {
+    eyebrow: string;
+    title: string;
+    items: ReadonlyArray<SceneShowcaseItem>;
+  };
+  finalCta: {
+    title: string;
+    description: string;
+    primaryCta: string;
+    secondaryCta: string;
+  };
+  architecture: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    loopTitle: string;
+    loopSteps: ReadonlyArray<ArchitectureLoopStep>;
+    mappingTitle: string;
+    mappingBullets: ReadonlyArray<string>;
+  };
+  security: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    cards: ReadonlyArray<{ title: string; description: string }>;
+    governanceTitle: string;
+    governanceBullets: ReadonlyArray<string>;
+  };
+  pricing: {
     eyebrow: string;
     title: string;
     billingNote: string;
@@ -108,16 +147,13 @@ export interface LandingContent {
       team: string;
       enterprise: string;
     };
+    plans: ReadonlyArray<PricingPlan>;
+    featureRows: ReadonlyArray<PricingFeatureRow>;
   };
-  pricingPlans: ReadonlyArray<PricingPlan>;
-  pricingFeatureRows: ReadonlyArray<PricingFeatureRow>;
-  contactSection: {
+  contact: {
     eyebrow: string;
     title: string;
-    communityTitle: string;
-    communityDescription: string;
-    emailTitle: string;
-    emailDescription: string;
+    cards: ReadonlyArray<{ title: string; description: string; cta: string; href: string }>;
   };
 }
 
@@ -126,496 +162,301 @@ export const WECHAT_QR_IMAGE_URL =
   'https://placehold.co/360x360/png?text=Knowra+WeChat+QR+Placeholder';
 export const OFFICIAL_EMAIL = 'support@knowra.ai';
 
-const ZH_CONTENT: LandingContent = {
+const MARKETING_CONTENT: LandingContent = {
   navItems: [
-    { label: '产品定位', href: '/' },
-    { label: '架构', href: '/architecture' },
-    { label: '安全', href: '/security' },
-    { label: '定价', href: '/pricing' },
-    { label: '联系官方', href: '/contact' },
+    { label: '产品重点', href: '/#product-focus', kind: 'anchor' },
+    { label: '架构闭环', href: '/architecture', kind: 'route' },
+    { label: '安全管控', href: '/security', kind: 'route' },
+    { label: '产品定价', href: '/pricing', kind: 'route' },
+    { label: '联系官方', href: '/contact', kind: 'route' },
   ],
   header: {
     loginCta: '登录',
-    startCta: '开始使用',
+    startCta: '免费开始',
     workbenchCta: '进入工作台',
-    localeZh: '中文',
-    localeEn: 'EN',
+    mobileMenuTitle: '导航菜单',
   },
   hero: {
-    title: '智能化知识库',
+    title: '新一代智能化知识管理工具',
     description:
-      '上传任何内容进行提问，答案会直接以文档和待办事项的形式呈现——无需排序、同步或重复录入。',
-    tags: ['智能化知识库', '语义化检索问答', '知识协作闭环'],
-    primaryCta: '开始使用',
-    secondaryCta: '查看使用闭环',
+      'Knowra 把 AI 变成知识工作的底层能力，贯穿提问、导入、写作与整理。结果不仅能生成，更能长期管理、复用与分享。',
+    primaryCta: '免费开始',
+    secondaryCta: '查看架构',
+    supportText: '3 分钟快速上手',
+    metrics: [
+      { label: '开始', value: 'AI / 知识库' },
+      { label: '输出可沉淀', value: '页面级资产' },
+      { label: '协作可扩展', value: '个人到团队' },
+    ],
+    carouselSceneIds: [
+      'ai-question-internet',
+      'ai-insert-panel',
+      'editor-ai-toolbar',
+      'editor-ai-result',
+      'ai-search-all-knowledge',
+    ],
   },
-  scenarioSection: {
-    eyebrow: '核心场景',
-    title: '两个高频使用场景，覆盖从提问到落地',
+  homeNarrative: {
+    eyebrow: '为什么需要新一代知识管理',
+    title: '长期与效率结合',
+    intro:
+      '传统知识库和纯聊天式 AI 都有明显断层。打通“生成-沉淀-复用”全链路，让每次产出都变成下一次效率。',
+    painGroups: [
+      {
+        title: '上一代知识工具的问题',
+        summary: '沉淀成本高，后续检索和复用效率持续下降。',
+        points: [
+          '长期依赖手工整理，内容越多越难维护',
+          '只靠关键词检索，常常找不到需要的片段',
+          '知识在库里，行动却在别处，链路割裂',
+        ],
+      },
+      {
+        title: '纯 AI 对话的问题',
+        summary: '生成很快，但难以形成可信、可复用的资产。',
+        points: [
+          '结论散落在会话里，无法沉淀为结构化页面',
+          '缺少与你资料的绑定，答案可验证性不足',
+          '需要重复搬运到文档，协作成本高',
+        ],
+      },
+    ],
   },
-  scenarios: [
-    {
-      title: '上传资料，立刻开始追问',
-      summary:
-        '把需求文档、会议纪要直接上传，AI 自动提取重点，支持连续追问，回答结果可一键插入现有文档，不用再手动整理。',
-      flow: [
-        '上传附件（需求文档、会议纪要、方案说明）',
-        'AI 自动提取结构与关键点',
-        '针对细节持续追问、澄清',
-        '结果一键插入现有页面或生成新页面',
-      ],
-      result: '需求分析更快落地，不再反复整理与二次录入',
-    },
-    {
-      title: '沉淀知识，随时按需检索',
-      summary:
-        '团队在空间里持续写作和沉淀，AI 基于内容语义回答问题，可自由切换互联网、当前空间或指定空间作为参考范围。',
-      flow: [
-        '在个人或协作空间持续写作、沉淀知识',
-        '提问时选择参考范围（互联网 / 当前空间 / 指定空间）',
-        'AI 给出贴合上下文的答案',
-        '将答案继续写入页面，形成新的知识沉淀',
-      ],
-      result: '回答更贴近业务语境，团队知识被真正复用',
-    },
-  ],
-  featureSection: {
-    eyebrow: '核心亮点',
-    title: '围绕智能化知识库构建的专业能力',
-  },
-  featureHighlights: [
-    {
-      title: '空间导入与导出',
-      description: '支持历史资料批量导入与空间内容导出归档，降低迁移成本',
-    },
-    {
-      title: '个人空间与多人协作空间',
-      description: '既满足个人沉淀，也支持团队协作编辑、点赞与评论互动',
-    },
-    {
-      title: '页面与空间共享',
-      description: '支持页面级与空间级共享，便于跨团队传播知识',
-    },
-    {
-      title: '自定义站点发布',
-      description: '可将空间内容发布为站点，满足对外展示与知识运营需求',
-      badge: 'Pro',
-    },
-    {
-      title: '历史版本与回滚',
-      description: '页面历史版本可追溯，支持回滚，减少误改带来的业务风险',
-    },
-    {
-      title: 'AI 结果到文档的直接转化',
-      description: '问答结果可直接插入页面或转为结构化内容，打通从思考到交付的链路',
-    },
-  ],
-  usageSection: {
-    eyebrow: '如何完成需求',
-    title: '用一条可执行流程，把问题变成交付结果',
-  },
-  usageSteps: [
-    {
-      step: '01',
-      title: '创建空间并导入资料',
-      description: '先建立需求空间，导入附件、文档与历史页面，形成统一知识源',
-      outcome: '信息集中，避免跨工具反复查找',
-    },
-    {
-      step: '02',
-      title: '选择问答范围并提问',
-      description: '根据任务类型选择互联网、当前空间或指定空间，再发起问题',
-      outcome: '答案更贴合当前业务场景',
-    },
-    {
-      step: '03',
-      title: '把答案沉淀为页面与协作项',
-      description: '将有效回答插入页面，结合评论、点赞和协作空间推动执行',
-      outcome: '从知识获取直接进入团队行动',
-    },
-    {
-      step: '04',
-      title: '共享发布并持续迭代',
-      description: '通过页面/空间共享或站点发布传播成果，按版本回滚持续优化',
-      outcome: '形成可演进、可复用的知识资产闭环',
-    },
-  ],
-  architectureSection: {
-    eyebrow: '用户视角架构',
-    title: '围绕真实使用场景设计的智能化知识库闭环',
+  entryLoop: {
+    eyebrow: '双入口',
+    title: '从 Knowra AI 或知识库空间开始',
     description:
-      'Knowra 的架构并非单纯技术分层，而是围绕用户从上传资料到回答落地的全过程设计。下面展示两个核心场景如何在同一系统中完成闭环。',
-    supportTitle: '闭环支撑能力',
-    featureCoverageTitle: '关键功能覆盖',
-    stepLabel: '步骤',
-    resultLabel: '闭环结果',
+      '你可以先问再沉淀，也可以先整理再调用。两条入口最终都会把结果汇总到可协作、可追踪、可对外分享的知识资产。',
+    items: [
+      {
+        title: '从 Knowra AI 开始',
+        summary: '适合已经有目标，想快速产出草稿、结论或方案。',
+        steps: ['提问并生成草稿', '人工确认并调整', '一键写入空间页面', '后续问题优先基于沉淀回答'],
+        outcome: '想法立即进入可管理空间，避免“一次性聊天产出”。',
+        sceneId: 'ai-question-internet',
+      },
+      {
+        title: '从知识库空间开始',
+        summary: '适合已有资料，希望先组织内容再持续调用。',
+        steps: ['导入附件与文件', '组织页面树结构', '在编辑中使用 AI 扩写/改写/总结', '按空间对外共享或站点化'],
+        outcome: '资料被持续激活，团队知识真正可复用。',
+        sceneId: 'ai-insert-panel',
+      },
+    ],
   },
-  architectureBullets: [
-    '知识输入层：支持附件上传、空间导入与历史内容聚合，统一形成可检索知识源',
-    '检索决策层：问答可切换互联网、当前空间或指定空间，保证答案范围可控',
-    '内容沉淀层：AI 回答可直接插入页面或转化文档，减少重复整理',
-    '协作交互层：个人空间与多人空间共存，支持评论、点赞与协作反馈',
-    '发布扩散层：页面/空间共享与站点发布（Pro）支撑知识对内对外传播',
-    '治理保障层：历史版本追踪与回滚能力，保障内容演进安全',
-  ],
-  securitySection: {
-    eyebrow: '安全与管控',
-    title: '资产安全、数据安全与权限治理',
+  coreCapabilities: {
+    eyebrow: '核心能力',
+    title: '围绕“可沉淀、可调用、可协作”的关键能力集',
+    items: [
+      { title: 'AI 辅助写作与整理', description: '提问、扩写、改写、总结，在编辑流程中即开即用。' },
+      { title: '导入与解析', description: '附件解析与文件导入转换，快速把资料变成页面。' },
+      { title: '知识库问答', description: '基于你的内容进行理解和检索式回答。' },
+      { title: '共享与站点化', description: '页面/空间共享与对外展示，支持持续传播。', badge: 'Pro' },
+      { title: '导出与迁移', description: '支持 Markdown / PDF / Word 导出，保证资产可迁移。' },
+      { title: '协作与治理基础', description: '面向个人与团队的权限边界与协作分工。' },
+    ],
   },
-  securityScenarios: [
-    {
-      title: '用户数据保护',
-      description: '默认启用传输链路安全、租户隔离和会话控制，保障账号与数据边界',
-    },
-    {
-      title: '知识内容保护（权限）',
-      description: '支持空间与页面权限配置、共享控制与可见性边界管理，降低误共享风险',
-    },
-    {
-      title: '模型密钥安全',
-      description: 'API Key 加密存储与脱敏展示，配合最小权限策略，避免密钥泄露',
-    },
-  ],
-  pricingSection: {
+  sceneShowcase: {
+    eyebrow: '典型场景',
+    title: '从输入到交付的连续路径',
+    items: [
+      {
+        title: 'Knowra AI 发起问题（互联网）',
+        description: '关闭空间检索，只使用互联网上下文，快速得到可用回答。',
+        sceneId: 'ai-question-internet',
+      },
+      {
+        title: '回复内容插入页面',
+        description: '直接打开插入面板，把 AI 结果写入既有空间文档。',
+        sceneId: 'ai-insert-panel',
+      },
+      {
+        title: '编辑器唤起 AI 工具栏',
+        description: '在文档内选中内容后直接触发 Knowra AI 工具栏。',
+        sceneId: 'editor-ai-toolbar',
+      },
+      {
+        title: '编辑器内执行 AI 功能',
+        description: '执行改写后立即获得结果，并可替换到当前文档。',
+        sceneId: 'editor-ai-result',
+      },
+      {
+        title: '检索所有知识库',
+        description: '开启空间检索并选择全部知识库，获取内部知识优先答案。',
+        sceneId: 'ai-search-all-knowledge',
+      },
+    ],
+  },
+  finalCta: {
+    title: '现在开始，把知识工作变成可复用资产',
+    description: '从一个问题或一份资料开始，逐步构建你的长期知识闭环。',
+    primaryCta: '免费开始',
+    secondaryCta: '查看架构',
+  },
+  architecture: {
+    eyebrow: '架构闭环',
+    title: '围绕真实知识工作路径设计，而不是孤立功能拼接',
+    description:
+      'Knowra 的架构重点是“输入、理解、沉淀、协作、传播”连续流转。每个阶段都有明确能力承接，避免流程中断。',
+    loopTitle: '闭环阶段',
+    loopSteps: [
+      { stage: '01', title: '输入统一化', description: '导入附件、文档与历史页面形成统一知识源。', capability: '导入解析 / 空间组织' },
+      { stage: '02', title: '检索与理解', description: '按互联网、当前空间或指定空间控制回答范围。', capability: '知识库问答 / 范围控制' },
+      { stage: '03', title: '结果沉淀', description: 'AI 输出可直接进入页面并持续迭代。', capability: '编辑器内 AI / 页面写入' },
+      { stage: '04', title: '协作与传播', description: '共享、评论与站点化发布推动结果扩散。', capability: '共享 / 站点化 / 导出' },
+    ],
+    mappingTitle: '能力映射',
+    mappingBullets: [
+      '双入口（Knowra AI / 知识库空间）共同回到同一闭环',
+      '每个阶段都能直接产生可维护的知识页面',
+      '从个人使用平滑扩展到小团队协作',
+    ],
+  },
+  security: {
+    eyebrow: '安全管控',
+    title: '覆盖数据、内容与模型密钥的基础防护与治理边界',
+    description: '面向个人与团队协作场景，确保知识资产在可控边界内流转。',
+    cards: [
+      { title: '用户数据保护', description: '默认传输链路安全与租户边界隔离，保障账号与数据边界。' },
+      { title: '知识内容保护', description: '空间/页面可见性与共享范围可配置，降低误共享风险。' },
+      { title: '模型密钥安全', description: 'API Key 加密存储与脱敏展示，按最小权限原则管理。' },
+    ],
+    governanceTitle: '治理边界说明',
+    governanceBullets: ['个人空间与团队空间边界清晰', '支持按协作关系控制访问', '企业私有化与合规诉求可沟通扩展'],
+  },
+  pricing: {
     eyebrow: '产品定价',
     title: '个人免费，付费套餐按年订阅',
     billingNote: '付费套餐按年订阅，支持按席位扩展',
     compareTitle: '功能对比',
-    columns: {
-      feature: '功能',
-      free: 'Free',
-      pro: 'Pro',
-      team: 'Team',
-      enterprise: 'Enterprise',
-    },
+    columns: { feature: '功能', free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enterprise' },
+    plans: [
+      {
+        tier: 'free',
+        name: 'Free',
+        priceLabel: '¥0',
+        description: '个人基础使用，快速开始知识管理与基础问答。',
+        ctaLabel: '免费开始',
+        benefits: ['个人空间', '基础 AI 问答', '文档导入与检索'],
+      },
+      {
+        tier: 'pro',
+        name: 'Pro',
+        priceLabel: '¥99/年',
+        description: '面向个人创作者，解锁更高阶的知识工作体验。',
+        ctaLabel: '升级到 Pro',
+        benefits: ['空间共享高级设置', '更高问答容量', '优先体验新能力'],
+        highlighted: true,
+      },
+      {
+        tier: 'team',
+        name: 'Team',
+        priceLabel: '¥99/人/年',
+        description: '面向团队协作，提供成员协同和权限治理能力。',
+        ctaLabel: '开始团队版',
+        benefits: ['成员邀请与协作', '角色与权限治理', '团队知识空间管理'],
+      },
+      {
+        tier: 'enterprise',
+        name: 'Enterprise',
+        priceLabel: '联系销售',
+        description: '企业级合规与定制支持，满足复杂组织落地要求。',
+        ctaLabel: '联系销售',
+        benefits: ['私有化部署支持', '高级安全与审计策略', '专属技术支持'],
+      },
+    ],
+    featureRows: [
+      { feature: '个人文档管理与基础 AI 问答', free: true, pro: true, team: true, enterprise: true },
+      { feature: '空间共享高级设置', free: false, pro: true, team: true, enterprise: true },
+      { feature: '团队协作成员管理', free: false, pro: false, team: true, enterprise: true },
+      { feature: '角色与权限治理', free: false, pro: false, team: true, enterprise: true },
+      { feature: '私有化/专属支持', free: false, pro: false, team: 'optional', enterprise: true },
+    ],
   },
-  pricingPlans: [
-    {
-      tier: 'free',
-      name: 'Free',
-      priceLabel: '¥0',
-      description: '个人基础使用，快速开始知识管理与基础问答',
-      ctaLabel: '免费开始',
-      benefits: ['个人空间', '基础 AI 问答', '文档导入与检索'],
-    },
-    {
-      tier: 'pro',
-      name: 'Pro',
-      priceLabel: '¥99/年',
-      description: '面向个人创作者，解锁更高阶的知识使用体验',
-      ctaLabel: '升级到 Pro',
-      benefits: ['空间共享高级设置', '更高问答容量', '优先体验新能力'],
-      highlighted: true,
-    },
-    {
-      tier: 'team',
-      name: 'Team',
-      priceLabel: '¥99/人/年',
-      description: '面向团队协作，提供成员协同和权限治理能力',
-      ctaLabel: '开始团队版',
-      benefits: ['成员邀请与协作', '角色与权限治理', '团队知识空间管理'],
-    },
-    {
-      tier: 'enterprise',
-      name: 'Enterprise',
-      priceLabel: '联系销售',
-      description: '企业级合规与定制支持，满足复杂组织落地要求',
-      ctaLabel: '联系销售',
-      benefits: ['私有化部署支持', '高级安全与审计策略', '专属技术支持'],
-    },
-  ],
-  pricingFeatureRows: [
-    {
-      feature: '个人文档管理与基础 AI 问答',
-      free: true,
-      pro: true,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: '空间共享高级设置',
-      free: false,
-      pro: true,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: '团队协作成员管理',
-      free: false,
-      pro: false,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: '角色与权限治理',
-      free: false,
-      pro: false,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: '私有化/专属支持',
-      free: false,
-      pro: false,
-      team: 'optional',
-      enterprise: true,
-    },
-  ],
-  contactSection: {
+  contact: {
     eyebrow: '联系官方',
-    title: '保持沟通，快速获得支持',
-    communityTitle: '加入官方社群',
-    communityDescription: '扫码加入微信社群，获取产品更新与使用交流',
-    emailTitle: '邮箱联系',
-    emailDescription: '企业合作、功能咨询或反馈建议，请通过官方邮箱联系',
+    title: '保持沟通，快速获得支持与合作响应',
+    cards: [
+      {
+        title: '加入官方社群',
+        description: '扫码加入微信社群，获取产品更新与实践交流。',
+        cta: '查看社群二维码',
+        href: '#community-qr',
+      },
+      {
+        title: '邮箱联系',
+        description: '企业合作、功能咨询或反馈建议，请通过官方邮箱联系。',
+        cta: OFFICIAL_EMAIL,
+        href: `mailto:${OFFICIAL_EMAIL}`,
+      },
+      {
+        title: '企业合作沟通',
+        description: '如需私有化部署、模型策略与合规方案，可邮件预约沟通。',
+        cta: '发起合作咨询',
+        href: `mailto:${OFFICIAL_EMAIL}?subject=${encodeURIComponent('Knowra 企业合作咨询')}`,
+      },
+    ],
   },
 };
 
-const EN_CONTENT: LandingContent = {
-  navItems: [
-    { label: 'Product', href: '/' },
-    { label: 'Workflow', href: '/architecture' },
-    { label: 'Security', href: '/security' },
-    { label: 'Pricing', href: '/pricing' },
-    { label: 'Contact', href: '/contact' },
-  ],
-  header: {
-    loginCta: 'Log in',
-    startCta: 'Get Started',
-    workbenchCta: 'Open Workbench',
-    localeZh: '中文',
-    localeEn: 'EN',
+const LANDING_SCENES: ReadonlyArray<LandingSceneAsset> = [
+  {
+    id: 'ai-question-internet',
+    title: 'Ask with Internet Scope',
+    caption: 'Use internet-only mode to ask a concrete business question.',
+    src: '/landing/scenes/ai-question-internet.png',
+    fallbackSrc: '/landing/placeholders/ai-question-internet.svg',
+    alt: 'Knowra AI conversation using internet-only mode',
   },
-  hero: {
-    title: 'An Intelligent Knowledge Base That Closes Work Faster',
-    description:
-      'Upload anything and start asking right away. Answers land directly as docs and action items—no sorting, syncing, or double entry required.',
-    tags: ['Intelligent Knowledge Base', 'Semantic Retrieval Q&A', 'Collaboration Loop'],
-    primaryCta: 'Get Started',
-    secondaryCta: 'View Workflow',
+  {
+    id: 'ai-insert-panel',
+    title: 'Insert Response to Page',
+    caption: 'Open insert panel and send response into a structured page.',
+    src: '/landing/scenes/ai-insert-panel.png',
+    fallbackSrc: '/landing/placeholders/ai-insert-panel.svg',
+    alt: 'Knowra AI insert-to-page panel opened',
   },
-  scenarioSection: {
-    eyebrow: 'Core Scenarios',
-    title: 'Two practical scenarios from question to execution',
+  {
+    id: 'editor-ai-toolbar',
+    title: 'Editor Inline AI Toolbar',
+    caption: 'Summon AI toolbar directly from selected text in editor.',
+    src: '/landing/scenes/editor-ai-toolbar.png',
+    fallbackSrc: '/landing/placeholders/editor-ai-toolbar.svg',
+    alt: 'Knowra editor with inline AI toolbar opened',
   },
-  scenarios: [
-    {
-      title: 'Upload files, start asking right away',
-      summary:
-        'Drop in your requirement docs or meeting notes. AI extracts key points and supports follow-up questions. Answers insert directly into existing pages—no retyping needed.',
-      flow: [
-        'Upload files (requirements, notes, design docs)',
-        'AI automatically extracts structure and key points',
-        'Ask follow-up questions to clarify details',
-        'Insert results into existing pages or generate new ones',
-      ],
-      result: 'Faster analysis. No more manual rewrite or double entry.',
-    },
-    {
-      title: 'Build your knowledge base, retrieve anytime',
-      summary:
-        'Keep writing in your spaces. AI answers questions based on your content semantically—freely switch between internet, current space, or selected spaces.',
-      flow: [
-        'Keep writing and building knowledge in personal or team spaces',
-        'Choose a reference scope when asking (internet / current space / selected spaces)',
-        'AI returns context-aware answers',
-        'Write useful answers back into pages to keep knowledge growing',
-      ],
-      result: 'Context-aware answers your team can actually reuse.',
-    },
-  ],
-  featureSection: {
-    eyebrow: 'Capabilities',
-    title: 'Professional features for an intelligent knowledge system',
+  {
+    id: 'editor-ai-result',
+    title: 'Inline AI Result in Editor',
+    caption: 'Run inline AI action and generate replacement text in context.',
+    src: '/landing/scenes/editor-ai-result.png',
+    fallbackSrc: '/landing/placeholders/editor-ai-result.svg',
+    alt: 'Knowra editor showing inline AI generated result',
   },
-  featureHighlights: [
-    {
-      title: 'Space Import and Export',
-      description: 'Import legacy materials in bulk and export space content for archiving.',
-    },
-    {
-      title: 'Personal and Collaborative Spaces',
-      description: 'Support both personal knowledge work and team collaboration with likes and comments.',
-    },
-    {
-      title: 'Page and Space Sharing',
-      description: 'Share at page-level or space-level for cross-team knowledge distribution.',
-    },
-    {
-      title: 'Custom Site Publishing',
-      description: 'Publish space content as a site for external knowledge distribution.',
-      badge: 'Pro',
-    },
-    {
-      title: 'Version History and Rollback',
-      description: 'Track page history and roll back safely when changes go wrong.',
-    },
-    {
-      title: 'AI Response to Doc Conversion',
-      description: 'Turn responses into structured documentation without extra copy work.',
-    },
-  ],
-  usageSection: {
-    eyebrow: 'How It Works',
-    title: 'Use one executable flow to deliver outcomes',
+  {
+    id: 'ai-search-all-knowledge',
+    title: 'Search All Knowledge Bases',
+    caption: 'Enable all-space retrieval to answer with internal knowledge context.',
+    src: '/landing/scenes/ai-search-all-knowledge.png',
+    fallbackSrc: '/landing/placeholders/ai-search-all-knowledge.svg',
+    alt: 'Knowra AI conversation with all knowledge bases enabled',
   },
-  usageSteps: [
-    {
-      step: '01',
-      title: 'Create a space and import materials',
-      description: 'Set up a working space and bring in files, docs, and existing pages.',
-      outcome: 'A unified source of knowledge for the task.',
-    },
-    {
-      step: '02',
-      title: 'Ask with scope control',
-      description: 'Choose internet, current space, or selected spaces before asking.',
-      outcome: 'Answers remain aligned to the task context.',
-    },
-    {
-      step: '03',
-      title: 'Convert answers into collaborative assets',
-      description: 'Insert responses into pages and move forward with comments and likes.',
-      outcome: 'Knowledge directly drives coordinated action.',
-    },
-    {
-      step: '04',
-      title: 'Share, publish, and iterate',
-      description: 'Share pages/spaces or publish sites, then improve through versioned updates.',
-      outcome: 'A reusable and evolving knowledge loop.',
-    },
-  ],
-  architectureSection: {
-    eyebrow: 'User-centric Workflow Architecture',
-    title: 'A scenario-driven architecture for intelligent knowledge loops',
-    description:
-      'This is not just a technical layering diagram. Knowra is designed around the full user path from material input to answer execution and iterative improvement.',
-    supportTitle: 'Capabilities Behind the Loop',
-    featureCoverageTitle: 'Feature Coverage',
-    stepLabel: 'Step',
-    resultLabel: 'Loop Outcome',
-  },
-  architectureBullets: [
-    'Input Layer: file uploads, space imports, and historical content aggregation.',
-    'Scope & Retrieval Layer: semantic retrieval with internet/space/selected-space control.',
-    'Conversion Layer: convert AI responses directly into pages or structured docs.',
-    'Collaboration Layer: personal and team spaces with comments, likes, and feedback.',
-    'Distribution Layer: page/space sharing and Pro site publishing.',
-    'Governance Layer: version history and rollback for safe knowledge evolution.',
-  ],
-  securitySection: {
-    eyebrow: 'Security and Governance',
-    title: 'Data protection, content control, and key safety',
-  },
-  securityScenarios: [
-    {
-      title: 'User Data Protection',
-      description: 'Secure transport, tenant isolation, and session controls protect account boundaries.',
-    },
-    {
-      title: 'Knowledge Permission Control',
-      description: 'Space/page visibility and sharing controls reduce accidental exposure risks.',
-    },
-    {
-      title: 'Model Key Security',
-      description: 'Encrypted storage and masked display protect API keys under least-privilege practices.',
-    },
-  ],
-  pricingSection: {
-    eyebrow: 'Pricing',
-    title: 'Free for individuals, annual plans for advanced usage',
-    billingNote: 'Paid tiers are billed annually and can scale by seats.',
-    compareTitle: 'Feature Comparison',
-    columns: {
-      feature: 'Feature',
-      free: 'Free',
-      pro: 'Pro',
-      team: 'Team',
-      enterprise: 'Enterprise',
-    },
-  },
-  pricingPlans: [
-    {
-      tier: 'free',
-      name: 'Free',
-      priceLabel: '¥0',
-      description: 'For individual baseline knowledge work and AI Q&A.',
-      ctaLabel: 'Start Free',
-      benefits: ['Personal space', 'Basic AI Q&A', 'File import and retrieval'],
-    },
-    {
-      tier: 'pro',
-      name: 'Pro',
-      priceLabel: '¥468/year',
-      description: 'For power users who need advanced knowledge workflows.',
-      ctaLabel: 'Upgrade to Pro',
-      benefits: ['Advanced sharing settings', 'Higher Q&A capacity', 'Priority feature access'],
-      highlighted: true,
-    },
-    {
-      tier: 'team',
-      name: 'Team',
-      priceLabel: '¥2,388/seat/year',
-      description: 'For teams requiring collaboration and governance controls.',
-      ctaLabel: 'Start Team',
-      benefits: ['Member collaboration', 'Role and permission controls', 'Team space management'],
-    },
-    {
-      tier: 'enterprise',
-      name: 'Enterprise',
-      priceLabel: 'Contact sales',
-      description: 'For enterprise-grade compliance and customization requirements.',
-      ctaLabel: 'Contact Sales',
-      benefits: ['Private deployment support', 'Advanced audit and security options', 'Dedicated support'],
-    },
-  ],
-  pricingFeatureRows: [
-    {
-      feature: 'Personal docs and basic AI Q&A',
-      free: true,
-      pro: true,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: 'Advanced space sharing settings',
-      free: false,
-      pro: true,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: 'Team member collaboration management',
-      free: false,
-      pro: false,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: 'Roles and permission governance',
-      free: false,
-      pro: false,
-      team: true,
-      enterprise: true,
-    },
-    {
-      feature: 'Private deployment / dedicated support',
-      free: false,
-      pro: false,
-      team: 'optional',
-      enterprise: true,
-    },
-  ],
-  contactSection: {
-    eyebrow: 'Contact',
-    title: 'Stay connected and get support quickly',
-    communityTitle: 'Join Community',
-    communityDescription: 'Scan to join the WeChat community for updates and best practices.',
-    emailTitle: 'Email Us',
-    emailDescription: 'For business cooperation, questions, or feedback, contact us by email.',
-  },
-};
+];
 
 export function getLandingContent(locale: LandingLocale): LandingContent {
-  return locale === 'en' ? EN_CONTENT : ZH_CONTENT;
+  if (locale === 'en') {
+    return MARKETING_CONTENT;
+  }
+  return MARKETING_CONTENT;
+}
+
+export function getLandingScenes(): ReadonlyArray<LandingSceneAsset> {
+  return LANDING_SCENES;
+}
+
+export function getLandingSceneById(id: LandingSceneAsset['id']): LandingSceneAsset {
+  const found = LANDING_SCENES.find((scene) => scene.id === id);
+  if (!found) {
+    throw new Error(`Unknown landing scene id: ${id}`);
+  }
+  return found;
 }

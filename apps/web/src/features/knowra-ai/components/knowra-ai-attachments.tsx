@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/provider';
 
 import { formatFileSize } from './utils';
 
@@ -6,6 +7,7 @@ export function KnowraAiAttachments(props: {
   attachments: File[];
   onRemoveAttachment: (index: number) => void;
 }) {
+  const { t } = useI18n();
   if (props.attachments.length === 0) return null;
 
   return (
@@ -19,7 +21,7 @@ export function KnowraAiAttachments(props: {
           <span className="text-muted-foreground">{formatFileSize(f.size)}</span>
           <button
             type="button"
-            aria-label={`移除附件 ${f.name}`}
+            aria-label={`${t('knowraAiComposer.removeAttachment')} ${f.name}`}
             className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
             onClick={() => props.onRemoveAttachment(idx)}
           >

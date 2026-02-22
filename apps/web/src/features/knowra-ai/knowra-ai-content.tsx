@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { knowraAiApi } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/provider';
 
 import type { KnowraAiMessage } from '@/features/knowra-ai/types';
 import { useSpaceStore, useSpaces } from '@/stores';
@@ -34,6 +35,7 @@ export function KnowraAiContent(props: {
   onSetMessages: (messages: KnowraAiMessage[]) => void;
   onSetTitle: (title: string) => void;
 }) {
+  const { t } = useI18n();
   const spaces = useSpaces();
   const ensureSpacesLoaded = useSpaceStore((s) => s.ensureLoaded);
 
@@ -241,7 +243,7 @@ export function KnowraAiContent(props: {
     try {
       await persistSourcesNow();
     } catch (e) {
-      const message = e instanceof Error ? e.message : '保存信息源设置失败';
+      const message = e instanceof Error ? e.message : t('knowraAiContent.saveSourcesFailed');
       setError(message);
       return false;
     }
@@ -257,7 +259,8 @@ export function KnowraAiContent(props: {
     answerRef.current = '';
 
     const shouldSetTitle =
-      props.messages.length === 0 || props.title === '新对话';
+      props.messages.length === 0 ||
+      props.title === t('knowraAiContent.newConversationTitle');
     if (shouldSetTitle) {
       const nextTitle =
         question.length > 18 ? question.slice(0, 18) + '…' : question;
@@ -280,7 +283,7 @@ export function KnowraAiContent(props: {
         });
         attachmentIds = upload.attachments.map((a) => a.id);
       } catch (e) {
-        const message = e instanceof Error ? e.message : '附件上传失败';
+        const message = e instanceof Error ? e.message : t('knowraAiContent.uploadFailed');
         setError(message);
         setLoading(false);
         abortRef.current = null;
@@ -314,11 +317,11 @@ export function KnowraAiContent(props: {
       ) {
         return false;
       }
-      const message = e instanceof Error ? e.message : '请求失败';
+      const message = e instanceof Error ? e.message : t('knowraAiContent.requestFailed');
       setError(message);
       // Keep the user question in history; append a short assistant error.
       props.onSetMessages(
-        upsertAssistant(baseMessages, `请求失败：${message}`),
+        upsertAssistant(baseMessages, `${t('knowraAiContent.requestFailedPrefix')}${message}`),
       );
       return false;
     } finally {

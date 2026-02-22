@@ -56,6 +56,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { knowraAiApi, type InlineAiActionType } from "@/lib/api/knowra-ai";
+import { useI18n } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
 import {
@@ -613,6 +614,8 @@ export function SlateEditor(props: {
   topContentClassName?: string;
   inlineAi?: SlateEditorInlineAiConfig;
 }) {
+  const { locale } = useI18n();
+  const isEnglishLocale = locale === "en-US";
   const editor = useMemo(
     () =>
       withImageBlock(
@@ -660,21 +663,21 @@ export function SlateEditor(props: {
 
   const inlineAiEditQuickActions = useMemo<InlineAiQuickAction[]>(
     () => [
-      { actionType: "rewrite", label: "改写" },
-      { actionType: "condense", label: "精简" },
-      { actionType: "expand", label: "扩写" },
-      { actionType: "summarize", label: "摘要" },
-      { actionType: "translate", label: "翻译" },
-      { actionType: "custom", label: "自由提问", requireQuestion: true },
+      { actionType: "rewrite", label: isEnglishLocale ? "Rewrite" : "改写" },
+      { actionType: "condense", label: isEnglishLocale ? "Condense" : "精简" },
+      { actionType: "expand", label: isEnglishLocale ? "Expand" : "扩写" },
+      { actionType: "summarize", label: isEnglishLocale ? "Summarize" : "摘要" },
+      { actionType: "translate", label: isEnglishLocale ? "Translate" : "翻译" },
+      { actionType: "custom", label: isEnglishLocale ? "Custom Prompt" : "自由提问", requireQuestion: true },
     ],
-    [],
+    [isEnglishLocale],
   );
   const inlineAiReadOnlyQuickActions = useMemo<InlineAiQuickAction[]>(
     () => [
-      { actionType: "qa", label: "问答" },
-      { actionType: "translate", label: "翻译" },
+      { actionType: "qa", label: isEnglishLocale ? "Q&A" : "问答" },
+      { actionType: "translate", label: isEnglishLocale ? "Translate" : "翻译" },
     ],
-    [],
+    [isEnglishLocale],
   );
 
   const slashMenuItems = useMemo<SlashMenuItem[]>(() => {
@@ -954,7 +957,11 @@ export function SlateEditor(props: {
 
       const selectedText = normalizeInlineAiSelectedText(inlineAiPanelState.selectedText);
       if (!selectedText) {
-        setInlineAiError("选中文本为空，请重新划词后重试。");
+        setInlineAiError(
+          isEnglishLocale
+            ? "No selected text. Select content and try again."
+            : "选中文本为空，请重新划词后重试。",
+        );
         return;
       }
 
@@ -996,21 +1003,25 @@ export function SlateEditor(props: {
         if (inlineAiRequestSerialRef.current !== requestSerial) return;
         setInlineAiStatus("done");
         if (!receivedDelta) {
-          setInlineAiError("未生成内容，请重试。");
+          setInlineAiError(isEnglishLocale ? "No result generated. Please retry." : "未生成内容，请重试。");
         }
       } catch (error) {
         if (controller.signal.aborted) return;
         if (inlineAiRequestSerialRef.current !== requestSerial) return;
-        const message = error instanceof Error ? error.message : "生成失败，请稍后重试。";
+        const message = error instanceof Error
+          ? error.message
+          : isEnglishLocale
+            ? "Generation failed. Please retry."
+            : "生成失败，请稍后重试。";
         setInlineAiStatus("done");
-        setInlineAiError(message || "生成失败，请稍后重试。");
+        setInlineAiError(message || (isEnglishLocale ? "Generation failed. Please retry." : "生成失败，请稍后重试。"));
       } finally {
         if (inlineAiRequestSerialRef.current === requestSerial) {
           inlineAiAbortRef.current = null;
         }
       }
     },
-    [clearInlineAiAbortController, inlineAiPanelState, props.inlineAi?.pageId, props.inlineAi?.spaceId],
+    [clearInlineAiAbortController, inlineAiPanelState, isEnglishLocale, props.inlineAi?.pageId, props.inlineAi?.spaceId],
   );
 
   const openInlineAiPanel = useCallback(
@@ -1225,7 +1236,7 @@ export function SlateEditor(props: {
       if (!inlineAiPanelState) return;
       if (inlineAiGenerating) return;
       if (quickAction.requireQuestion && !normalizedInlineAiQuestion) {
-        setInlineAiError("请输入问题后再发送。");
+        setInlineAiError(isEnglishLocale ? "Enter a question before sending." : "请输入问题后再发送。");
         return;
       }
 
@@ -1248,21 +1259,21 @@ export function SlateEditor(props: {
 
       void runInlineAiAction(nextAction);
     },
-    [inlineAiGenerating, inlineAiPanelState, normalizedInlineAiQuestion, runInlineAiAction],
+    [inlineAiGenerating, inlineAiPanelState, isEnglishLocale, normalizedInlineAiQuestion, runInlineAiAction],
   );
 
   const sendInlineAiQuestion = useCallback(() => {
     if (!inlineAiPanelState) return;
     if (inlineAiGenerating) return;
     if (!normalizedInlineAiQuestion) {
-      setInlineAiError("请输入问题后再发送。");
+      setInlineAiError(isEnglishLocale ? "Enter a question before sending." : "请输入问题后再发送。");
       return;
     }
 
     if (inlineAiPanelState.mode === "edit") {
       void runInlineAiAction({
         actionType: "custom",
-        label: "自由提问",
+        label: isEnglishLocale ? "Custom Prompt" : "自由提问",
         userPrompt: normalizedInlineAiQuestion,
       });
       return;
@@ -1270,10 +1281,10 @@ export function SlateEditor(props: {
 
     void runInlineAiAction({
       actionType: "qa",
-      label: "问答",
+      label: isEnglishLocale ? "Q&A" : "问答",
       userPrompt: normalizedInlineAiQuestion,
     });
-  }, [inlineAiGenerating, inlineAiPanelState, normalizedInlineAiQuestion, runInlineAiAction]);
+  }, [inlineAiGenerating, inlineAiPanelState, isEnglishLocale, normalizedInlineAiQuestion, runInlineAiAction]);
 
   const regenerateInlineAiResult = useCallback(() => {
     if (!inlineAiLastAction) return;
@@ -1291,13 +1302,17 @@ export function SlateEditor(props: {
   const replaceInlineAiResult = useCallback(() => {
     const nextText = inlineAiResult.trim();
     if (!nextText) {
-      setInlineAiError("暂无可写入内容。");
+      setInlineAiError(isEnglishLocale ? "No content to apply." : "暂无可写入内容。");
       return;
     }
 
     const writableRange = resolveInlineAiWritableRange();
     if (!writableRange) {
-      setInlineAiError("选区已变化，请重新划词后重试。");
+      setInlineAiError(
+        isEnglishLocale
+          ? "Selection changed. Re-select text and try again."
+          : "选区已变化，请重新划词后重试。",
+      );
       return;
     }
 
@@ -1307,20 +1322,28 @@ export function SlateEditor(props: {
       Transforms.insertText(editor, nextText);
       closeInlineAiPanel();
     } catch {
-      setInlineAiError("写入失败，请重新划词后重试。");
+      setInlineAiError(
+        isEnglishLocale
+          ? "Failed to replace content. Re-select text and retry."
+          : "写入失败，请重新划词后重试。",
+      );
     }
-  }, [closeInlineAiPanel, editor, inlineAiResult, resolveInlineAiWritableRange]);
+  }, [closeInlineAiPanel, editor, inlineAiResult, isEnglishLocale, resolveInlineAiWritableRange]);
 
   const insertInlineAiResultBelow = useCallback(() => {
     const nextText = inlineAiResult.trim();
     if (!nextText) {
-      setInlineAiError("暂无可写入内容。");
+      setInlineAiError(isEnglishLocale ? "No content to apply." : "暂无可写入内容。");
       return;
     }
 
     const writableRange = resolveInlineAiWritableRange();
     if (!writableRange) {
-      setInlineAiError("选区已变化，请重新划词后重试。");
+      setInlineAiError(
+        isEnglishLocale
+          ? "Selection changed. Re-select text and try again."
+          : "选区已变化，请重新划词后重试。",
+      );
       return;
     }
 
@@ -1332,19 +1355,27 @@ export function SlateEditor(props: {
       Transforms.insertText(editor, nextText);
       closeInlineAiPanel();
     } catch {
-      setInlineAiError("插入失败，请重新划词后重试。");
+      setInlineAiError(
+        isEnglishLocale
+          ? "Failed to insert result. Re-select text and retry."
+          : "插入失败，请重新划词后重试。",
+      );
     }
-  }, [closeInlineAiPanel, editor, inlineAiResult, resolveInlineAiWritableRange]);
+  }, [closeInlineAiPanel, editor, inlineAiResult, isEnglishLocale, resolveInlineAiWritableRange]);
 
   const copyInlineAiResult = useCallback(async () => {
     const nextText = inlineAiResult.trim();
     if (!nextText) {
-      setInlineAiError("暂无可复制内容。");
+      setInlineAiError(isEnglishLocale ? "No content to copy." : "暂无可复制内容。");
       return;
     }
 
     if (typeof navigator === "undefined" || !navigator.clipboard) {
-      setInlineAiError("当前环境不支持复制，请手动复制。");
+      setInlineAiError(
+        isEnglishLocale
+          ? "Clipboard API is unavailable in this environment."
+          : "当前环境不支持复制，请手动复制。",
+      );
       return;
     }
 
@@ -1352,9 +1383,9 @@ export function SlateEditor(props: {
       await navigator.clipboard.writeText(nextText);
       setInlineAiError(null);
     } catch {
-      setInlineAiError("复制失败，请手动复制。");
+      setInlineAiError(isEnglishLocale ? "Copy failed. Please copy manually." : "复制失败，请手动复制。");
     }
-  }, [inlineAiResult]);
+  }, [inlineAiResult, isEnglishLocale]);
 
   const syncSlashMenuState = useCallback(() => {
     if (editorReadOnly) {
@@ -1940,7 +1971,7 @@ export function SlateEditor(props: {
               type="button"
               variant="ghost"
               className="h-8 w-8 px-0"
-              tooltip="关闭"
+              tooltip={isEnglishLocale ? "Close" : "关闭"}
               onClick={closeInlineAiPanel}
             >
               <X className="h-4 w-4" />
@@ -1950,7 +1981,7 @@ export function SlateEditor(props: {
           <div className="flex items-center gap-2">
             <Input
               value={inlineAiQuestion}
-              placeholder="向智能助手提问..."
+              placeholder={isEnglishLocale ? "Ask AI to improve this selection..." : "向智能助手提问..."}
               onChange={(event) => {
                 setInlineAiQuestion(event.target.value);
                 if (inlineAiError) setInlineAiError(null);
@@ -1965,11 +1996,11 @@ export function SlateEditor(props: {
               type="button"
               className="h-10 w-10 px-0"
               disabled={inlineAiGenerating || normalizedInlineAiQuestion.length === 0}
-              tooltip="发送"
+              tooltip={isEnglishLocale ? "Send" : "发送"}
               onClick={sendInlineAiQuestion}
             >
               <Send className="h-4 w-4" />
-              <span className="sr-only">发送</span>
+              <span className="sr-only">{isEnglishLocale ? "Send" : "发送"}</span>
             </Button>
           </div>
 
@@ -1997,16 +2028,26 @@ export function SlateEditor(props: {
             ) : (
               <p className="text-muted-foreground">
                 {inlineAiStatus === "menu-open"
-                  ? "选择动作开始生成结果。"
+                  ? isEnglishLocale
+                    ? "Choose an action to generate result."
+                    : "选择动作开始生成结果。"
                   : inlineAiGenerating
-                    ? "正在生成..."
-                    : "暂无生成内容。"}
+                    ? isEnglishLocale
+                      ? "Generating..."
+                      : "正在生成..."
+                    : isEnglishLocale
+                      ? "No generated content yet."
+                      : "暂无生成内容。"}
               </p>
             )}
           </div>
 
           {inlineAiSelectionInvalid ? (
-            <p className="text-xs text-amber-600">选区已变化，请重新划词后重试。</p>
+            <p className="text-xs text-amber-600">
+              {isEnglishLocale
+                ? "Selection changed. Re-select text and try again."
+                : "选区已变化，请重新划词后重试。"}
+            </p>
           ) : null}
 
           {inlineAiError ? (
@@ -2017,10 +2058,10 @@ export function SlateEditor(props: {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                正在生成
+                {isEnglishLocale ? "Generating" : "正在生成"}
               </div>
               <Button type="button" variant="outline" size="sm" onClick={stopInlineAiGeneration}>
-                停止
+                {isEnglishLocale ? "Stop" : "停止"}
               </Button>
             </div>
           ) : null}
@@ -2035,14 +2076,14 @@ export function SlateEditor(props: {
                     disabled={!inlineAiHasResult || inlineAiSelectionInvalid}
                     onClick={insertInlineAiResultBelow}
                   >
-                    插入选区下方
+                    {isEnglishLocale ? "Insert Below Selection" : "插入选区下方"}
                   </Button>
                   <Button
                     type="button"
                     disabled={!inlineAiHasResult || inlineAiSelectionInvalid}
                     onClick={replaceInlineAiResult}
                   >
-                    替换选中内容
+                    {isEnglishLocale ? "Replace Selection" : "替换选中内容"}
                   </Button>
                 </>
               ) : (
@@ -2051,11 +2092,11 @@ export function SlateEditor(props: {
                   variant="outline"
                   className="h-9 w-9 px-0"
                   disabled={!inlineAiHasResult}
-                  tooltip="复制"
+                  tooltip={isEnglishLocale ? "Copy" : "复制"}
                   onClick={copyInlineAiResult}
                 >
                   <Copy className="h-4 w-4" />
-                  <span className="sr-only">复制</span>
+                  <span className="sr-only">{isEnglishLocale ? "Copy" : "复制"}</span>
                 </Button>
               )}
               <Button
@@ -2063,21 +2104,21 @@ export function SlateEditor(props: {
                 variant="outline"
                 className="h-9 w-9 px-0"
                 disabled={!inlineAiLastAction}
-                tooltip="重新生成"
+                tooltip={isEnglishLocale ? "Regenerate" : "重新生成"}
                 onClick={regenerateInlineAiResult}
               >
                 <RotateCcw className="h-4 w-4" />
-                <span className="sr-only">重新生成</span>
+                <span className="sr-only">{isEnglishLocale ? "Regenerate" : "重新生成"}</span>
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 className="h-9 w-9 px-0"
-                tooltip="关闭"
+                tooltip={isEnglishLocale ? "Close" : "关闭"}
                 onClick={closeInlineAiPanel}
               >
                 <X className="h-4 w-4" />
-                <span className="sr-only">关闭</span>
+                <span className="sr-only">{isEnglishLocale ? "Close" : "关闭"}</span>
               </Button>
             </div>
           ) : null}

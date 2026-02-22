@@ -1,24 +1,16 @@
 import type { Metadata } from 'next';
 
 import { ContactSection, LandingShell } from '@/features/landing/components';
-import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Knowra - Contact',
-  description: 'Contact Knowra via community channel or official support email.',
+  title: 'Knowra - 联系官方',
+  description: '通过社群或邮箱联系 Knowra，快速获得支持与合作响应。',
 };
 
-interface ContactPageProps {
-  searchParams: Promise<{ lang?: string | string[] }>;
-}
-
-export default async function ContactPage({ searchParams }: ContactPageProps) {
-  const params = await searchParams;
-  const locale = resolveLandingLocale(params.lang);
-
+export default function ContactPage() {
   return (
-    <LandingShell locale={locale}>
-      <ContactSection locale={locale} />
+    <LandingShell locale="zh">
+      <ContactSection locale="zh" />
     </LandingShell>
   );
 }

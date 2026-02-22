@@ -10,6 +10,7 @@ import {
   InputGroupText,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
+import { useI18n } from '@/lib/i18n/provider';
 import { cn } from '@/lib/utils';
 import { ArrowUpIcon, Plus, StopCircleIcon } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export function KnowraAiComposer(props: {
   onSelectedSpaceIdsChange: (spaceIds: string[]) => void;
   onCarryContextChange: (enabled: boolean) => void;
 }) {
+  const { t } = useI18n();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isComposingRef = useRef(false);
@@ -62,7 +64,7 @@ export function KnowraAiComposer(props: {
         <InputGroup>
           <InputGroupTextarea
             ref={textareaRef}
-            placeholder="你可以问我任何问题..."
+            placeholder={t('knowraAiComposer.placeholder')}
             value={props.draft}
             onChange={(e) => props.onDraftChange(e.target.value)}
             onCompositionStart={() => {
@@ -91,7 +93,7 @@ export function KnowraAiComposer(props: {
               size="icon-xs"
               variant="outline"
               className="rounded-full"
-              aria-label="上传文件"
+              aria-label={t('knowraAiComposer.upload')}
               onClick={() => fileInputRef.current?.click()}
             >
               <Plus className="h-4 w-4" />
@@ -109,14 +111,16 @@ export function KnowraAiComposer(props: {
               onCarryContextChange={props.onCarryContextChange}
             />
 
-            <InputGroupText className="ml-auto hidden sm:flex text-xs">发送</InputGroupText>
+            <InputGroupText className="ml-auto hidden sm:flex text-xs">
+              {t('knowraAiComposer.sendLabel')}
+            </InputGroupText>
             <Separator orientation="vertical" className="!h-4" />
 
             {props.loading ? (
               <InputGroupButton
                 size="icon-sm"
                 variant="secondary"
-                aria-label="停止"
+                aria-label={t('knowraAiComposer.stop')}
                 onClick={props.onStop}
               >
                 <StopCircleIcon className="h-4 w-4" />
@@ -125,13 +129,13 @@ export function KnowraAiComposer(props: {
               <InputGroupButton
                 variant={props.canSend ? 'default' : 'secondary'}
                 className="rounded-full"
-                aria-label="发送"
+                aria-label={t('knowraAiComposer.send')}
                 size="icon-xs"
                 disabled={!props.canSend}
                 onClick={() => void props.onSend()}
               >
                 <ArrowUpIcon />
-                <span className="sr-only">发送</span>
+                <span className="sr-only">{t('knowraAiComposer.send')}</span>
               </InputGroupButton>
             )}
           </InputGroupAddon>

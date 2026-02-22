@@ -1,24 +1,16 @@
 import type { Metadata } from 'next';
 
 import { LandingShell, PricingSection } from '@/features/landing/components';
-import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Knowra - Pricing',
-  description: 'Annual pricing plans with capability comparison for personal and team workflows.',
+  title: 'Knowra - 产品定价',
+  description: '个人免费，付费套餐按年订阅，支持按席位扩展。',
 };
 
-interface PricingPageProps {
-  searchParams: Promise<{ lang?: string | string[] }>;
-}
-
-export default async function PricingPage({ searchParams }: PricingPageProps) {
-  const params = await searchParams;
-  const locale = resolveLandingLocale(params.lang);
-
+export default function PricingPage() {
   return (
-    <LandingShell locale={locale}>
-      <PricingSection locale={locale} />
+    <LandingShell locale="zh">
+      <PricingSection locale="zh" />
     </LandingShell>
   );
 }

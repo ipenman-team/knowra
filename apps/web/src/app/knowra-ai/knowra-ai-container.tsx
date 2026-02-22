@@ -12,18 +12,10 @@ import type { KnowraAiConversation } from '@/features/knowra-ai/types';
 import { knowraAiApi } from '@/lib/api';
 import { ContainerLayout } from '@/components/layout/container-layout';
 import { toast } from 'sonner';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import { Button } from '@/components/ui/button';
-import { BotIcon } from '@/components/icon/bot.icon';
 import { PlusIcon } from 'lucide-react';
 import { KnowraAiEmptyState } from '@/features/knowra-ai/components/knowra-ai-empty-state';
+import { useI18n } from '@/lib/i18n/provider';
 
 type UiConversation = KnowraAiConversation & {
   messagesLoaded?: boolean;
@@ -37,6 +29,7 @@ function toEpochMs(x: unknown): number {
 }
 
 export default function KnowraAiContainer() {
+  const { t } = useI18n();
   usePageStoreSync();
 
   const setSelectedView = usePageSelectionStore((s) => s.setSelectedView);
@@ -199,7 +192,7 @@ export default function KnowraAiContainer() {
   }
 
   function handleRenameConversation(id: string, title: string) {
-    const nextTitle = title.trim() || '未命名对话';
+    const nextTitle = title.trim() || t('knowraAiSidebar.untitledConversation');
     const existed = conversations.find((c) => c.id === id);
     const prevTitle = existed?.title ?? '';
     const prevUpdatedAt = existed?.updatedAt ?? Date.now();
@@ -256,7 +249,7 @@ export default function KnowraAiContainer() {
       return next;
     });
 
-    toast.success('对话已删除');
+    toast.success(t('knowraAiContainer.deleteSuccess'));
   }
 
   function updateConversation(
@@ -314,11 +307,11 @@ export default function KnowraAiContainer() {
             <KnowraAiEmptyState
               EmptyContent={
                 <>
-                  <div className="m-1 text-gray-500">开始你的第一个对话</div>
+                  <div className="m-1 text-gray-500">{t('knowraAiContainer.emptyStart')}</div>
                   <div>
                     <Button type="button" onClick={handleNewConversation}>
                       <PlusIcon className="h-4 w-4" />
-                      创建对话
+                      {t('knowraAiContainer.emptyCreate')}
                     </Button>
                   </div>
                 </>

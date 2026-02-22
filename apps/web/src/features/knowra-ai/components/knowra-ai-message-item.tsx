@@ -1,8 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Markdown } from '@/components/shared/markdown';
-import { Bot } from 'lucide-react';
 
 import type { KnowraAiMessage } from '@/features/knowra-ai/types';
+import { BotIcon } from '@/components/icon/bot.icon';
 
 export function KnowraAiMessageItem(props: { message: KnowraAiMessage }) {
   const m = props.message;
@@ -22,7 +22,7 @@ export function KnowraAiMessageItem(props: { message: KnowraAiMessage }) {
       <Avatar className="mt-0.5 h-7 w-7 shrink-0">
         <AvatarImage src="" />
         <AvatarFallback className="bg-background">
-          <Bot className="h-4 w-4" />
+          <BotIcon fill="#3b82f6" />
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">

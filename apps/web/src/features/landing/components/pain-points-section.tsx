@@ -10,7 +10,7 @@ export function PainPointsSection({ locale }: PainPointsSectionProps) {
 
   return (
     <section id="pain-points" className="mx-auto max-w-7xl px-6 py-12 lg:py-16">
-      <div className="max-w-4xl">
+      <div className="text-center">
         <p className="text-sm font-medium text-blue-700">{content.homeNarrative.eyebrow}</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
           {content.homeNarrative.title}

@@ -1,8 +1,10 @@
 import {
+  FinalCtaSection,
   HeroSection,
   LandingShell,
   PainPointsSection,
   PositioningSection,
+  SceneShowcaseSection,
   UsageFlowSection,
 } from '@/features/landing/components';
 import type { LandingLocale } from '@/features/landing/locale';
@@ -18,6 +20,8 @@ export function LandingHome({ locale }: LandingHomeProps) {
       <PainPointsSection locale={locale} />
       <UsageFlowSection locale={locale} />
       <PositioningSection locale={locale} />
+      <SceneShowcaseSection locale={locale} />
+      <FinalCtaSection locale={locale} />
     </LandingShell>
   );
 }

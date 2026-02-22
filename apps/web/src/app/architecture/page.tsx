@@ -1,24 +1,16 @@
 import type { Metadata } from 'next';
 
 import { ArchitectureSection, LandingShell } from '@/features/landing/components';
-import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Knowra - Workflow Architecture',
-  description: 'Scenario-driven workflow architecture for Knowra intelligent knowledge loops.',
+  title: 'Knowra - 架构闭环',
+  description: '查看 Knowra 从输入到沉淀再到传播的完整知识工作闭环。',
 };
 
-interface ArchitecturePageProps {
-  searchParams: Promise<{ lang?: string | string[] }>;
-}
-
-export default async function ArchitecturePage({ searchParams }: ArchitecturePageProps) {
-  const params = await searchParams;
-  const locale = resolveLandingLocale(params.lang);
-
+export default function ArchitecturePage() {
   return (
-    <LandingShell locale={locale}>
-      <ArchitectureSection locale={locale} />
+    <LandingShell locale="zh">
+      <ArchitectureSection locale="zh" />
     </LandingShell>
   );
 }

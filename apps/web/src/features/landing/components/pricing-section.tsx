@@ -2,14 +2,6 @@ import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   DEFAULT_CTA_HREF,
   getLandingContent,
   type PricingFeatureRow,
@@ -21,16 +13,11 @@ interface PricingSectionProps {
   locale: LandingLocale;
 }
 
-function renderFeatureValue(value: PricingFeatureRow['free'], locale: LandingLocale) {
+function renderFeatureValue(value: PricingFeatureRow['free']) {
   if (value === 'optional') {
-    return (
-      <span className="font-medium text-amber-600">
-        {locale === 'en' ? 'Optional' : '可选'}
-      </span>
-    );
+    return <span className="font-medium text-amber-600">可选</span>;
   }
-
-  return value ? <span className="text-emerald-600">✓</span> : <span className="text-muted-foreground">-</span>;
+  return value ? <span className="text-emerald-600">✓</span> : <span className="text-slate-400">-</span>;
 }
 
 export function PricingSection({ locale }: PricingSectionProps) {
@@ -39,25 +26,30 @@ export function PricingSection({ locale }: PricingSectionProps) {
   return (
     <section id="pricing" className="mx-auto max-w-7xl px-6 py-12 lg:py-16">
       <div>
-        <p className="text-sm font-medium text-blue-600">{content.pricingSection.eyebrow}</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{content.pricingSection.title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{content.pricingSection.billingNote}</p>
+        <p className="text-sm font-medium text-blue-700">{content.pricing.eyebrow}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+          {content.pricing.title}
+        </h1>
+        <p className="mt-3 text-sm text-slate-600">{content.pricing.billingNote}</p>
       </div>
 
       <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {content.pricingPlans.map((plan) => (
+        {content.pricing.plans.map((plan) => (
           <article
             key={plan.tier}
-            className={cn('rounded-2xl bg-slate-50/80 p-6 shadow-sm', plan.highlighted && 'bg-blue-50')}
+            className={cn(
+              'bg-white p-6 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.45)]',
+              plan.highlighted && 'bg-blue-50/40',
+            )}
           >
-            <div className="text-sm font-semibold text-muted-foreground">{plan.name}</div>
-            <div className="mt-2 text-3xl font-bold tracking-tight">{plan.priceLabel}</div>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{plan.description}</p>
+            <div className="text-sm font-semibold text-slate-500">{plan.name}</div>
+            <div className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{plan.priceLabel}</div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{plan.description}</p>
 
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-4 space-y-2 text-sm text-slate-700">
               {plan.benefits.map((benefit) => (
                 <li key={benefit} className="flex items-start gap-2">
-                  <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
                   <span>{benefit}</span>
                 </li>
               ))}
@@ -70,30 +62,31 @@ export function PricingSection({ locale }: PricingSectionProps) {
         ))}
       </div>
 
-      <div className="mt-8 rounded-2xl bg-card p-4 shadow-sm sm:p-6">
-        <h3 className="text-base font-semibold">{content.pricingSection.compareTitle}</h3>
-        <Table className="mt-4">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[42%]">{content.pricingSection.columns.feature}</TableHead>
-              <TableHead>{content.pricingSection.columns.free}</TableHead>
-              <TableHead>{content.pricingSection.columns.pro}</TableHead>
-              <TableHead>{content.pricingSection.columns.team}</TableHead>
-              <TableHead>{content.pricingSection.columns.enterprise}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {content.pricingFeatureRows.map((row) => (
-              <TableRow key={row.feature}>
-                <TableCell className="font-medium">{row.feature}</TableCell>
-                <TableCell>{renderFeatureValue(row.free, locale)}</TableCell>
-                <TableCell>{renderFeatureValue(row.pro, locale)}</TableCell>
-                <TableCell>{renderFeatureValue(row.team, locale)}</TableCell>
-                <TableCell>{renderFeatureValue(row.enterprise, locale)}</TableCell>
-              </TableRow>
+      <div className="mt-8 overflow-x-auto bg-white p-4 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.45)] sm:p-6">
+        <h2 className="text-base font-semibold text-slate-900">{content.pricing.compareTitle}</h2>
+
+        <table className="mt-4 w-full min-w-[720px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-500">
+              <th className="px-3 py-3 font-medium">{content.pricing.columns.feature}</th>
+              <th className="px-3 py-3 font-medium">{content.pricing.columns.free}</th>
+              <th className="px-3 py-3 font-medium">{content.pricing.columns.pro}</th>
+              <th className="px-3 py-3 font-medium">{content.pricing.columns.team}</th>
+              <th className="px-3 py-3 font-medium">{content.pricing.columns.enterprise}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {content.pricing.featureRows.map((row) => (
+              <tr key={row.feature} className="border-b border-slate-100 last:border-none">
+                <td className="px-3 py-3 font-medium text-slate-900">{row.feature}</td>
+                <td className="px-3 py-3">{renderFeatureValue(row.free)}</td>
+                <td className="px-3 py-3">{renderFeatureValue(row.pro)}</td>
+                <td className="px-3 py-3">{renderFeatureValue(row.team)}</td>
+                <td className="px-3 py-3">{renderFeatureValue(row.enterprise)}</td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
     </section>
   );

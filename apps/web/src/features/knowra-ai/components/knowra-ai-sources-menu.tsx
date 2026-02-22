@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { InputGroupButton } from '@/components/ui/input-group';
 import { Switch } from '@/components/ui/switch';
-import { Check, Settings2 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/provider';
+import { Settings2 } from 'lucide-react';
 
 function normalizeSpaceIds(spaceIds: string[]): string[] {
   const uniq = new Set<string>();
@@ -36,6 +37,7 @@ export function KnowraAiSourcesMenu(props: {
   onSelectedSpaceIdsChange: (spaceIds: string[]) => void;
   onCarryContextChange: (enabled: boolean) => void;
 }) {
+  const { t } = useI18n();
   const selectedSpaceIds = normalizeSpaceIds(props.selectedSpaceIds);
 
   function toggleSpaceId(spaceId: string) {
@@ -53,7 +55,7 @@ export function KnowraAiSourcesMenu(props: {
         <InputGroupButton
           variant="ghost"
           size="icon-sm"
-          aria-label="信息源设置"
+          aria-label={t('knowraAiSources.aria')}
         >
           <Settings2 className="h-4 w-4" />
         </InputGroupButton>
@@ -72,7 +74,7 @@ export function KnowraAiSourcesMenu(props: {
             props.onCarryContextChange(!props.carryContext);
           }}
         >
-          <span>携带上下文</span>
+          <span>{t('knowraAiSources.carryContext')}</span>
           <Switch
             checked={props.carryContext}
             onCheckedChange={(v) => props.onCarryContextChange(Boolean(v))}
@@ -89,7 +91,7 @@ export function KnowraAiSourcesMenu(props: {
             props.onInternetEnabledChange(!props.internetEnabled);
           }}
         >
-          <span>互联网</span>
+          <span>{t('knowraAiSources.internet')}</span>
           <Switch
             checked={props.internetEnabled}
             onCheckedChange={(v) => props.onInternetEnabledChange(Boolean(v))}
@@ -106,7 +108,7 @@ export function KnowraAiSourcesMenu(props: {
             }}
           >
             <span className="inline-flex w-full items-center justify-between gap-3">
-              <span>空间</span>
+              <span>{t('knowraAiSources.spaces')}</span>
               <span className="inline-flex items-center gap-2">
                 <Switch
                   checked={props.spaceEnabled}
@@ -129,7 +131,7 @@ export function KnowraAiSourcesMenu(props: {
                 if (Boolean(v)) props.onSelectedSpaceIdsChange([]);
               }}
             >
-              全部
+              {t('knowraAiSources.allSpaces')}
             </DropdownMenuCheckboxItem>
 
             <DropdownMenuSeparator />
@@ -137,7 +139,7 @@ export function KnowraAiSourcesMenu(props: {
             <div className="max-h-60 overflow-y-auto">
               {props.spaces.length === 0 ? (
                 <DropdownMenuCheckboxItem disabled checked={false}>
-                  暂无空间
+                  {t('knowraAiSources.noSpaces')}
                 </DropdownMenuCheckboxItem>
               ) : (
                 props.spaces.map((s) => (

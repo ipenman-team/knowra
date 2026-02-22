@@ -17,11 +17,8 @@ export async function LandingShell({ children, locale }: LandingShellProps) {
   const isLoggedIn = Boolean(cookieStore.get(ACCESS_TOKEN_COOKIE)?.value);
 
   return (
-    <div className="landing-light relative min-h-dvh bg-background">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.16),transparent_66%)]"
-        aria-hidden="true"
-      />
+    <div className="landing-light relative min-h-dvh bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_42%),linear-gradient(180deg,#ffffff_0%,#f8fafc_70%,#ffffff_100%)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[26rem] bg-[linear-gradient(180deg,rgba(148,163,184,0.06),transparent)]" aria-hidden="true" />
       <LandingHeader isLoggedIn={isLoggedIn} locale={locale} />
       <main>{children}</main>
       <LandingFooter locale={locale} />

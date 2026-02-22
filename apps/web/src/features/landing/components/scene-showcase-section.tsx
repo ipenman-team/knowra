@@ -28,7 +28,7 @@ export function SceneShowcaseSection({ locale }: SceneShowcaseSectionProps) {
             <article
               key={item.title}
               className={cn(
-                'landing-fade-in grid gap-6 lg:items-center',
+                'landing-fade-in grid gap-6 lg:items-center py-8',
                 imageFirst ? 'lg:grid-cols-[67fr_3fr_30fr]' : 'lg:grid-cols-[30fr_3fr_67fr]',
               )}
               style={{ animationDelay: `${index * 90}ms` }}

@@ -29,7 +29,7 @@ export function UsageFlowSection({ locale }: UsageFlowSectionProps) {
             <article
               key={item.title}
               className={cn(
-                'landing-fade-in grid gap-6 lg:items-start',
+                'landing-fade-in grid gap-6 lg:items-start py-8',
                 imageFirst ? 'lg:grid-cols-[13fr_1fr_6fr]' : 'lg:grid-cols-[6fr_1fr_13fr]',
               )}
               style={{ animationDelay: `${index * 90}ms` }}

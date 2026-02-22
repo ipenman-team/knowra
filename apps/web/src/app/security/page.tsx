@@ -1,24 +1,16 @@
 import type { Metadata } from 'next';
 
 import { LandingShell, SecuritySection } from '@/features/landing/components';
-import { resolveLandingLocale } from '@/features/landing/locale';
 
 export const metadata: Metadata = {
-  title: 'Knowra - Security',
-  description: 'Data protection, permission governance, and model key security for knowledge workflows.',
+  title: 'Knowra - 安全管控',
+  description: '覆盖用户数据、知识内容和模型密钥的基础防护与治理能力。',
 };
 
-interface SecurityPageProps {
-  searchParams: Promise<{ lang?: string | string[] }>;
-}
-
-export default async function SecurityPage({ searchParams }: SecurityPageProps) {
-  const params = await searchParams;
-  const locale = resolveLandingLocale(params.lang);
-
+export default function SecurityPage() {
   return (
-    <LandingShell locale={locale}>
-      <SecuritySection locale={locale} />
+    <LandingShell locale="zh">
+      <SecuritySection locale="zh" />
     </LandingShell>
   );
 }

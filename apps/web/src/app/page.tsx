@@ -1,22 +1,13 @@
 import type { Metadata } from 'next';
 
-import { resolveLandingLocale } from '@/features/landing/locale';
-
 import { LandingHome } from './landing-home';
 
 export const metadata: Metadata = {
-  title: 'Knowra - 智能化知识库',
+  title: 'Knowra - 从对话开始，把知识沉淀成资产',
   description:
-    '面向用户场景的智能化知识库：语义化问答、知识协作闭环、可追溯版本治理。',
+    'Knowra 是 AI 原生知识工作空间，连接提问、导入、写作与整理，让结果沉淀为可协作、可复用、可分享的知识资产。',
 };
 
-interface PageProps {
-  searchParams: Promise<{ lang?: string | string[] }>;
-}
-
-export default async function Page({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const locale = resolveLandingLocale(params.lang);
-
-  return <LandingHome locale={locale} />;
+export default function Page() {
+  return <LandingHome locale="zh" />;
 }

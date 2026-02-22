@@ -5,6 +5,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useI18n } from '@/lib/i18n/provider';
 import { Share2 } from 'lucide-react';
 
 export function KnowraAiHeader(props: {
@@ -12,6 +13,8 @@ export function KnowraAiHeader(props: {
   copied: boolean;
   onShare: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="shrink-0 border-b bg-background/80 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center justify-between gap-3">
@@ -26,13 +29,13 @@ export function KnowraAiHeader(props: {
                 type="button"
                 size="icon"
                 variant="ghost"
-                aria-label="分享"
+                aria-label={t('knowraAiHeader.share')}
                 onClick={props.onShare}
               >
                 <Share2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{props.copied ? '已复制链接' : '分享'}</TooltipContent>
+            <TooltipContent>{props.copied ? t('knowraAiHeader.copied') : t('knowraAiHeader.share')}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>

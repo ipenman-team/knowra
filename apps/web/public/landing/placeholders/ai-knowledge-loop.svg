@@ -1,0 +1,10 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" rx="28" fill="#F8FAFC"/>
+  <rect x="52" y="56" width="1496" height="72" rx="16" fill="#E2E8F0"/>
+  <rect x="52" y="160" width="410" height="680" rx="20" fill="#E2E8F0"/>
+  <rect x="492" y="160" width="1056" height="680" rx="20" fill="#EFF6FF"/>
+  <rect x="528" y="208" width="640" height="120" rx="20" fill="#DBEAFE"/>
+  <rect x="872" y="370" width="640" height="120" rx="20" fill="#E2E8F0"/>
+  <rect x="528" y="532" width="640" height="120" rx="20" fill="#DBEAFE"/>
+  <text x="1018" y="732" text-anchor="middle" fill="#1E3A8A" font-size="34" font-family="Arial, sans-serif" font-weight="700">AI Knowledge Loop Scene Placeholder</text>
+</svg>

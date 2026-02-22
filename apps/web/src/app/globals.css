@@ -130,6 +130,27 @@
 }
 
 @layer utilities {
+  @keyframes landing-fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes landing-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
   @keyframes icon-pop {
     0% {
       transform: scale(1);
@@ -162,5 +183,23 @@
 
   .animate-icon-halo {
     animation: icon-halo 480ms ease-out;
+  }
+
+  .landing-fade-in {
+    opacity: 0;
+    animation: landing-fade-up 560ms ease-out forwards;
+  }
+
+  .landing-float {
+    animation: landing-float 6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .landing-fade-in,
+    .landing-float {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
   }
 }
